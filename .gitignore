@@ -14,3 +14,4 @@ dist/
 .engineering/reports/*
 !.engineering/reports/.gitignore
 !.engineering/reports/.gitkeep
+.engineering/drive_logs/
