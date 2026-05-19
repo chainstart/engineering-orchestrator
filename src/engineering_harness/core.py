@@ -407,6 +407,15 @@ AGENT_CONTEXT_PACK_LIMITS = {
     "requirement_excerpt_chars": 1200,
     "prompt_chars": 1200,
     "verification_command_count": 20,
+    "roadmap_task_count": 12,
+    "roadmap_command_count": 4,
+    "continuation_stage_count": 8,
+    "recent_manifest_count": 5,
+    "manifest_run_count": 6,
+    "test_file_count": 40,
+    "test_name_count": 12,
+    "git_commit_count": 6,
+    "message_chars": 500,
 }
 OPERATOR_CONSOLE_LIMITS = {
     "recent_task_runs": 8,
@@ -4595,9 +4604,24 @@ class Harness:
             return ""
         return re.sub(r"\s+", " ", redact(str(value))).strip().casefold()
 
-    def _self_iteration_manifest_context(self) -> dict[str, Any]:
+    def _self_iteration_manifest_context(
+        self,
+        *,
+        recent_manifest_count: int | None = None,
+        manifest_run_count: int | None = None,
+    ) -> dict[str, Any]:
         index = self._build_manifest_index()
-        recent_entries = list(reversed(index.get("manifests", [])))[: SELF_ITERATION_CONTEXT_LIMITS["recent_manifest_count"]]
+        recent_limit = (
+            SELF_ITERATION_CONTEXT_LIMITS["recent_manifest_count"]
+            if recent_manifest_count is None
+            else max(0, int(recent_manifest_count))
+        )
+        run_limit = (
+            SELF_ITERATION_CONTEXT_LIMITS["manifest_run_count"]
+            if manifest_run_count is None
+            else max(0, int(manifest_run_count))
+        )
+        recent_entries = list(reversed(index.get("manifests", [])))[:recent_limit]
         recent_manifests = []
         for entry in recent_entries:
             manifest_path = self.project_root / str(entry.get("manifest_path", ""))
@@ -4611,7 +4635,7 @@ class Harness:
                     }
                 )
                 continue
-            recent_manifests.append(self._self_iteration_manifest_summary(entry, manifest))
+            recent_manifests.append(self._self_iteration_manifest_summary(entry, manifest, manifest_run_count=run_limit))
         return {
             "index": {
                 "path": index.get("manifest_index_path"),
@@ -4624,9 +4648,20 @@ class Harness:
             "recent_task_manifests": recent_manifests,
         }
 
-    def _self_iteration_manifest_summary(self, entry: dict[str, Any], manifest: dict[str, Any]) -> dict[str, Any]:
+    def _self_iteration_manifest_summary(
+        self,
+        entry: dict[str, Any],
+        manifest: dict[str, Any],
+        *,
+        manifest_run_count: int | None = None,
+    ) -> dict[str, Any]:
         runs = manifest.get("runs", []) if isinstance(manifest.get("runs"), list) else []
         git = manifest.get("git", {}) if isinstance(manifest.get("git"), dict) else {}
+        run_limit = (
+            SELF_ITERATION_CONTEXT_LIMITS["manifest_run_count"]
+            if manifest_run_count is None
+            else max(0, int(manifest_run_count))
+        )
         return {
             "manifest_path": entry.get("manifest_path") or manifest.get("manifest_path"),
             "report_path": entry.get("report_path") or manifest.get("report_path"),
@@ -4654,10 +4689,10 @@ class Harness:
                     if isinstance(run.get("user_experience_gate"), dict)
                     else {},
                 }
-                for run in runs[: SELF_ITERATION_CONTEXT_LIMITS["manifest_run_count"]]
+                for run in runs[:run_limit]
                 if isinstance(run, dict)
             ],
-            "run_count_truncated": len(runs) > SELF_ITERATION_CONTEXT_LIMITS["manifest_run_count"],
+            "run_count_truncated": len(runs) > run_limit,
             "git": {
                 "is_repository": bool(git.get("is_repository", False)),
                 "branch": git.get("branch"),
@@ -5394,23 +5429,43 @@ class Harness:
             "excerpt_truncated": payload.get("excerpt_truncated", False),
         }
 
-    def _self_iteration_test_inventory(self) -> dict[str, Any]:
+    def _self_iteration_test_inventory(
+        self,
+        *,
+        test_file_count: int | None = None,
+        test_name_count: int | None = None,
+    ) -> dict[str, Any]:
         files = self._iter_project_files(("tests",), extensions=SELF_ITERATION_TEST_EXTENSIONS)
-        included = files[: SELF_ITERATION_CONTEXT_LIMITS["test_file_count"]]
+        file_limit = (
+            SELF_ITERATION_CONTEXT_LIMITS["test_file_count"]
+            if test_file_count is None
+            else max(0, int(test_file_count))
+        )
+        name_limit = (
+            SELF_ITERATION_CONTEXT_LIMITS["test_name_count"]
+            if test_name_count is None
+            else max(0, int(test_name_count))
+        )
+        included = files[:file_limit]
         return {
             "total_count": len(files),
             "included_count": len(included),
-            "files": [self._self_iteration_test_file_summary(path) for path in included],
+            "files": [self._self_iteration_test_file_summary(path, test_name_count=name_limit) for path in included],
         }
 
-    def _self_iteration_test_file_summary(self, path: Path) -> dict[str, Any]:
+    def _self_iteration_test_file_summary(self, path: Path, *, test_name_count: int | None = None) -> dict[str, Any]:
         names = self._test_names(path)
+        name_limit = (
+            SELF_ITERATION_CONTEXT_LIMITS["test_name_count"]
+            if test_name_count is None
+            else max(0, int(test_name_count))
+        )
         return {
             "path": self._project_relative_path(path),
             "bytes": self._file_size(path),
             "test_count": len(names),
-            "tests": names[: SELF_ITERATION_CONTEXT_LIMITS["test_name_count"]],
-            "test_count_truncated": len(names) > SELF_ITERATION_CONTEXT_LIMITS["test_name_count"],
+            "tests": names[:name_limit],
+            "test_count_truncated": len(names) > name_limit,
         }
 
     def _self_iteration_source_inventory(self) -> dict[str, Any]:
@@ -5437,7 +5492,7 @@ class Harness:
             ],
         }
 
-    def _self_iteration_git_context(self) -> dict[str, Any]:
+    def _self_iteration_git_context(self, *, git_commit_count: int | None = None) -> dict[str, Any]:
         context: dict[str, Any] = {
             "is_repository": False,
             "root": None,
@@ -5454,7 +5509,12 @@ class Harness:
         head = self._git(["rev-parse", "HEAD"])
         short_head = self._git(["rev-parse", "--short", "HEAD"])
         status = self._git(["status", "--short"])
-        commits = self._git(["log", "--oneline", f"-{SELF_ITERATION_CONTEXT_LIMITS['git_commit_count']}"])
+        commit_limit = (
+            SELF_ITERATION_CONTEXT_LIMITS["git_commit_count"]
+            if git_commit_count is None
+            else max(0, int(git_commit_count))
+        )
+        commits = self._git(["log", "--oneline", f"-{commit_limit}"])
         context.update(
             {
                 "is_repository": True,
@@ -5564,7 +5624,19 @@ class Harness:
 
     def _redact_context_value(self, value: Any) -> Any:
         if isinstance(value, dict):
-            return {str(key): self._redact_context_value(item) for key, item in value.items()}
+            redacted: dict[str, Any] = {}
+            for key, item in value.items():
+                text_key = str(key)
+                if (
+                    sensitive_evidence_key(text_key)
+                    and item is not None
+                    and not isinstance(item, bool)
+                    and not isinstance(item, (dict, list, tuple))
+                ):
+                    redacted[text_key] = "[REDACTED]"
+                else:
+                    redacted[text_key] = self._redact_context_value(item)
+            return redacted
         if isinstance(value, list):
             return [self._redact_context_value(item) for item in value]
         if isinstance(value, tuple):
@@ -10334,6 +10406,141 @@ continuation stage(s) were appended.
             len(commands) > limit,
         )
 
+    def _agent_context_pack_command_outline(self, command: AcceptanceCommand) -> dict[str, Any]:
+        return {
+            "name": command.name,
+            "executor": command.executor,
+            "required": command.required,
+            "timeout_seconds": command.timeout_seconds,
+            "model": command.model,
+            "sandbox": command.sandbox,
+            "spec_refs": list(command.spec_refs),
+            "requested_capabilities": list(command.requested_capabilities),
+            "has_command": command.command is not None,
+            "has_prompt": command.prompt is not None,
+        }
+
+    def _agent_context_pack_task_outline(self, task: HarnessTask, *, status: str | None = None) -> dict[str, Any]:
+        command_limit = int(AGENT_CONTEXT_PACK_LIMITS["roadmap_command_count"])
+
+        def group(commands: tuple[AcceptanceCommand, ...]) -> dict[str, Any]:
+            included = commands[:command_limit]
+            return {
+                "count": len(commands),
+                "included_count": len(included),
+                "truncated": len(commands) > command_limit,
+                "commands": [self._agent_context_pack_command_outline(command) for command in included],
+            }
+
+        return {
+            "id": task.id,
+            "title": task.title,
+            "milestone_id": task.milestone_id,
+            "milestone_title": task.milestone_title,
+            "status": status if status is not None else task.status,
+            "file_scope": list(task.file_scope),
+            "spec_refs": list(task.spec_refs),
+            "manual_approval_required": task.manual_approval_required,
+            "agent_approval_required": task.agent_approval_required,
+            "max_task_iterations": task.max_task_iterations,
+            "implementation": group(task.implementation),
+            "repair": group(task.repair),
+            "acceptance": group(task.acceptance),
+            "e2e": group(task.e2e),
+        }
+
+    def _agent_context_pack_roadmap_context(self, task: HarnessTask) -> dict[str, Any]:
+        milestones = self.roadmap.get("milestones", [])
+        if not isinstance(milestones, list):
+            milestones = []
+        tasks = list(self.iter_tasks())
+        state = self.load_state()
+        task_states = state.get("tasks", {}) if isinstance(state.get("tasks"), dict) else {}
+        task_status_counts: dict[str, int] = {}
+        pending_tasks: list[dict[str, Any]] = []
+        task_limit = int(AGENT_CONTEXT_PACK_LIMITS["roadmap_task_count"])
+        for candidate in tasks:
+            task_state = task_states.get(candidate.id, {}) if isinstance(task_states.get(candidate.id), dict) else {}
+            status = str(task_state.get("status", candidate.status))
+            task_status_counts[status] = task_status_counts.get(status, 0) + 1
+            if status in COMPLETED_STATUSES or status in BLOCKED_STATUSES:
+                continue
+            if len(pending_tasks) < task_limit:
+                pending_tasks.append(self._agent_context_pack_task_outline(candidate, status=status))
+
+        goal = self.roadmap.get("goal") if isinstance(self.roadmap.get("goal"), dict) else {}
+        generated_from = self.roadmap.get("generated_from") if isinstance(self.roadmap.get("generated_from"), dict) else {}
+        continuation = self.roadmap.get("continuation") if isinstance(self.roadmap.get("continuation"), dict) else {}
+        continuation_stages = continuation.get("stages", []) if isinstance(continuation, dict) else []
+        if not isinstance(continuation_stages, list):
+            continuation_stages = []
+        materialized_stage_ids = {
+            str(milestone.get("id", "")).strip()
+            for milestone in milestones
+            if isinstance(milestone, dict)
+        }
+        pending_stages = [
+            stage
+            for stage in continuation_stages
+            if isinstance(stage, dict) and str(stage.get("id", "")).strip() not in materialized_stage_ids
+        ]
+        stage_limit = int(AGENT_CONTEXT_PACK_LIMITS["continuation_stage_count"])
+        pending_task_count = 0
+        for candidate in tasks:
+            task_state = task_states.get(candidate.id, {}) if isinstance(task_states.get(candidate.id), dict) else {}
+            status = str(task_state.get("status", candidate.status))
+            if status not in COMPLETED_STATUSES | BLOCKED_STATUSES:
+                pending_task_count += 1
+        current_task_state = task_states.get(task.id, {}) if isinstance(task_states.get(task.id), dict) else {}
+        return {
+            "path": self._project_relative_path(self.roadmap_path),
+            "project": str(self.roadmap.get("project", self.project_root.name)),
+            "profile": self.roadmap.get("profile"),
+            "generated_by": self.roadmap.get("generated_by"),
+            "goal": {
+                "text": self._truncate_text(str(goal.get("text") or generated_from.get("goal") or ""), 500),
+                "blueprint": goal.get("blueprint") or generated_from.get("blueprint_path"),
+                "constraints": self._string_items(goal.get("constraints")) if isinstance(goal, dict) else [],
+            },
+            "milestone_count": len(milestones),
+            "task_count": len(tasks),
+            "task_status_counts": dict(sorted(task_status_counts.items())),
+            "current_task": self._agent_context_pack_task_outline(
+                task,
+                status=str(current_task_state.get("status", task.status)),
+            ),
+            "pending_task_count": pending_task_count,
+            "pending_tasks": pending_tasks,
+            "pending_tasks_truncated": len(pending_tasks) >= task_limit and len(pending_tasks) < pending_task_count,
+            "continuation": {
+                "enabled": bool(continuation.get("enabled", False)) if isinstance(continuation, dict) else False,
+                "goal": self._truncate_text(str(continuation.get("goal") or ""), 500)
+                if isinstance(continuation, dict)
+                else "",
+                "blueprint": continuation.get("blueprint") if isinstance(continuation, dict) else None,
+                "stage_count": len(continuation_stages),
+                "pending_stage_count": len(pending_stages),
+                "stages": [self._self_iteration_stage_summary(stage) for stage in pending_stages[:stage_limit]],
+                "stage_count_truncated": len(pending_stages) > stage_limit,
+            },
+            "self_iteration": self.self_iteration_summary(),
+        }
+
+    def _agent_context_pack_manifest_context(self) -> dict[str, Any]:
+        return self._self_iteration_manifest_context(
+            recent_manifest_count=int(AGENT_CONTEXT_PACK_LIMITS["recent_manifest_count"]),
+            manifest_run_count=int(AGENT_CONTEXT_PACK_LIMITS["manifest_run_count"]),
+        )
+
+    def _agent_context_pack_test_context(self) -> dict[str, Any]:
+        return self._self_iteration_test_inventory(
+            test_file_count=int(AGENT_CONTEXT_PACK_LIMITS["test_file_count"]),
+            test_name_count=int(AGENT_CONTEXT_PACK_LIMITS["test_name_count"]),
+        )
+
+    def _agent_context_pack_git_context(self) -> dict[str, Any]:
+        return self._self_iteration_git_context(git_commit_count=int(AGENT_CONTEXT_PACK_LIMITS["git_commit_count"]))
+
     def _requirement_heading_title(self, raw_title: str | None) -> str:
         title = str(raw_title or "").strip()
         if title.startswith(":"):
@@ -10555,6 +10762,10 @@ continuation stage(s) were appended.
         refs, refs_truncated = self._agent_context_pack_refs(task, command)
         requirements, requirement_errors = self._requirement_excerpts_for_refs(refs)
         verification, verification_truncated = self._agent_context_pack_verification_payload(task)
+        roadmap_context = self._agent_context_pack_roadmap_context(task)
+        manifest_context = self._agent_context_pack_manifest_context()
+        test_context = self._agent_context_pack_test_context()
+        git_context = self._agent_context_pack_git_context()
         context_dir = self.report_dir / AGENT_CONTEXT_PACK_DIRNAME
         fingerprint = hashlib.sha256(
             f"{task.id}\0{phase or ''}\0{command.name}\0{time.time_ns()}".encode("utf-8")
@@ -10565,6 +10776,22 @@ continuation stage(s) were appended.
             f"{self._safe_context_slug(command.name, fallback='command')}-{fingerprint}.json"
         )
         spec_summary = self.spec_index_summary()
+        summary = {
+            "spec_ref_count": len(refs),
+            "spec_refs_truncated": refs_truncated,
+            "requirement_count": len(requirements),
+            "requirement_error_count": len(requirement_errors),
+            "verification_command_count": len(verification),
+            "verification_truncated": verification_truncated,
+            "roadmap_task_count": roadmap_context.get("task_count", 0),
+            "pending_task_count": roadmap_context.get("pending_task_count", 0),
+            "manifest_count": manifest_context.get("index", {}).get("manifest_count", 0),
+            "recent_manifest_count": len(manifest_context.get("recent_task_manifests", [])),
+            "test_file_count": test_context.get("included_count", 0),
+            "git_is_repository": git_context.get("is_repository", False),
+            "git_status_line_count": len(git_context.get("status_lines", [])),
+            "recent_commit_count": len(git_context.get("recent_commits", [])),
+        }
         payload = {
             "schema_version": AGENT_CONTEXT_PACK_SCHEMA_VERSION,
             "kind": "engineering-harness.agent-context-pack",
@@ -10588,6 +10815,7 @@ continuation stage(s) were appended.
             "executor": executor_metadata,
             "spec_refs": refs,
             "spec_refs_truncated": refs_truncated,
+            "summary": summary,
             "spec": {
                 "configured": spec_summary.get("configured", False),
                 "path": spec_summary.get("path"),
@@ -10600,6 +10828,10 @@ continuation stage(s) were appended.
             "requirement_errors": requirement_errors,
             "verification": verification,
             "verification_truncated": verification_truncated,
+            "roadmap": roadmap_context,
+            "tests": test_context,
+            "manifests": manifest_context,
+            "git": git_context,
             "limits": dict(AGENT_CONTEXT_PACK_LIMITS),
         }
         redacted_payload = self._redact_context_value(payload)
@@ -10615,6 +10847,7 @@ continuation stage(s) were appended.
             "spec_refs_truncated": refs_truncated,
             "requirement_count": len(requirements),
             "requirement_error_count": len(requirement_errors),
+            "summary": summary,
             "limits": dict(AGENT_CONTEXT_PACK_LIMITS),
             "requirements": [
                 {

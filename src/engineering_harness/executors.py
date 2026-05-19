@@ -695,7 +695,7 @@ class CodexExecutorAdapter:
     def display_command(self, invocation: ExecutorInvocation) -> str:
         model = f" --model {invocation.model}" if invocation.model else ""
         return (
-            f"codex exec --full-auto --sandbox {invocation.sandbox}{model} "
+            f"codex exec --full-auto --skip-git-repo-check --sandbox {invocation.sandbox}{model} "
             f"-C {invocation.project_root} <task:{invocation.task_id}>"
         )
 
@@ -722,7 +722,16 @@ class CodexExecutorAdapter:
         }
 
     def execute(self, invocation: ExecutorInvocation) -> ExecutorResult:
-        args = ["codex", "exec", "--full-auto", "--sandbox", invocation.sandbox, "-C", str(invocation.project_root)]
+        args = [
+            "codex",
+            "exec",
+            "--full-auto",
+            "--skip-git-repo-check",
+            "--sandbox",
+            invocation.sandbox,
+            "-C",
+            str(invocation.project_root),
+        ]
         if invocation.model:
             args.extend(["--model", invocation.model])
         args.append(invocation.prompt or invocation.command or "")
