@@ -57,7 +57,7 @@ from .spec_backlog import (
 )
 
 
-COMPLETED_STATUSES = {"done", "passed", "skipped"}
+COMPLETED_STATUSES = {"completed", "done", "passed", "skipped"}
 BLOCKED_STATUSES = {"blocked", "paused"}
 CONFIG_CANDIDATES = (".engineering/roadmap.yaml", ".engineering/roadmap.json", "ops/engineering/roadmap.yaml")
 PRUNE_DIRS = {".git", "node_modules", ".venv", "venv", ".pytest_cache", "dist", "out", "cache", "artifacts"}

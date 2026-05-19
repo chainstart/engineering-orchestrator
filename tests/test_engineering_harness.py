@@ -79,6 +79,46 @@ def status_summary_for_roadmap(tmp_path: Path, project_name: str, roadmap: dict)
     return Harness(project).status_summary()
 
 
+def test_next_task_treats_completed_roadmap_status_as_terminal(tmp_path: Path):
+    project = tmp_path / "completed-roadmap-status"
+    project.mkdir()
+    engineering_dir = project / ".engineering"
+    engineering_dir.mkdir()
+    roadmap = {
+        "version": 1,
+        "project": "completed-roadmap-status",
+        "profile": "python-agent",
+        "milestones": [
+            {
+                "id": "baseline",
+                "status": "active",
+                "tasks": [
+                    {
+                        "id": "already-complete",
+                        "title": "Already complete",
+                        "status": "completed",
+                        "file_scope": ["**"],
+                        "acceptance": [{"name": "complete", "command": "python3 -c \"print('complete')\""}],
+                    },
+                    {
+                        "id": "next-work",
+                        "title": "Next work",
+                        "status": "pending",
+                        "file_scope": ["**"],
+                        "acceptance": [{"name": "pending", "command": "python3 -c \"print('pending')\""}],
+                    },
+                ],
+            }
+        ],
+    }
+    (engineering_dir / "roadmap.yaml").write_text(json.dumps(roadmap), encoding="utf-8")
+
+    task = Harness(project).next_task()
+
+    assert task is not None
+    assert task.id == "next-work"
+
+
 def roadmap_fixture_payload(fixture_name: str) -> dict:
     fixture_path = ROADMAP_FIXTURES / fixture_name
     return json.loads(fixture_path.read_text(encoding="utf-8"))
