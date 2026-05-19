@@ -174,6 +174,39 @@ Acceptance:
 - Operators can inspect blockers, approvals, and evidence without reading raw logs.
 - Dashboard data is derived from manifests and durable state.
 
+## Stage 7: Target Spec Synchronization
+
+Requirement refs:
+
+- `EH-SPEC-001`
+- `EH-SPEC-002`
+- `EH-SPEC-008`
+- `EH-SPEC-015`
+
+Goal:
+
+Keep the developed project's own spec maintenance files current after each task or stage.
+
+Tasks:
+
+1. Define the `.engineering/spec_tasks.yaml` target-project contract.
+2. Add an audit command that checks source spec, implementation status doc, decision log directory,
+   requirement ids, task ids, and task-to-requirement references.
+3. Add a record command that updates a target task status, appends evidence, and writes
+   `docs/spec_update_log.jsonl`.
+4. Add best-effort task-completion sync from `run` and `drive` when the roadmap task id exists in
+   the target spec task ledger.
+5. Document how harness task packages should update the developed repository's spec after each
+   implementation stage.
+
+Acceptance:
+
+- `engh spec-sync audit --project-root <target> --json` reports passed/warning/failed with checks.
+- `engh spec-sync record --project-root <target> --task-id <id> --status completed --apply` updates
+  the task ledger and appends a JSONL update log.
+- A completed harness task records skipped/updated sync evidence in its result payload.
+- Target projects can keep requirement status independent from transient roadmap structure.
+
 ## Current Implementation Target
 
 Stages 1 and 2 establish traceability and the canonical spec index. Stage 3 starts with the local
@@ -184,3 +217,5 @@ covered stages keep only the still-uncovered tasks. Generated spec traceability 
 stages advance into active milestones. Self-iteration context packs expose the spec traceability
 expectation, validation rejects new stages or tasks without `spec_refs` when the existing roadmap is
 spec-traceable, and accepted assessments report which requirement refs newly appended stages advance.
+Stage 7 adds target-project spec synchronization so Engineering Harness can update the developed
+repository's own dynamic spec ledger after task or stage completion.

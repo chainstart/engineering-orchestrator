@@ -1,0 +1,39 @@
+{
+  "kind": "engineering-harness.spec_tasks.v1",
+  "project": "engineering-harness",
+  "updated_at": "2026-05-19T00:00:00Z",
+  "source_spec": "docs/engineering-harness-system-spec.md",
+  "status_doc": "docs/engineering_harness_implementation_status.md",
+  "decision_log_dir": "docs/decisions",
+  "requirements": [
+    {"id": "EH-SPEC-001", "title": "Specification intake", "status": "completed"},
+    {"id": "EH-SPEC-002", "title": "Spec-to-roadmap planning", "status": "completed"},
+    {"id": "EH-SPEC-003", "title": "Task graph and execution phases", "status": "completed"},
+    {"id": "EH-SPEC-004", "title": "Executor abstraction", "status": "partial"},
+    {"id": "EH-SPEC-005", "title": "Model and memory layer", "status": "partial"},
+    {"id": "EH-SPEC-006", "title": "Durable autonomous runtime", "status": "completed"},
+    {"id": "EH-SPEC-007", "title": "Production acceptance and E2E evidence", "status": "partial"},
+    {"id": "EH-SPEC-008", "title": "Manifest, report, and audit trail", "status": "completed"},
+    {"id": "EH-SPEC-009", "title": "Git, CI, and release integration", "status": "partial"},
+    {"id": "EH-SPEC-010", "title": "Policy and governance", "status": "partial"},
+    {"id": "EH-SPEC-011", "title": "Operator experience", "status": "partial"},
+    {"id": "EH-SPEC-012", "title": "Domain packs", "status": "partial"},
+    {"id": "EH-SPEC-013", "title": "Self-iteration", "status": "completed"},
+    {"id": "EH-SPEC-014", "title": "Public distribution", "status": "partial"},
+    {"id": "EH-SPEC-015", "title": "Target spec synchronization", "status": "completed"}
+  ],
+  "tasks": [
+    {
+      "id": "EH-SPEC-SYNC-001",
+      "title": "Implement target project spec synchronization",
+      "status": "completed",
+      "requirement_ids": ["EH-SPEC-001", "EH-SPEC-002", "EH-SPEC-008", "EH-SPEC-015"],
+      "evidence": [
+        {"kind": "code", "path": "src/engineering_harness/spec_sync.py"},
+        {"kind": "test", "path": "tests/test_spec_sync.py"},
+        {"kind": "doc", "path": "docs/decisions/2026-05-19-target-spec-sync.md"}
+      ],
+      "next_action": "Use spec-sync in downstream task packages after implementation stages."
+    }
+  ]
+}

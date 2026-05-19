@@ -729,6 +729,19 @@ def sensitive_evidence_key(key: object) -> bool:
     text = str(key).strip()
     if not text:
         return False
+    if text.lower() in {
+        "blocked",
+        "completed",
+        "done",
+        "error",
+        "failed",
+        "passed",
+        "pending",
+        "skipped",
+        "status",
+        "warning",
+    }:
+        return False
     upper = text.upper()
     if upper.endswith(("_CONFIGURED", "_PRESENT", "_SET", "_AVAILABLE", "_ENABLED")):
         return False

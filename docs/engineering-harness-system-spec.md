@@ -204,6 +204,23 @@ Acceptance evidence:
 - The project has an explicit Apache-2.0 license.
 - Public README positioning does not bind the project to a private workspace or single domain.
 
+### EH-SPEC-015: Target Spec Synchronization
+
+The harness must help target projects keep their own dynamic specification systems current after a
+task or stage is implemented. A target project may maintain `.engineering/spec_tasks.yaml`,
+implementation-status documentation, decision records, and a spec update log. The harness should be
+able to audit that structure and record task completion evidence without requiring the target project
+to use Engineering Harness internals.
+
+Acceptance evidence:
+
+- `engh spec-sync audit` validates the target project's dynamic spec maintenance files.
+- `engh spec-sync record --apply` updates the target task ledger and appends a machine-readable
+  update log entry.
+- Completed harness tasks attempt a best-effort update when the target task id is present in
+  `.engineering/spec_tasks.yaml`.
+- Missing or unmatched spec tasks are reported as skipped evidence, not silently treated as success.
+
 ## Nonfunctional Requirements
 
 - **Local-first**: workflows must be runnable on a developer machine before they are delegated to
@@ -258,3 +275,34 @@ The requirement index is local-only. It may be a JSON/YAML mapping with `require
 requirement ids. Exact requirement-id strings and requirement-id mapping keys are de-duplicated.
 Markdown spec paths with requirement headings are indexed directly when no separate index is
 provided.
+
+## Dynamic Target Spec Maintenance
+
+Projects can opt into a lightweight dynamic spec contract:
+
+```json
+{
+  "kind": "project.spec_tasks.v1",
+  "project": "example",
+  "source_spec": "docs/spec.md",
+  "status_doc": "docs/implementation_status.md",
+  "decision_log_dir": "docs/decisions",
+  "requirements": [{"id": "REQ-EXAMPLE-001", "title": "Example", "status": "pending"}],
+  "tasks": [{"id": "example-task", "status": "pending", "requirement_ids": ["REQ-EXAMPLE-001"]}]
+}
+```
+
+The harness command surface is:
+
+```bash
+engh spec-sync audit --project-root /path/to/target --json
+engh spec-sync record --project-root /path/to/target \
+  --task-id example-task \
+  --status completed \
+  --evidence "python3 -m pytest -q" \
+  --apply
+```
+
+This does not replace roadmaps. The roadmap remains the executable plan; the dynamic spec ledger is
+the requirement-level memory that survives across roadmap rewrites, long-running branches, and
+domain-specific repositories.

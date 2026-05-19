@@ -25,6 +25,7 @@ from .core import (
 from .goal_planner import DEFAULT_GOAL_STAGE_COUNT, materialize_goal_roadmap, plan_goal_roadmap
 from .io import write_json
 from .profiles import list_profiles
+from .spec_sync import SPEC_TASKS_RELATIVE_PATH, audit_spec_system, record_spec_task_update
 
 
 WORKSPACE_DISPATCH_LEASE_SCHEMA_VERSION = 1
@@ -422,6 +423,8 @@ def cmd_run(args: argparse.Namespace) -> int:
             allow_manual=args.allow_manual,
             allow_agent=args.allow_agent,
         )
+        if not args.dry_run:
+            result["spec_sync"] = maybe_sync_completed_spec_task(root, task, result, phase="run")
         maybe_checkpoint_task(harness, task, result, args, dry_run=args.dry_run)
         results.append(result)
         if args.task or args.dry_run or result["status"] not in COMPLETED_STATUSES:
@@ -960,6 +963,75 @@ def cmd_spec_backlog(args: argparse.Namespace) -> int:
     return 0 if result["status"] in {"proposed", "materialized", "up_to_date"} else 1
 
 
+def cmd_spec_sync(args: argparse.Namespace) -> int:
+    root = resolve_project_root(args)
+    if args.spec_sync_action == "audit":
+        result = audit_spec_system(root)
+        if args.json:
+            print(json.dumps(result, indent=2, sort_keys=True))
+        else:
+            print(f"Spec sync audit: {result['status']}")
+            print(f"Requirements: {result.get('requirement_count', 0)}")
+            print(f"Tasks: {result.get('task_count', 0)}")
+            for check in result.get("checks", []):
+                print(f"- {check.get('status')}: {check.get('name')} - {check.get('message')}")
+        return 0 if result["status"] in {"passed", "warning"} else 1
+
+    if args.spec_sync_action == "record":
+        result = record_spec_task_update(
+            root,
+            task_id=args.task_id,
+            status=args.status,
+            evidence=args.evidence,
+            requirement_ids=args.requirement_id,
+            note=args.note,
+            actor=args.actor,
+            phase=args.phase,
+            stage_id=args.stage_id,
+            apply=args.apply,
+        )
+        if args.json:
+            print(json.dumps(result, indent=2, sort_keys=True))
+        else:
+            action = "Updated" if result["status"] == "updated" else "Proposed update for"
+            print(f"{action} spec task {result['task_id']}: {result['previous_status']} -> {result['new_status']}")
+            if not args.apply:
+                print("Run again with --apply to write the task ledger and update log.")
+        return 0
+
+    raise ValueError(f"Unknown spec-sync action: {args.spec_sync_action}")
+
+
+def maybe_sync_completed_spec_task(root: Path, task, result: dict, *, phase: str = "task") -> dict:
+    if result.get("status") not in COMPLETED_STATUSES:
+        return {"status": "skipped", "reason": "task_not_completed"}
+    if not (root / SPEC_TASKS_RELATIVE_PATH).exists():
+        return {"status": "skipped", "reason": "spec_tasks_not_configured"}
+    evidence = []
+    if result.get("report"):
+        evidence.append(f"task report: {result['report']}")
+    if result.get("manifest"):
+        evidence.append(f"task manifest: {result['manifest']}")
+    if result.get("message"):
+        evidence.append(f"task result: {result['message']}")
+    try:
+        return record_spec_task_update(
+            root,
+            task_id=task.id,
+            status="completed",
+            evidence=evidence,
+            requirement_ids=list(getattr(task, "spec_refs", ()) or ()),
+            note="Recorded automatically after a completed harness task.",
+            actor="engineering-harness:auto",
+            phase=phase,
+            apply=True,
+        )
+    except KeyError as exc:
+        return {"status": "skipped", "reason": "task_not_tracked_in_spec_tasks", "message": str(exc)}
+    except Exception as exc:
+        return {"status": "failed", "reason": "spec_sync_error", "message": str(exc)}
+
+
 def cmd_self_iterate(args: argparse.Namespace) -> int:
     root = resolve_project_root(args)
     harness = Harness(root)
@@ -1248,6 +1320,7 @@ def run_project_drive(root: Path, args: argparse.Namespace) -> tuple[int, dict]:
             allow_manual=args.allow_manual,
             allow_agent=args.allow_agent,
         )
+        result["spec_sync"] = maybe_sync_completed_spec_task(root, task, result, phase="drive")
         maybe_checkpoint_task(harness, task, result, args, checkpoint_defer=task_checkpoint_defer)
         results.append(result)
         harness.drive_heartbeat(
@@ -4209,6 +4282,34 @@ def build_parser() -> argparse.ArgumentParser:
     daemon_supervisor.add_argument("--allow-agent", action="store_true")
     daemon_supervisor.add_argument("--json", action="store_true")
     daemon_supervisor.set_defaults(func=cmd_daemon_supervisor)
+
+    spec_sync = subparsers.add_parser("spec-sync", help="Audit or update a project's dynamic spec task ledger")
+    spec_sync_subparsers = spec_sync.add_subparsers(dest="spec_sync_action", required=True)
+
+    spec_sync_audit = spec_sync_subparsers.add_parser("audit", help="Audit the dynamic spec maintenance files")
+    spec_sync_audit.add_argument("--project-root", type=Path, default=None)
+    spec_sync_audit.add_argument("--workspace", type=Path, default=Path.cwd())
+    spec_sync_audit.add_argument("--project", default=None)
+    spec_sync_audit.add_argument("--max-depth", type=int, default=3)
+    spec_sync_audit.add_argument("--json", action="store_true")
+    spec_sync_audit.set_defaults(func=cmd_spec_sync)
+
+    spec_sync_record = spec_sync_subparsers.add_parser("record", help="Record a task or stage status update")
+    spec_sync_record.add_argument("--project-root", type=Path, default=None)
+    spec_sync_record.add_argument("--workspace", type=Path, default=Path.cwd())
+    spec_sync_record.add_argument("--project", default=None)
+    spec_sync_record.add_argument("--max-depth", type=int, default=3)
+    spec_sync_record.add_argument("--task-id", required=True)
+    spec_sync_record.add_argument("--status", required=True)
+    spec_sync_record.add_argument("--evidence", action="append", default=[])
+    spec_sync_record.add_argument("--requirement-id", action="append", default=[])
+    spec_sync_record.add_argument("--note", default="")
+    spec_sync_record.add_argument("--actor", default="engineering-harness")
+    spec_sync_record.add_argument("--phase", default="")
+    spec_sync_record.add_argument("--stage-id", default="")
+    spec_sync_record.add_argument("--apply", action="store_true")
+    spec_sync_record.add_argument("--json", action="store_true")
+    spec_sync_record.set_defaults(func=cmd_spec_sync)
 
     for name, help_text, func in [
         ("status", "Show project or workspace status", cmd_status),
