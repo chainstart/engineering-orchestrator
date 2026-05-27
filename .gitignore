@@ -15,3 +15,5 @@ dist/
 !.engineering/reports/.gitignore
 !.engineering/reports/.gitkeep
 .engineering/drive_logs/
+.agents/
+.codex/
