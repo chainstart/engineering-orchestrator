@@ -25,6 +25,7 @@ from engineering_harness.executors import (
     DAGGER_ENABLE_ENV,
     OPENHANDS_BINARY_ENV,
     OPENHANDS_ENABLE_ENV,
+    TASK_AGENT_DEVELOPER_BINARY_ENV,
     DaggerExecutorAdapter,
     ExecutorInvocation,
     ExecutorMetadata,
@@ -1923,6 +1924,135 @@ def test_codex_executor_selection_uses_registered_adapter_and_preparation(tmp_pa
     assert result["runs"][0]["command"] == "recording-codex <task:tests>"
     assert result["runs"][0]["executor_metadata"]["adapter"] == "test.recording-codex"
     assert result["runs"][0]["executor_result"]["metadata"] == {"selected": "codex"}
+
+
+def test_task_agent_developer_executor_is_discoverable_and_validates_command_payload(tmp_path):
+    registry = default_executor_registry()
+    assert "task-agent-developer" in registry.ids()
+    metadata = registry.metadata_for("task-agent-developer")
+    assert metadata["adapter"] == "builtin.task-agent-developer"
+    assert metadata["kind"] == "agent"
+    assert metadata["input_mode"] == "command"
+    assert metadata["requires_agent_approval"] is True
+    assert "local_task_agent_developer_cli" in metadata["capabilities"]
+    assert "artifact_collection" in metadata["capabilities"]
+
+    project = tmp_path / "agent-project"
+    project.mkdir()
+    init_project(project, "python-agent", name="agent-project")
+    roadmap_path = project / ".engineering/roadmap.yaml"
+    roadmap = json.loads(roadmap_path.read_text(encoding="utf-8"))
+    roadmap["milestones"][0]["tasks"][0]["acceptance"][0] = {
+        "name": "task agent developer smoke",
+        "executor": "task-agent-developer",
+        "command": "develop --task tests",
+    }
+    roadmap_path.write_text(json.dumps(roadmap), encoding="utf-8")
+
+    assert Harness(project).validate_roadmap()["status"] == "passed"
+
+    roadmap["milestones"][0]["tasks"][0]["acceptance"][0].pop("command")
+    roadmap_path.write_text(json.dumps(roadmap), encoding="utf-8")
+    invalid = Harness(project).validate_roadmap()
+
+    assert invalid["status"] == "failed"
+    assert any("task-agent-developer command is required" in error for error in invalid["errors"])
+
+
+def test_task_agent_developer_executor_collects_artifacts_and_redacts_manifest_evidence(tmp_path, monkeypatch):
+    args_path = tmp_path / "task-agent-developer-args.json"
+    task_agent_developer_bin = tmp_path / "task-agent-developer"
+    task_agent_developer_bin.write_text(
+        "\n".join(
+            [
+                "#!/usr/bin/env python3",
+                "import json",
+                "import os",
+                "import pathlib",
+                "import sys",
+                "candidate = pathlib.Path('.engineering/reports/task-agent-developer/candidate.json')",
+                "audit = pathlib.Path('artifacts/task-agent-developer/audit.json')",
+                "report = pathlib.Path('.engineering/reports/task-agent-developer/report.md')",
+                "for path in (candidate, audit, report):",
+                "    path.parent.mkdir(parents=True, exist_ok=True)",
+                "candidate.write_text(json.dumps({'candidate': 'ok'}), encoding='utf-8')",
+                "audit.write_text(json.dumps({'audit': 'ok'}), encoding='utf-8')",
+                "report.write_text('# Task Agent Developer Report\\n', encoding='utf-8')",
+                "payload = {",
+                "    'args': sys.argv[1:],",
+                "    'cwd': os.getcwd(),",
+                "    'engineering_harness': os.environ.get('ENGINEERING_HARNESS'),",
+                "}",
+                "pathlib.Path(os.environ['TASK_AGENT_DEVELOPER_ARGS_PATH']).write_text(json.dumps(payload))",
+                "print(json.dumps({'artifacts': [",
+                "    {'kind': 'candidate', 'path': str(candidate)},",
+                "    {'kind': 'audit', 'path': str(audit)},",
+                "    {'kind': 'report', 'path': str(report)},",
+                "]}))",
+                "print('OPENAI_API_KEY=sk-taskagentsecret12345')",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    task_agent_developer_bin.chmod(0o755)
+    monkeypatch.setenv(TASK_AGENT_DEVELOPER_BINARY_ENV, str(task_agent_developer_bin))
+    monkeypatch.setenv("TASK_AGENT_DEVELOPER_ARGS_PATH", str(args_path))
+
+    project = tmp_path / "agent-project"
+    project.mkdir()
+    init_project(project, "python-agent", name="agent-project")
+    roadmap_path = project / ".engineering/roadmap.yaml"
+    roadmap = json.loads(roadmap_path.read_text(encoding="utf-8"))
+    roadmap["milestones"][0]["tasks"][0]["acceptance"][0] = {
+        "name": "task agent developer smoke",
+        "executor": "task-agent-developer",
+        "command": "task-agent-developer develop --task tests",
+    }
+    roadmap_path.write_text(json.dumps(roadmap), encoding="utf-8")
+
+    result = Harness(project).run_task(Harness(project).next_task(), allow_agent=True)
+    manifest = task_manifest(project, result)
+    run = manifest["runs"][0]
+    report_text = (project / result["report"]).read_text(encoding="utf-8")
+    task_agent_metadata = run["executor_result"]["metadata"]["task_agent_developer"]
+    artifacts = task_agent_metadata["artifacts"]
+    artifact_kinds = {artifact["kind"] for artifact in artifacts}
+    manifest_artifact_kinds = {artifact["kind"] for artifact in manifest["artifacts"]}
+    payload = json.loads(args_path.read_text(encoding="utf-8"))
+
+    assert result["status"] == "passed"
+    assert payload["args"] == ["develop", "--task", "tests"]
+    assert payload["cwd"] == str(project)
+    assert payload["engineering_harness"] == "1"
+    assert run["executor"] == "task-agent-developer"
+    assert run["command"] == "task-agent-developer develop --task tests <task:tests>"
+    assert run["executor_metadata"]["adapter"] == "builtin.task-agent-developer"
+    assert run["executor_metadata"]["capabilities"] == [
+        "agent",
+        "local_task_agent_developer_cli",
+        "workspace_write",
+        "artifact_collection",
+        "exit_code",
+        "stdout",
+        "stderr",
+    ]
+    assert run["executor_result"]["status"] == "passed"
+    assert task_agent_metadata["artifact_count"] == 3
+    assert artifact_kinds == {
+        "task_agent_developer_candidate",
+        "task_agent_developer_audit",
+        "task_agent_developer_report",
+    }
+    assert all(artifact["exists"] is True and artifact["sha256"] for artifact in artifacts)
+    assert run["artifacts"] == artifacts
+    assert {
+        "task_agent_developer_candidate",
+        "task_agent_developer_audit",
+        "task_agent_developer_report",
+    }.issubset(manifest_artifact_kinds)
+    assert "sk-taskagentsecret12345" not in json.dumps(manifest)
+    assert "sk-taskagentsecret12345" not in report_text
+    assert "OPENAI_API_KEY=[REDACTED]" in report_text
 
 
 def test_dagger_executor_is_discoverable_and_validates_command_payload(tmp_path):

@@ -103,6 +103,7 @@ UNSAFE_EXECUTOR_CAPABILITIES = {
 }
 LOCAL_CAPABILITY_VOCABULARY = {
     "agent",
+    "artifact_collection",
     "containerized_execution",
     "exit_code",
     "filesystem_escape",
@@ -110,6 +111,7 @@ LOCAL_CAPABILITY_VOCABULARY = {
     "local_dagger_cli",
     "local_openhands_cli",
     "local_process",
+    "local_task_agent_developer_cli",
     "requires_explicit_configuration",
     "stderr",
     "stdout",
@@ -9970,6 +9972,7 @@ continuation stage(s) were appended.
                     else [],
                     "executor_metadata": run.get("executor_metadata") if isinstance(run.get("executor_metadata"), dict) else {},
                     "executor_result": run.get("executor_result") if isinstance(run.get("executor_result"), dict) else {},
+                    "artifacts": run.get("artifacts") if isinstance(run.get("artifacts"), list) else [],
                 }
                 for run in runs
                 if isinstance(run, dict)
@@ -13987,6 +13990,7 @@ continuation stage(s) were appended.
         )
         safety_audit_payload = safety_audit or self._safety_audit_evidence(policy_decision_payload)
         context_pack_artifacts = self._context_pack_artifacts_from_runs(runs)
+        executor_artifacts = self._executor_artifacts_from_runs(runs)
         payload = {
             "schema_version": 1,
             "kind": "engineering-harness.task-run-manifest",
@@ -14015,6 +14019,7 @@ continuation stage(s) were appended.
                 {"kind": "markdown_report", "path": report_relative},
                 {"kind": "json_manifest", "path": manifest_relative},
                 *context_pack_artifacts,
+                *executor_artifacts,
             ],
             "runs": [self._command_run_manifest(task, run) for run in runs],
             "safety": safety_payload,
@@ -14050,6 +14055,45 @@ continuation stage(s) were appended.
             if context_pack.get("sha256"):
                 artifact["sha256"] = context_pack.get("sha256")
             artifacts.append(artifact)
+        return artifacts
+
+    def _executor_artifacts_from_runs(self, runs: list[CommandRun]) -> list[dict[str, Any]]:
+        artifacts: list[dict[str, Any]] = []
+        seen: set[tuple[str, str]] = set()
+        for run in runs:
+            for artifact in self._executor_artifacts_from_run(run):
+                key = (str(artifact.get("kind") or ""), str(artifact.get("path") or ""))
+                if not key[0] or not key[1] or key in seen:
+                    continue
+                seen.add(key)
+                artifacts.append(artifact)
+        return artifacts
+
+    def _executor_artifacts_from_run(self, run: CommandRun) -> list[dict[str, Any]]:
+        metadata = run.result_metadata if isinstance(run.result_metadata, dict) else {}
+        sources: list[Any] = []
+        if isinstance(metadata.get("artifacts"), list):
+            sources.append(metadata.get("artifacts"))
+        task_agent_developer = metadata.get("task_agent_developer")
+        if isinstance(task_agent_developer, dict) and isinstance(task_agent_developer.get("artifacts"), list):
+            sources.append(task_agent_developer.get("artifacts"))
+        artifacts: list[dict[str, Any]] = []
+        seen: set[tuple[str, str]] = set()
+        for source in sources:
+            if not isinstance(source, list):
+                continue
+            for item in source:
+                if not isinstance(item, dict):
+                    continue
+                kind = str(item.get("kind") or "").strip()
+                path = str(item.get("path") or "").strip()
+                if not kind or not path:
+                    continue
+                key = (kind, path)
+                if key in seen:
+                    continue
+                seen.add(key)
+                artifacts.append(redact_evidence(deepcopy(item)))
         return artifacts
 
     def _command_run_manifest(self, task: HarnessTask, run: CommandRun) -> dict[str, Any]:
@@ -14089,6 +14133,9 @@ continuation stage(s) were appended.
                 stderr_summary=stderr_summary,
             ),
         }
+        executor_artifacts = self._executor_artifacts_from_run(run)
+        if executor_artifacts:
+            payload["artifacts"] = executor_artifacts
         context_pack = run.context_pack
         if isinstance(context_pack, dict) and context_pack.get("path"):
             payload["context_pack"] = context_pack
@@ -14110,6 +14157,7 @@ continuation stage(s) were appended.
             "executor_capabilities": manifest_payload.get("executor_capabilities", []),
             "executor_metadata": manifest_payload.get("executor_metadata", {}),
             "executor_result": manifest_payload.get("executor_result", {}),
+            **({"artifacts": manifest_payload.get("artifacts")} if manifest_payload.get("artifacts") else {}),
             **({"context_pack": manifest_payload.get("context_pack")} if manifest_payload.get("context_pack") else {}),
         }
 

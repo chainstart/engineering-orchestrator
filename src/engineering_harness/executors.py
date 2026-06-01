@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -23,6 +24,7 @@ CAPABILITY_CLASSIFICATION_SCHEMA_VERSION = 1
 DAGGER_ENABLE_ENV = "ENGINEERING_HARNESS_ENABLE_DAGGER"
 OPENHANDS_ENABLE_ENV = "ENGINEERING_HARNESS_ENABLE_OPENHANDS"
 OPENHANDS_BINARY_ENV = "ENGINEERING_HARNESS_OPENHANDS_BINARY"
+TASK_AGENT_DEVELOPER_BINARY_ENV = "ENGINEERING_HARNESS_TASK_AGENT_DEVELOPER_BINARY"
 HARNESS_SOURCE_ROOT = Path(__file__).resolve().parents[1]
 PROCESS_TERMINATION_GRACE_SECONDS = 0.5
 SENSITIVE_ENV_NAME_PATTERN = (
@@ -39,6 +41,7 @@ BEARER_TOKEN_RE = re.compile(r"(?i)\b(Bearer\s+)([A-Za-z0-9._~+/=-]{8,})")
 OPENAI_STYLE_TOKEN_RE = re.compile(r"\b(sk-[A-Za-z0-9][A-Za-z0-9_-]{8,})\b")
 CAPABILITY_CLASS_BY_NAME = {
     "agent": "agent",
+    "artifact_collection": "observability",
     "browser_automation": "network",
     "containerized_execution": "filesystem",
     "deployment": "deploy",
@@ -51,6 +54,7 @@ CAPABILITY_CLASS_BY_NAME = {
     "local_dagger_cli": "process",
     "local_openhands_cli": "process",
     "local_process": "process",
+    "local_task_agent_developer_cli": "process",
     "network": "network",
     "network_access": "network",
     "requires_explicit_configuration": "configuration",
@@ -1058,6 +1062,388 @@ class OpenHandsExecutorAdapter:
         return parser
 
 
+class TaskAgentDeveloperExecutorAdapter:
+    metadata = ExecutorMetadata(
+        id="task-agent-developer",
+        name="Task Agent Developer",
+        kind="agent",
+        adapter="builtin.task-agent-developer",
+        input_mode="command",
+        capabilities=(
+            "agent",
+            "local_task_agent_developer_cli",
+            "workspace_write",
+            "artifact_collection",
+            "exit_code",
+            "stdout",
+            "stderr",
+        ),
+        requires_agent_approval=True,
+    )
+
+    _artifact_labels = ("candidate", "audit", "report")
+    _artifact_dirs = (
+        ".engineering/reports/task-agent-developer",
+        "artifacts/task-agent-developer",
+    )
+    _artifact_line_re = re.compile(
+        r"(?i)\b(candidate|audit|report)(?:[-_\s]*(?:artifact|path|file))?\s*[:=]\s*([^\s,;]+)"
+    )
+
+    def prepare_invocation(
+        self,
+        invocation: ExecutorInvocation,
+        task_context: ExecutorTaskContext,
+    ) -> ExecutorInvocation:
+        return invocation
+
+    def display_command(self, invocation: ExecutorInvocation) -> str:
+        command = (invocation.command or "").strip()
+        if command:
+            try:
+                args = shlex.split(command)
+            except ValueError:
+                args = []
+            if args and self._is_binary_token(args[0], self._binary(invocation)):
+                display = command
+            else:
+                display = f"task-agent-developer {command}"
+        else:
+            display = "task-agent-developer"
+        return f"{display} <task:{invocation.task_id}>"
+
+    def diagnostics(
+        self,
+        *,
+        project_root: Path,
+        environment: dict[str, str] | None = None,
+    ) -> dict[str, Any]:
+        env = _diagnostic_env(environment)
+        binary = str(env.get(TASK_AGENT_DEVELOPER_BINARY_ENV) or "task-agent-developer").strip()
+        binary = binary or "task-agent-developer"
+        binary_path = shutil.which(binary, path=env.get("PATH"))
+        return {
+            "schema_version": EXECUTOR_DIAGNOSTICS_SCHEMA_VERSION,
+            "id": self.metadata.id,
+            "status": "ready" if binary_path else "missing_binary",
+            "configured": bool(binary_path),
+            "enabled": True,
+            "binary": binary,
+            "binary_environment": TASK_AGENT_DEVELOPER_BINARY_ENV,
+            "binary_found": bool(binary_path),
+            "binary_path": binary_path,
+            "artifact_collection": {
+                "schema_version": 1,
+                "conventional_directories": list(self._artifact_dirs),
+                "artifact_labels": list(self._artifact_labels),
+            },
+            "requires_agent_approval": self.metadata.requires_agent_approval,
+            "recommended_action": (
+                None
+                if binary_path
+                else "Install Task Agent Developer CLI or set ENGINEERING_HARNESS_TASK_AGENT_DEVELOPER_BINARY."
+            ),
+        }
+
+    def execute(self, invocation: ExecutorInvocation) -> ExecutorResult:
+        started_at = _utc_now()
+        env = invocation.env()
+        binary = self._binary(invocation)
+        binary_path = shutil.which(binary, path=env.get("PATH"))
+        if not binary_path:
+            return ExecutorResult(
+                status="blocked",
+                returncode=None,
+                started_at=started_at,
+                finished_at=_utc_now(),
+                stdout="",
+                stderr=f"Task Agent Developer CLI was not found on PATH: {binary}",
+                metadata={
+                    "configured": False,
+                    "missing_binary": binary,
+                    "binary_environment": TASK_AGENT_DEVELOPER_BINARY_ENV,
+                },
+            )
+
+        try:
+            args = self._task_agent_developer_args(invocation.command or "", binary=binary)
+        except ValueError as exc:
+            return ExecutorResult(
+                status="failed",
+                returncode=2,
+                started_at=started_at,
+                finished_at=_utc_now(),
+                stdout="",
+                stderr=f"Invalid Task Agent Developer command: {exc}",
+                metadata={"configured": True, "binary": binary, "binary_path": binary_path},
+            )
+
+        if not args:
+            return ExecutorResult(
+                status="failed",
+                returncode=2,
+                started_at=started_at,
+                finished_at=_utc_now(),
+                stdout="",
+                stderr="Task Agent Developer command is missing.",
+                metadata={"configured": True, "binary": binary, "binary_path": binary_path},
+            )
+
+        before = self._artifact_snapshot(invocation.project_root)
+        try:
+            result = _run_subprocess_with_watchdog(
+                invocation,
+                args=[binary, *args],
+                executor_id=self.metadata.id,
+                metadata={
+                    "configured": True,
+                    "binary": binary,
+                    "binary_path": binary_path,
+                },
+            )
+        except FileNotFoundError:
+            return ExecutorResult(
+                status="blocked",
+                returncode=None,
+                started_at=started_at,
+                finished_at=_utc_now(),
+                stdout="",
+                stderr=f"Task Agent Developer CLI was not found on PATH: {binary}",
+                metadata={"configured": True, "missing_binary": binary},
+            )
+
+        artifacts = self._collect_artifacts(
+            invocation.project_root,
+            before=before,
+            stdout=result.stdout,
+            stderr=result.stderr,
+        )
+        metadata = dict(result.metadata)
+        task_agent_developer = {
+            "schema_version": 1,
+            "binary": binary,
+            "binary_path": binary_path,
+            "artifact_count": len(artifacts),
+            "artifacts": artifacts,
+            "artifact_collection": {
+                "conventional_directories": list(self._artifact_dirs),
+                "structured_output": True,
+            },
+        }
+        metadata["task_agent_developer"] = task_agent_developer
+        metadata["artifacts"] = artifacts
+        return replace(result, metadata=metadata)
+
+    def _binary(self, invocation: ExecutorInvocation) -> str:
+        binary = str(
+            invocation.environment.get(TASK_AGENT_DEVELOPER_BINARY_ENV)
+            or os.environ.get(TASK_AGENT_DEVELOPER_BINARY_ENV)
+            or "task-agent-developer"
+        ).strip()
+        return binary or "task-agent-developer"
+
+    def _is_binary_token(self, token: str, binary: str) -> bool:
+        if token == binary:
+            return True
+        token_name = Path(token).name
+        binary_name = Path(binary).name
+        return token_name == "task-agent-developer" or token_name == binary_name
+
+    def _task_agent_developer_args(self, command: str, *, binary: str) -> list[str]:
+        args = shlex.split(command)
+        if args[:1] and self._is_binary_token(args[0], binary):
+            return args[1:]
+        return args
+
+    def _artifact_snapshot(self, project_root: Path) -> dict[str, tuple[int, int]]:
+        snapshot: dict[str, tuple[int, int]] = {}
+        for directory in self._artifact_dirs:
+            base = project_root / directory
+            if not base.exists():
+                continue
+            for path in base.rglob("*"):
+                if not path.is_file():
+                    continue
+                label = self._artifact_label(kind="", path=str(path.relative_to(project_root)))
+                if label is None:
+                    continue
+                try:
+                    stat = path.stat()
+                except OSError:
+                    continue
+                snapshot[str(path.relative_to(project_root).as_posix())] = (stat.st_mtime_ns, stat.st_size)
+        return snapshot
+
+    def _collect_artifacts(
+        self,
+        project_root: Path,
+        *,
+        before: dict[str, tuple[int, int]],
+        stdout: str,
+        stderr: str,
+    ) -> list[dict[str, Any]]:
+        candidates: list[tuple[str, str, str]] = []
+        candidates.extend(self._artifact_candidates_from_output(stdout, stream_name="stdout"))
+        candidates.extend(self._artifact_candidates_from_output(stderr, stream_name="stderr"))
+
+        after = self._artifact_snapshot(project_root)
+        for path, signature in sorted(after.items()):
+            if before.get(path) == signature:
+                continue
+            label = self._artifact_label(kind="", path=path)
+            if label is not None:
+                candidates.append((label, path, "conventional_path_scan"))
+
+        artifacts: list[dict[str, Any]] = []
+        seen: set[tuple[str, str]] = set()
+        for label, path, source in candidates:
+            artifact = self._artifact_entry(project_root, label=label, path=path, source=source)
+            if artifact is None:
+                continue
+            key = (str(artifact["kind"]), str(artifact["path"]))
+            if key in seen:
+                continue
+            seen.add(key)
+            artifacts.append(artifact)
+            if len(artifacts) >= 25:
+                break
+        return artifacts
+
+    def _artifact_candidates_from_output(self, output: str, *, stream_name: str) -> list[tuple[str, str, str]]:
+        candidates: list[tuple[str, str, str]] = []
+        for line in output.splitlines():
+            text = line.strip()
+            if not text:
+                continue
+            try:
+                payload = json.loads(text)
+            except json.JSONDecodeError:
+                payload = None
+            if isinstance(payload, dict):
+                candidates.extend(self._artifact_candidates_from_mapping(payload, stream_name=stream_name))
+            for match in self._artifact_line_re.finditer(text):
+                candidates.append((match.group(1).lower(), match.group(2).strip().strip("'\""), stream_name))
+        return candidates
+
+    def _artifact_candidates_from_mapping(
+        self,
+        payload: dict[str, Any],
+        *,
+        stream_name: str,
+    ) -> list[tuple[str, str, str]]:
+        candidates: list[tuple[str, str, str]] = []
+
+        def add_candidate(label: str | None, value: Any) -> None:
+            path_value: Any = value
+            kind_value = label
+            if isinstance(value, dict):
+                kind_value = str(value.get("kind") or value.get("type") or value.get("label") or label or "")
+                path_value = value.get("path") or value.get("file") or value.get("artifact_path")
+            if not isinstance(path_value, str) or not path_value.strip():
+                return
+            resolved_label = self._artifact_label(kind=kind_value or "", path=path_value)
+            if resolved_label is None:
+                return
+            candidates.append((resolved_label, path_value.strip(), stream_name))
+
+        artifacts = payload.get("artifacts")
+        if isinstance(artifacts, list):
+            for artifact in artifacts:
+                add_candidate(None, artifact)
+        add_candidate(None, payload.get("artifact"))
+
+        for key, value in payload.items():
+            normalized_key = str(key).strip().lower().replace("-", "_")
+            for label in self._artifact_labels:
+                if normalized_key in {
+                    label,
+                    f"{label}_path",
+                    f"{label}_file",
+                    f"{label}_artifact",
+                    f"{label}_artifact_path",
+                }:
+                    add_candidate(label, value)
+            if normalized_key in {"path", "file", "artifact_path"}:
+                add_candidate(str(payload.get("kind") or payload.get("type") or ""), value)
+        return candidates
+
+    def _artifact_label(self, *, kind: str, path: str) -> str | None:
+        kind_text = kind.lower().replace("-", "_")
+        for label in self._artifact_labels:
+            if label in kind_text:
+                return label
+        path_obj = Path(path)
+        name = path_obj.name.lower().replace("-", "_")
+        for label in self._artifact_labels:
+            if label in name:
+                return label
+        ignored_parts = {".engineering", "artifacts", "task-agent-developer"}
+        parts = path_obj.parts
+        for index, part in enumerate(parts):
+            normalized = part.lower().replace("-", "_")
+            if normalized in ignored_parts:
+                continue
+            if normalized == "reports" and index > 0 and parts[index - 1] == ".engineering":
+                continue
+            for label in self._artifact_labels:
+                if normalized in {label, f"{label}s"}:
+                    return label
+        return None
+
+    def _artifact_entry(
+        self,
+        project_root: Path,
+        *,
+        label: str,
+        path: str,
+        source: str,
+    ) -> dict[str, Any] | None:
+        relative = self._project_relative_artifact_path(project_root, path)
+        if relative is None:
+            return None
+        artifact_path = project_root / relative
+        exists = artifact_path.is_file()
+        artifact: dict[str, Any] = {
+            "schema_version": 1,
+            "kind": f"task_agent_developer_{label}",
+            "path": relative,
+            "source": source,
+            "exists": exists,
+        }
+        if exists:
+            try:
+                stat = artifact_path.stat()
+                artifact["bytes"] = stat.st_size
+                artifact["sha256"] = self._file_sha256(artifact_path)
+            except OSError:
+                artifact["exists"] = False
+        return artifact
+
+    def _project_relative_artifact_path(self, project_root: Path, path: str) -> str | None:
+        text = redact(str(path)).strip().strip("'\"")
+        if not text or "\n" in text or "\r" in text:
+            return None
+        root = project_root.resolve(strict=False)
+        candidate = Path(text)
+        absolute = candidate if candidate.is_absolute() else project_root / candidate
+        try:
+            resolved = absolute.resolve(strict=False)
+            relative = resolved.relative_to(root)
+        except (OSError, ValueError):
+            return None
+        relative_text = relative.as_posix()
+        if not relative_text or relative_text.startswith("../"):
+            return None
+        return relative_text
+
+    def _file_sha256(self, path: Path) -> str:
+        digest = hashlib.sha256()
+        with path.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+        return digest.hexdigest()
+
+
 class DaggerExecutorAdapter:
     metadata = ExecutorMetadata(
         id="dagger",
@@ -1191,6 +1577,7 @@ class DaggerExecutorAdapter:
 ShellExecutor = ShellExecutorAdapter
 CodexExecutor = CodexExecutorAdapter
 OpenHandsExecutor = OpenHandsExecutorAdapter
+TaskAgentDeveloperExecutor = TaskAgentDeveloperExecutorAdapter
 DaggerExecutor = DaggerExecutorAdapter
 
 
@@ -1228,6 +1615,7 @@ def default_executor_registry() -> ExecutorRegistry:
             ShellExecutorAdapter(),
             CodexExecutorAdapter(),
             OpenHandsExecutorAdapter(),
+            TaskAgentDeveloperExecutorAdapter(),
             DaggerExecutorAdapter(),
         )
     )
