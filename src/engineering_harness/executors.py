@@ -193,6 +193,7 @@ class ExecutorTaskContext:
     relevant_spec_refs: tuple[str, ...] = ()
     requirement_excerpts: tuple[dict[str, Any], ...] = ()
     context_pack: dict[str, Any] | None = None
+    repair_prompt_input: dict[str, Any] | None = None
 
 
 def _format_spec_refs(refs: tuple[str, ...]) -> str:
@@ -225,6 +226,54 @@ def _format_context_pack(context_pack: dict[str, Any] | None) -> str:
     sha256 = str(context_pack.get("sha256") or "").strip()
     suffix = f" (sha256: {sha256})" if sha256 else ""
     return f"- {path}{suffix}"
+
+
+def _format_repair_prompt_input(repair_prompt_input: dict[str, Any] | None) -> str:
+    if not isinstance(repair_prompt_input, dict) or not repair_prompt_input:
+        return "- no acceptance diagnostics captured for this phase"
+    summary = str(repair_prompt_input.get("repair_prompt_input_summary") or "").strip()
+    lines: list[str] = []
+    if summary:
+        lines.append(f"- Summary: {summary}")
+    failed_commands = repair_prompt_input.get("failed_commands")
+    if isinstance(failed_commands, list):
+        for item in failed_commands[:3]:
+            if not isinstance(item, dict):
+                continue
+            hints = item.get("missing_dependency_hints")
+            hint_text = ""
+            if isinstance(hints, list) and hints:
+                names = [
+                    str(hint.get("name") or "").strip()
+                    for hint in hints
+                    if isinstance(hint, dict) and str(hint.get("name") or "").strip()
+                ]
+                if names:
+                    hint_text = f"; missing dependency hints: {', '.join(names[:3])}"
+            lines.append(
+                "- Failed command: "
+                f"{item.get('phase')} `{item.get('name')}` returned `{item.get('returncode')}` "
+                f"in `{item.get('cwd')}`{hint_text}"
+            )
+            command = str(item.get("command") or "").strip()
+            if command:
+                lines.append(f"  command: {command}")
+            stderr_tail = str(item.get("stderr_tail") or "").strip()
+            if stderr_tail:
+                lines.append(f"  stderr tail: {stderr_tail[:700]}")
+            stdout_tail = str(item.get("stdout_tail") or "").strip()
+            if stdout_tail:
+                lines.append(f"  stdout tail: {stdout_tail[:700]}")
+    missing_dependency_hints = repair_prompt_input.get("missing_dependency_hints")
+    if isinstance(missing_dependency_hints, list) and missing_dependency_hints:
+        names = [
+            str(hint.get("name") or "").strip()
+            for hint in missing_dependency_hints
+            if isinstance(hint, dict) and str(hint.get("name") or "").strip()
+        ]
+        if names:
+            lines.append(f"- Likely missing dependencies: {', '.join(names[:5])}")
+    return "\n".join(lines) if lines else "- no failed command details were captured"
 
 
 @dataclass(frozen=True)
@@ -669,6 +718,7 @@ class CodexExecutorAdapter:
         spec_refs = _format_spec_refs(task_context.relevant_spec_refs or task_context.spec_refs)
         requirement_excerpts = _format_requirement_excerpts(task_context.requirement_excerpts)
         context_pack = _format_context_pack(task_context.context_pack or invocation.context_pack)
+        repair_prompt_input = _format_repair_prompt_input(task_context.repair_prompt_input)
         verification = acceptance if not e2e else f"{acceptance}\n\nE2E/user-experience commands:\n{e2e}"
         expanded_prompt = (
             "You are executing one roadmap task for Engineering Orchestrator.\n\n"
@@ -681,6 +731,8 @@ class CodexExecutorAdapter:
             f"{requirement_excerpts}\n\n"
             "Agent context pack:\n"
             f"{context_pack}\n\n"
+            "Repair prompt input summary:\n"
+            f"{repair_prompt_input}\n\n"
             "Goal:\n"
             f"{prompt}\n\n"
             "Allowed file scope:\n"
@@ -775,6 +827,7 @@ class OpenHandsExecutorAdapter:
         spec_refs = _format_spec_refs(task_context.relevant_spec_refs or task_context.spec_refs)
         requirement_excerpts = _format_requirement_excerpts(task_context.requirement_excerpts)
         context_pack = _format_context_pack(task_context.context_pack or invocation.context_pack)
+        repair_prompt_input = _format_repair_prompt_input(task_context.repair_prompt_input)
         verification = acceptance if not e2e else f"{acceptance}\n\nE2E/user-experience commands:\n{e2e}"
         expanded_prompt = (
             "You are executing one roadmap task for Engineering Orchestrator through OpenHands headless mode.\n\n"
@@ -787,6 +840,8 @@ class OpenHandsExecutorAdapter:
             f"{requirement_excerpts}\n\n"
             "Agent context pack:\n"
             f"{context_pack}\n\n"
+            "Repair prompt input summary:\n"
+            f"{repair_prompt_input}\n\n"
             "Goal:\n"
             f"{prompt}\n\n"
             "Allowed file scope:\n"

@@ -3204,6 +3204,130 @@ def test_failure_isolation_records_acceptance_failure_after_repair(tmp_path):
     assert summary["latest_isolated_failures"][0]["manifest_path"] == result["manifest"]
 
 
+def test_acceptance_failure_diagnostics_preserve_fast_failure_details(tmp_path):
+    project = tmp_path / "acceptance-diagnostics-project"
+    project.mkdir()
+    init_project(project, "python-agent", name="acceptance-diagnostics-project")
+    missing_module = "definitely_missing_dependency_eo004"
+    roadmap_path = project / ".engineering/roadmap.yaml"
+    roadmap = json.loads(roadmap_path.read_text(encoding="utf-8"))
+    task = roadmap["milestones"][0]["tasks"][0]
+    task["max_attempts"] = 1
+    task["acceptance"][0] = {
+        "name": "fast missing dependency",
+        "command": (
+            "python3 -c \"import sys; "
+            "print('stdout tail marker'); "
+            "print('stderr tail marker', file=sys.stderr); "
+            f"import {missing_module}\""
+        ),
+    }
+    roadmap_path.write_text(json.dumps(roadmap), encoding="utf-8")
+
+    result = Harness(project).run_task(Harness(project).next_task())
+    manifest = task_manifest(project, result)
+    run = result["runs"][0]
+    diagnostics = run["diagnostics"]
+
+    assert result["status"] == "failed"
+    assert diagnostics["command"] == task["acceptance"][0]["command"]
+    assert diagnostics["cwd"] == str(project)
+    assert diagnostics["returncode"] == 1
+    assert "stdout tail marker" in diagnostics["stdout_tail"]
+    assert "stderr tail marker" in diagnostics["stderr_tail"]
+    assert missing_module in diagnostics["stderr_tail"]
+    assert diagnostics["missing_dependency_hints"][0]["kind"] == "python_module"
+    assert diagnostics["missing_dependency_hints"][0]["name"] == missing_module
+    assert manifest["runs"][0]["diagnostics"] == diagnostics
+    assert manifest["failure_isolation"]["acceptance_diagnostics"]["failed_commands"][0]["command"] == diagnostics["command"]
+    assert "stdout tail marker" in manifest["failure_isolation"]["acceptance_diagnostics"]["repair_prompt_input_summary"]
+
+    report_text = (project / result["report"]).read_text(encoding="utf-8")
+    assert "Acceptance diagnostics:" in report_text
+    assert "missing_dependency_hints" in report_text
+
+
+def test_repair_agent_prompt_consumes_acceptance_diagnostics(tmp_path):
+    captured: dict[str, str] = {}
+    missing_module = "definitely_missing_dependency_eo004"
+
+    class RecordingCodexExecutor:
+        metadata = ExecutorMetadata(
+            id="codex",
+            name="Recording Codex",
+            kind="agent",
+            adapter="test.recording-codex",
+            input_mode="prompt",
+            capabilities=("agent", "workspace_write", "stdout", "stderr"),
+            requires_agent_approval=True,
+        )
+
+        def prepare_invocation(self, invocation, task_context):
+            return CodexExecutorAdapter().prepare_invocation(invocation, task_context)
+
+        def display_command(self, invocation):
+            return f"recording-codex <task:{invocation.task_id}>"
+
+        def execute(self, invocation):
+            captured["prompt"] = invocation.prompt or ""
+            captured["context_pack_path"] = invocation.context_pack["path"]
+            (invocation.project_root / f"{missing_module}.py").write_text("VALUE = 'fixed'\n", encoding="utf-8")
+            return ExecutorResult(
+                status="passed",
+                returncode=0,
+                started_at="2024-01-01T00:00:00Z",
+                finished_at="2024-01-01T00:00:01Z",
+                stdout="repair ok",
+                stderr="",
+                metadata={},
+            )
+
+    project = tmp_path / "repair-diagnostics-project"
+    project.mkdir()
+    init_project(project, "python-agent", name="repair-diagnostics-project")
+    roadmap_path = project / ".engineering/roadmap.yaml"
+    roadmap = json.loads(roadmap_path.read_text(encoding="utf-8"))
+    task = roadmap["milestones"][0]["tasks"][0]
+    task["max_task_iterations"] = 2
+    task["repair"] = [
+        {
+            "name": "agent repair from diagnostics",
+            "executor": "codex",
+            "prompt": "Repair the failing acceptance command using the diagnostic summary.",
+        }
+    ]
+    task["acceptance"][0] = {
+        "name": "imports repaired dependency",
+        "command": (
+            "python3 -c \"import sys; "
+            "print('stdout tail repair'); "
+            "print('stderr tail repair', file=sys.stderr); "
+            f"import {missing_module}\""
+        ),
+    }
+    roadmap_path.write_text(json.dumps(roadmap), encoding="utf-8")
+
+    result = Harness(
+        project,
+        executor_registry=ExecutorRegistry((RecordingCodexExecutor(), ShellExecutorAdapter())),
+    ).run_task(Harness(project).next_task(), allow_agent=True)
+    context_pack = json.loads((project / captured["context_pack_path"]).read_text(encoding="utf-8"))
+    prompt = captured["prompt"]
+
+    assert result["status"] == "passed"
+    assert [run["phase"] for run in result["runs"]] == ["acceptance-1", "repair-1", "acceptance-2"]
+    assert "Repair prompt input summary:" in prompt
+    assert task["acceptance"][0]["command"] in prompt
+    assert str(project) in prompt
+    assert "returned `1`" in prompt
+    assert "stdout tail repair" in prompt
+    assert "stderr tail repair" in prompt
+    assert missing_module in prompt
+    assert "missing dependency" in prompt
+    assert context_pack["repair_prompt_input"]["failed_commands"][0]["name"] == "imports repaired dependency"
+    assert context_pack["repair_prompt_input"]["missing_dependency_hints"][0]["name"] == missing_module
+
+
 def test_failure_isolation_records_policy_block(tmp_path):
     project = tmp_path / "failure-isolation-policy-project"
     project.mkdir()
