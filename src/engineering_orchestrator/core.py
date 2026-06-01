@@ -10075,6 +10075,17 @@ continuation stage(s) were appended.
         }
         if failure_isolation is not None:
             entry["failure_isolation"] = failure_isolation
+        if isinstance(manifest.get("spec_sync"), dict):
+            entry["spec_sync"] = {
+                "status": manifest["spec_sync"].get("status"),
+                "reason": manifest["spec_sync"].get("reason"),
+            }
+        if isinstance(manifest.get("docs_sync"), dict):
+            entry["docs_sync"] = {
+                "status": manifest["docs_sync"].get("status"),
+                "reason": manifest["docs_sync"].get("reason"),
+                "docs_update_log": manifest["docs_sync"].get("docs_update_log"),
+            }
         return entry
 
     def _aggregate_safety_audit_summaries(self, manifests: list[dict[str, Any]]) -> dict[str, Any]:

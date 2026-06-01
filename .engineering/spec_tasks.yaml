@@ -1,9 +1,28 @@
 {
   "kind": "engineering-harness.spec_tasks.v1",
   "project": "engineering-orchestrator",
-  "updated_at": "2026-06-01T00:00:00Z",
+  "updated_at": "2026-06-01T13:18:24Z",
   "source_spec": "docs/engineering-orchestrator-system-spec.md",
   "status_doc": "docs/engineering_orchestrator_implementation_status.md",
+  "roadmap_doc": "docs/spec-driven-development-plan.md",
+  "roadmap_status_doc": "docs/engineering_orchestrator_implementation_status.md",
+  "documentation": {
+    "architecture_blueprint": "docs/engineering-orchestrator-system-spec.md",
+    "roadmap": "docs/spec-driven-development-plan.md",
+    "roadmap_status": "docs/engineering_orchestrator_implementation_status.md",
+    "development_progress": "docs/engineering_orchestrator_implementation_status.md",
+    "actual_system_state": "docs/engineering_orchestrator_implementation_status.md",
+    "canonical_specs": [
+      "docs/engineering-orchestrator-system-spec.md"
+    ],
+    "traceability": [
+      "docs/spec-traceability.md"
+    ],
+    "task_packages": [
+      "docs/task-packages.md"
+    ],
+    "deployment_status": "docs/deployment-status.md"
+  },
   "decision_log_dir": "docs/decisions",
   "requirements": [
     {
@@ -84,7 +103,7 @@
     {
       "id": "EH-SPEC-016",
       "title": "Target documentation synchronization",
-      "status": "planned"
+      "status": "completed"
     },
     {
       "id": "EH-SPEC-017",
@@ -179,7 +198,7 @@
     {
       "id": "EH-DOC-SYNC-002",
       "title": "Implement post-task target documentation synchronization",
-      "status": "planned",
+      "status": "completed",
       "requirement_ids": [
         "EH-SPEC-008",
         "EH-SPEC-009",
@@ -199,9 +218,86 @@
         {
           "kind": "test",
           "path": "tests/"
+        },
+        {
+          "kind": "record",
+          "value": "python3 -m pytest -q tests -k 'docs_sync or spec_sync or documentation'",
+          "recorded_at": "2026-06-01T13:17:20Z",
+          "actor": "engineering-harness"
+        },
+        {
+          "kind": "record",
+          "value": "bin/engo validate --project-root .",
+          "recorded_at": "2026-06-01T13:17:20Z",
+          "actor": "engineering-harness"
+        },
+        {
+          "kind": "record",
+          "value": "rg -n \"docs-sync|Target Documentation Synchronization|documentation synchronization\" docs src tests bin .engineering",
+          "recorded_at": "2026-06-01T13:17:20Z",
+          "actor": "engineering-harness"
         }
       ],
-      "next_action": "Implement docs-sync audit/propose/record flows and invoke them after completed target task runs when documentation roles are declared."
+      "next_action": "Use docs-sync for downstream target projects that declare documentation roles.",
+      "updated_at": "2026-06-01T13:17:20Z",
+      "last_note": "Implemented docs-sync audit/propose/record commands and post-task manifest/report evidence.",
+      "last_phase": "acceptance",
+      "documentation_sync": {
+        "status": "applied",
+        "updated_at": "2026-06-01T13:18:24Z",
+        "requested_task_id": "engineering-orchestrator-target-docs-sync-implementation",
+        "new_status": "completed",
+        "docs_update_log": "docs/docs_update_log.jsonl",
+        "updated_paths": [
+          "docs/engineering_orchestrator_implementation_status.md",
+          "docs/deployment-status.md",
+          "docs/task-packages.md",
+          "docs/spec-traceability.md"
+        ],
+        "manual_review_paths": [
+          "docs/engineering-orchestrator-system-spec.md",
+          "docs/decisions",
+          "docs/spec-driven-development-plan.md"
+        ]
+      },
+      "documentation_evidence": [
+        {
+          "kind": "record",
+          "value": "python3 -m pytest -q tests -k 'docs_sync or spec_sync or documentation'",
+          "recorded_at": "2026-06-01T13:17:26Z",
+          "actor": "engineering-harness"
+        },
+        {
+          "kind": "record",
+          "value": "bin/engo validate --project-root .",
+          "recorded_at": "2026-06-01T13:17:26Z",
+          "actor": "engineering-harness"
+        },
+        {
+          "kind": "record",
+          "value": "rg -n \"docs-sync|Target Documentation Synchronization|documentation synchronization\" docs src tests bin .engineering",
+          "recorded_at": "2026-06-01T13:17:26Z",
+          "actor": "engineering-harness"
+        },
+        {
+          "kind": "record",
+          "value": "targeted docs sync tests passed",
+          "recorded_at": "2026-06-01T13:18:24Z",
+          "actor": "engineering-harness"
+        },
+        {
+          "kind": "record",
+          "value": "roadmap validation passed",
+          "recorded_at": "2026-06-01T13:18:24Z",
+          "actor": "engineering-harness"
+        },
+        {
+          "kind": "record",
+          "value": "docs-sync command evidence found",
+          "recorded_at": "2026-06-01T13:18:24Z",
+          "actor": "engineering-harness"
+        }
+      ]
     }
   ]
 }

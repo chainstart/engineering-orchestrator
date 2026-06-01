@@ -126,9 +126,9 @@ def record_spec_task_update(
     tasks_path = root / SPEC_TASKS_RELATIVE_PATH
     payload = load_mapping(tasks_path)
     tasks = _mapping_list(payload.get("tasks"))
-    task = next((item for item in tasks if isinstance(item, dict) and str(item.get("id")) == task_id), None)
+    task = _find_task_record(tasks, task_id)
     if task is None:
-        raise KeyError(f"spec task not found: {task_id}")
+        raise KeyError(f"spec task not found for task id or roadmap_task_id: {task_id}")
 
     now = utc_now_iso()
     previous_status = str(task.get("status") or "unknown")
@@ -158,7 +158,8 @@ def record_spec_task_update(
         "kind": SPEC_SYNC_UPDATE_KIND,
         "updated_at": now,
         "project": payload.get("project") or root.name,
-        "task_id": task_id,
+        "task_id": task.get("id") or task_id,
+        "requested_task_id": task_id,
         "stage_id": stage_id,
         "phase": phase,
         "previous_status": previous_status,
@@ -277,3 +278,17 @@ def _duplicates(values: list[str]) -> list[str]:
             duplicates.append(value)
         seen.add(value)
     return duplicates
+
+
+def _find_task_record(tasks: list[dict[str, Any]], task_id: str) -> dict[str, Any] | None:
+    for item in tasks:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("id") or "") == task_id:
+            return item
+    for item in tasks:
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("roadmap_task_id") or "") == task_id:
+            return item
+    return None

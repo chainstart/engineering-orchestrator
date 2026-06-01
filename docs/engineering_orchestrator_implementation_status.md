@@ -31,7 +31,7 @@ Decision records: `docs/decisions/`
 | `EH-SPEC-013` | `completed` | self-iteration and duplicate-plan detection | higher-level planner quality can improve | continue goal-gap scoring |
 | `EH-SPEC-014` | `partial` | English docs and public positioning | packaging/release polish remains | prepare public release checklist |
 | `EH-SPEC-015` | `completed` | `spec_sync.py`, `engo spec-sync audit/record`, tests | optional deeper markdown status mutation | use JSONL + task ledger as source of truth |
-| `EH-SPEC-016` | `planned` | spec and decision record added | docs-sync commands and run/drive integration not implemented | implement target documentation synchronization task package |
+| `EH-SPEC-016` | `completed` | `docs_sync.py`, `engo docs-sync audit/propose/record`, post-task manifest/report evidence, `tests/test_docs_sync.py` | richer target-specific Markdown transforms remain future work | use docs-sync with declared target documentation roles |
 | `EO-SPEC-001` | `completed` | canonical source package `engineering_orchestrator`, compatibility package `engineering_harness`, `engo` / `engh`, README/spec/tests | GitHub repository and historical schema/state migration remain separate compatibility-window work | keep compatibility tests until a removal plan exists |
 
 ## Maintenance Rules
@@ -41,3 +41,13 @@ Decision records: `docs/decisions/`
 3. Completed implementation tasks update `.engineering/spec_tasks.yaml` and append evidence.
 4. Changes that affect target-repository spec maintenance require both tests and documentation.
 5. Changes that affect target-repository documentation status must update or propose updates for the declared architecture, roadmap, roadmap status, spec, traceability, task-package, and deployment-status documents.
+
+<!-- engineering-orchestrator:docs-sync:start -->
+## Engineering Orchestrator Documentation Sync
+
+| Task | Requested Task | Role | Status | Updated | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| EH-DOC-SYNC-002 | engineering-orchestrator-target-docs-sync-implementation | actual_system_state | completed | 2026-06-01T13:18:24Z | targeted docs sync tests passed; roadmap validation passed; docs-sync command evidence found |
+| EH-DOC-SYNC-002 | engineering-orchestrator-target-docs-sync-implementation | development_progress | completed | 2026-06-01T13:18:24Z | targeted docs sync tests passed; roadmap validation passed; docs-sync command evidence found |
+| EH-DOC-SYNC-002 | engineering-orchestrator-target-docs-sync-implementation | roadmap_status | completed | 2026-06-01T13:18:24Z | targeted docs sync tests passed; roadmap validation passed; docs-sync command evidence found |
+<!-- engineering-orchestrator:docs-sync:end -->

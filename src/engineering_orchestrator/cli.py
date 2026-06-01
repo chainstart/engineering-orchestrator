@@ -22,8 +22,13 @@ from .core import (
     slug_now,
     utc_now,
 )
+from .docs_sync import (
+    audit_documentation_system,
+    has_documentation_roles,
+    record_documentation_update,
+)
 from .goal_planner import DEFAULT_GOAL_STAGE_COUNT, materialize_goal_roadmap, plan_goal_roadmap
-from .io import write_json
+from .io import load_mapping, write_json
 from .merge_planner import plan_parallel_merges, write_merge_plan_report
 from .parallel_drive import plan_parallel_drive, run_parallel_drive
 from .profiles import list_profiles
@@ -56,6 +61,7 @@ DAEMON_SUPERVISOR_RUNTIME_REPORT_DIRNAME = "daemon-supervisor-runtime"
 DAEMON_SUPERVISOR_RUNTIME_STALE_SECONDS_ENV = "ENGINEERING_HARNESS_DAEMON_SUPERVISOR_STALE_AFTER_SECONDS"
 DEFAULT_DAEMON_SUPERVISOR_RUNTIME_STALE_SECONDS = 3600
 DAEMON_SUPERVISOR_RUNTIME_HISTORY_LIMIT = 100
+DOCS_SYNC_COMPLETION_STATUSES = {"completed", "done", "passed"}
 
 
 def resolve_project_root(args: argparse.Namespace) -> Path:
@@ -518,6 +524,9 @@ def cmd_run(args: argparse.Namespace) -> int:
         )
         if not args.dry_run:
             result["spec_sync"] = maybe_sync_completed_spec_task(root, task, result, phase="run")
+            result["docs_sync"] = maybe_sync_completed_documentation(root, task, result, phase="run")
+            attach_post_task_sync_evidence(root, result)
+            harness.rebuild_manifest_index()
         maybe_checkpoint_task(harness, task, result, args, dry_run=args.dry_run)
         results.append(result)
         if args.task or args.dry_run or result["status"] not in COMPLETED_STATUSES:
@@ -770,6 +779,14 @@ def write_drive_report(harness: Harness, payload: dict) -> str:
                 lines.append(f"  - Commit: `{git['commit']}`")
             if git.get("push_status"):
                 lines.append(f"  - Push: `{git.get('push_status')}` `{git.get('push_remote')}/{git.get('push_branch')}`")
+        if isinstance(result.get("spec_sync"), dict):
+            spec_sync = result["spec_sync"]
+            lines.append(f"  - Spec sync: `{spec_sync.get('status')}` - {spec_sync.get('reason', '')}")
+        if isinstance(result.get("docs_sync"), dict):
+            docs_sync = result["docs_sync"]
+            lines.append(f"  - Docs sync: `{docs_sync.get('status')}` - {docs_sync.get('reason', '')}")
+            if docs_sync.get("docs_update_log"):
+                lines.append(f"  - Docs update log: `{docs_sync.get('docs_update_log')}`")
     continuations = payload.get("continuations", [])
     lines.extend(["", "## Continuations", ""])
     if not continuations:
@@ -1095,6 +1112,52 @@ def cmd_spec_sync(args: argparse.Namespace) -> int:
     raise ValueError(f"Unknown spec-sync action: {args.spec_sync_action}")
 
 
+def cmd_docs_sync(args: argparse.Namespace) -> int:
+    root = resolve_project_root(args)
+    if args.docs_sync_action == "audit":
+        result = audit_documentation_system(root)
+        if args.json:
+            print(json.dumps(result, indent=2, sort_keys=True))
+        else:
+            print(f"Docs sync audit: {result['status']}")
+            print(f"Documentation roles: {result.get('documentation_role_count', 0)}")
+            print(f"Tasks: {result.get('task_count', 0)}")
+            for check in result.get("checks", []):
+                print(f"- {check.get('status')}: {check.get('name')} - {check.get('message')}")
+        return 0 if result["status"] in {"passed", "warning"} else 1
+
+    if args.docs_sync_action in {"propose", "record"}:
+        result = record_documentation_update(
+            root,
+            task_id=args.task_id,
+            status=args.status,
+            evidence=args.evidence,
+            requirement_ids=args.requirement_id,
+            note=args.note,
+            actor=args.actor,
+            phase=args.phase,
+            stage_id=args.stage_id,
+            architecture_change=args.architecture_change,
+            apply=args.apply if args.docs_sync_action == "record" else False,
+        )
+        if args.json:
+            print(json.dumps(result, indent=2, sort_keys=True))
+        else:
+            if result["status"] == "applied":
+                print(f"Applied docs sync for {result['task_id']}: {result.get('new_status')}")
+                print(f"Docs update log: {result.get('docs_update_log')}")
+            elif result["status"] == "proposed":
+                print(f"Proposed docs sync for {result['task_id']}: {result.get('new_status')}")
+                print(f"Applyable actions: {result.get('applyable_action_count', 0)}")
+                if args.docs_sync_action == "record" and not args.apply:
+                    print("Run again with --apply to write safe managed blocks and the docs update log.")
+            else:
+                print(f"Docs sync {result['status']}: {result.get('reason')} - {result.get('message', '')}")
+        return 0 if result["status"] in {"applied", "proposed", "skipped"} else 1
+
+    raise ValueError(f"Unknown docs-sync action: {args.docs_sync_action}")
+
+
 def maybe_sync_completed_spec_task(root: Path, task, result: dict, *, phase: str = "task") -> dict:
     if result.get("status") not in COMPLETED_STATUSES:
         return {"status": "skipped", "reason": "task_not_completed"}
@@ -1123,6 +1186,125 @@ def maybe_sync_completed_spec_task(root: Path, task, result: dict, *, phase: str
         return {"status": "skipped", "reason": "task_not_tracked_in_spec_tasks", "message": str(exc)}
     except Exception as exc:
         return {"status": "failed", "reason": "spec_sync_error", "message": str(exc)}
+
+
+def maybe_sync_completed_documentation(root: Path, task, result: dict, *, phase: str = "task") -> dict:
+    if result.get("status") not in DOCS_SYNC_COMPLETION_STATUSES:
+        return {"status": "skipped", "reason": "task_not_completed"}
+    if not (root / SPEC_TASKS_RELATIVE_PATH).exists():
+        return {"status": "skipped", "reason": "spec_tasks_not_configured"}
+    if not has_documentation_roles(root):
+        return {"status": "skipped", "reason": "documentation_roles_not_configured"}
+    evidence = []
+    if result.get("report"):
+        evidence.append(f"task report: {result['report']}")
+    if result.get("manifest"):
+        evidence.append(f"task manifest: {result['manifest']}")
+    if result.get("message"):
+        evidence.append(f"task result: {result['message']}")
+    successful_runs = [
+        run
+        for run in result.get("runs", [])
+        if isinstance(run, dict)
+        and run.get("status") in DOCS_SYNC_COMPLETION_STATUSES
+        and run.get("returncode") in (None, 0)
+    ]
+    if not successful_runs:
+        return {
+            "status": "blocked",
+            "reason": "completion_evidence_required",
+            "message": "documentation sync requires at least one successful local command run",
+        }
+    for run in successful_runs:
+        evidence.append(f"{run.get('phase', 'phase')} {run.get('name', 'command')}: {run.get('status')}")
+    try:
+        return record_documentation_update(
+            root,
+            task_id=task.id,
+            status="completed",
+            evidence=evidence,
+            requirement_ids=list(getattr(task, "spec_refs", ()) or ()),
+            note="Recorded automatically after a completed orchestrator task.",
+            actor="engineering-harness:auto",
+            phase=phase,
+            apply=True,
+        )
+    except Exception as exc:
+        return {"status": "blocked", "reason": "docs_sync_error", "message": str(exc)}
+
+
+def attach_post_task_sync_evidence(root: Path, result: dict) -> None:
+    manifest_value = str(result.get("manifest") or "")
+    report_value = str(result.get("report") or "")
+    sync_payload = {
+        key: result.get(key)
+        for key in ("spec_sync", "docs_sync")
+        if isinstance(result.get(key), dict)
+    }
+    if not sync_payload:
+        return
+    manifest_path = root / manifest_value if manifest_value else None
+    if manifest_path is not None and manifest_path.is_file():
+        manifest = load_mapping(manifest_path)
+        manifest.update(sync_payload)
+        manifest["target_sync"] = sync_payload
+        artifacts = manifest.get("artifacts") if isinstance(manifest.get("artifacts"), list) else []
+        docs_sync = sync_payload.get("docs_sync", {})
+        if isinstance(docs_sync, dict):
+            for path in _docs_sync_artifact_paths(docs_sync):
+                artifact = {"kind": "docs_sync_artifact", "path": path}
+                if artifact not in artifacts:
+                    artifacts.append(artifact)
+        manifest["artifacts"] = artifacts
+        write_json(manifest_path, manifest)
+    report_path = root / report_value if report_value else None
+    if report_path is not None and report_path.is_file():
+        append_post_task_sync_report_section(report_path, sync_payload)
+
+
+def append_post_task_sync_report_section(report_path: Path, sync_payload: dict[str, dict]) -> None:
+    text = report_path.read_text(encoding="utf-8", errors="ignore")
+    marker = "## Target Synchronization"
+    section = [
+        "",
+        marker,
+        "",
+    ]
+    spec_sync = sync_payload.get("spec_sync", {})
+    docs_sync = sync_payload.get("docs_sync", {})
+    if isinstance(spec_sync, dict):
+        section.append(f"- Spec sync: `{spec_sync.get('status', 'unknown')}` - {spec_sync.get('reason', '')}")
+    if isinstance(docs_sync, dict):
+        section.append(f"- Docs sync: `{docs_sync.get('status', 'unknown')}` - {docs_sync.get('reason', '')}")
+        if docs_sync.get("docs_update_log"):
+            section.append(f"- Docs update log: `{docs_sync.get('docs_update_log')}`")
+    section.extend(
+        [
+            "",
+            "```json",
+            json.dumps(sync_payload, indent=2, sort_keys=True),
+            "```",
+            "",
+        ]
+    )
+    if marker in text:
+        text = text.split(marker, 1)[0].rstrip()
+    report_path.write_text(text.rstrip() + "\n" + "\n".join(section), encoding="utf-8")
+
+
+def _docs_sync_artifact_paths(payload: dict) -> list[str]:
+    paths = []
+    if payload.get("docs_update_log"):
+        paths.append(str(payload["docs_update_log"]))
+    for key in ("updated_paths",):
+        values = payload.get(key)
+        if isinstance(values, list):
+            paths.extend(str(item) for item in values if str(item).strip())
+    for key in ("applied_actions", "actions"):
+        for item in payload.get(key, []) if isinstance(payload.get(key), list) else []:
+            if isinstance(item, dict) and item.get("path"):
+                paths.append(str(item["path"]))
+    return list(dict.fromkeys(paths))
 
 
 def cmd_self_iterate(args: argparse.Namespace) -> int:
@@ -1414,6 +1596,9 @@ def run_project_drive(root: Path, args: argparse.Namespace) -> tuple[int, dict]:
             allow_agent=args.allow_agent,
         )
         result["spec_sync"] = maybe_sync_completed_spec_task(root, task, result, phase="drive")
+        result["docs_sync"] = maybe_sync_completed_documentation(root, task, result, phase="drive")
+        attach_post_task_sync_evidence(root, result)
+        harness.rebuild_manifest_index()
         maybe_checkpoint_task(harness, task, result, args, checkpoint_defer=task_checkpoint_defer)
         results.append(result)
         harness.drive_heartbeat(
@@ -4403,6 +4588,52 @@ def build_parser() -> argparse.ArgumentParser:
     spec_sync_record.add_argument("--apply", action="store_true")
     spec_sync_record.add_argument("--json", action="store_true")
     spec_sync_record.set_defaults(func=cmd_spec_sync)
+
+    docs_sync = subparsers.add_parser("docs-sync", help="Audit, propose, or record target documentation synchronization")
+    docs_sync_subparsers = docs_sync.add_subparsers(dest="docs_sync_action", required=True)
+
+    docs_sync_audit = docs_sync_subparsers.add_parser("audit", help="Audit target documentation role coverage")
+    docs_sync_audit.add_argument("--project-root", type=Path, default=None)
+    docs_sync_audit.add_argument("--workspace", type=Path, default=Path.cwd())
+    docs_sync_audit.add_argument("--project", default=None)
+    docs_sync_audit.add_argument("--max-depth", type=int, default=3)
+    docs_sync_audit.add_argument("--json", action="store_true")
+    docs_sync_audit.set_defaults(func=cmd_docs_sync)
+
+    docs_sync_propose = docs_sync_subparsers.add_parser("propose", help="Propose bounded documentation updates")
+    docs_sync_propose.add_argument("--project-root", type=Path, default=None)
+    docs_sync_propose.add_argument("--workspace", type=Path, default=Path.cwd())
+    docs_sync_propose.add_argument("--project", default=None)
+    docs_sync_propose.add_argument("--max-depth", type=int, default=3)
+    docs_sync_propose.add_argument("--task-id", required=True)
+    docs_sync_propose.add_argument("--status", default="completed")
+    docs_sync_propose.add_argument("--evidence", action="append", default=[])
+    docs_sync_propose.add_argument("--requirement-id", action="append", default=[])
+    docs_sync_propose.add_argument("--note", default="")
+    docs_sync_propose.add_argument("--actor", default="engineering-harness")
+    docs_sync_propose.add_argument("--phase", default="")
+    docs_sync_propose.add_argument("--stage-id", default="")
+    docs_sync_propose.add_argument("--architecture-change", action="store_true")
+    docs_sync_propose.add_argument("--json", action="store_true")
+    docs_sync_propose.set_defaults(func=cmd_docs_sync)
+
+    docs_sync_record = docs_sync_subparsers.add_parser("record", help="Record safe documentation updates")
+    docs_sync_record.add_argument("--project-root", type=Path, default=None)
+    docs_sync_record.add_argument("--workspace", type=Path, default=Path.cwd())
+    docs_sync_record.add_argument("--project", default=None)
+    docs_sync_record.add_argument("--max-depth", type=int, default=3)
+    docs_sync_record.add_argument("--task-id", required=True)
+    docs_sync_record.add_argument("--status", default="completed")
+    docs_sync_record.add_argument("--evidence", action="append", default=[])
+    docs_sync_record.add_argument("--requirement-id", action="append", default=[])
+    docs_sync_record.add_argument("--note", default="")
+    docs_sync_record.add_argument("--actor", default="engineering-harness")
+    docs_sync_record.add_argument("--phase", default="")
+    docs_sync_record.add_argument("--stage-id", default="")
+    docs_sync_record.add_argument("--architecture-change", action="store_true")
+    docs_sync_record.add_argument("--apply", action="store_true")
+    docs_sync_record.add_argument("--json", action="store_true")
+    docs_sync_record.set_defaults(func=cmd_docs_sync)
 
     merge_plan = subparsers.add_parser(
         "merge-plan",

@@ -386,3 +386,20 @@ Dynamic documentation maintenance is a sibling capability to spec synchronizatio
 requirement and task status in a compact ledger. Documentation sync updates the target project's human
 source-of-truth documents so architecture, roadmap, spec, task-package, local implementation, and
 deployment status do not drift apart.
+
+```bash
+engo docs-sync audit --project-root /path/to/target --json
+engo docs-sync propose --project-root /path/to/target \
+  --task-id example-task \
+  --evidence "python3 -m pytest -q" \
+  --json
+engo docs-sync record --project-root /path/to/target \
+  --task-id example-task \
+  --status completed \
+  --evidence "python3 -m pytest -q" \
+  --apply
+```
+
+Documentation synchronization only writes bounded managed evidence blocks and machine-readable update
+logs automatically. Architecture blueprints, canonical specs, roadmap intent, and decision records are
+reported as manual-review targets unless the implementation task explicitly calls for those changes.
