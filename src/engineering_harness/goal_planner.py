@@ -392,7 +392,7 @@ def _continuation_stages(
             "id": "stage-4-unattended-drive-readiness",
             "title": "Stage 4 Unattended Drive Readiness",
             "objective": (
-                f"Prepare `{project_name}` for bounded unattended harness drive runs under the `{profile}` profile."
+                f"Prepare `{project_name}` for bounded unattended orchestrator drive runs under the `{profile}` profile."
             ),
             "tasks": [
                 _continuation_task(

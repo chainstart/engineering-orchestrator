@@ -1,9 +1,12 @@
 {
   "allowed_prefixes": [
     "python3 ",
+    "PYTHONPATH=src python3 ",
     "pytest ",
+    "rg ",
     "bash scripts/",
     "bin/engh ",
+    "bin/engo ",
     "npm ",
     "npx ",
     "node "

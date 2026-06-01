@@ -320,14 +320,14 @@ def build_continuation_task(
         ],
         "acceptance": [
             {
-                "name": "full harness tests",
+                "name": "full orchestrator tests",
                 "command": "python3 -m pytest tests/test_engineering_harness.py -q",
                 "required": True,
                 "timeout_seconds": 1500,
             },
             {
                 "name": "current roadmap validates",
-                "command": "bin/engh validate --project-root .",
+                "command": "bin/engo validate --project-root .",
                 "required": True,
                 "timeout_seconds": 300,
             },
@@ -335,7 +335,7 @@ def build_continuation_task(
         "e2e": [
             {
                 "name": "status remains machine-readable",
-                "command": "bin/engh status --project-root . --json",
+                "command": "bin/engo status --project-root . --json",
                 "required": True,
                 "timeout_seconds": 300,
             }
@@ -368,7 +368,7 @@ def materialize_spec_backlog_plan(
     continuation["enabled"] = True
     continuation.setdefault(
         "goal",
-        "Materialize and complete specification-derived continuation stages under harness control.",
+        "Materialize and complete specification-derived continuation stages under Engineering Orchestrator control.",
     )
     continuation_stages = continuation.setdefault("stages", [])
     if not isinstance(continuation_stages, list):
@@ -441,14 +441,14 @@ def _implementation_prompt(parsed_stage: dict[str, Any], task_text: str) -> str:
     refs = ", ".join(parsed_stage.get("requirement_refs", [])) or "none"
     acceptance = "; ".join(parsed_stage.get("acceptance", [])) or "Keep the roadmap valid and tests passing."
     return (
-        "Implement this specification-derived engineering-harness backlog task.\n\n"
+        "Implement this specification-derived Engineering Orchestrator backlog task.\n\n"
         f"Source: {parsed_stage['source']}\n"
         f"Stage: Stage {parsed_stage['stage_number']} - {parsed_stage['title']}\n"
         f"Requirement refs: {refs}\n"
         f"Stage goal: {parsed_stage.get('goal') or parsed_stage['title']}\n"
         f"Task: {task_text}\n"
         f"Stage acceptance summary: {acceptance}\n\n"
-        "Use existing engineering-harness patterns and keep the change local, testable, and reviewable. "
+        "Use existing Engineering Orchestrator patterns and keep the change local, testable, and reviewable. "
         "Add or update focused tests and documentation where the behavior changes. Preserve drive, "
         "self-iteration, checkpoint readiness, failure isolation, approval/capability policy, workspace "
         "dispatch, runtime dashboard, and local-only execution semantics. Do not require external accounts, "
@@ -463,7 +463,7 @@ def _repair_prompt(parsed_stage: dict[str, Any], task_text: str) -> str:
         f"Source: {parsed_stage['source']}\n"
         f"Stage: Stage {parsed_stage['stage_number']} - {parsed_stage['title']}\n"
         f"Task: {task_text}\n"
-        "Keep repairs scoped, local-only, and compatible with existing harness evidence and safety semantics."
+        "Keep repairs scoped, local-only, and compatible with existing orchestrator evidence and safety semantics."
     )
 
 

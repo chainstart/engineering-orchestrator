@@ -1,4 +1,4 @@
-# Engineering Harness Implementation Status
+# Engineering Orchestrator Implementation Status
 
 Date: 2026-05-19
 
@@ -30,11 +30,11 @@ Decision records: `docs/decisions/`
 | `EH-SPEC-012` | `partial` | profiles and domain pack hooks | more domain-specific packs needed | add formal/AI/security packs |
 | `EH-SPEC-013` | `completed` | self-iteration and duplicate-plan detection | higher-level planner quality can improve | continue goal-gap scoring |
 | `EH-SPEC-014` | `partial` | English docs and public positioning | packaging/release polish remains | prepare public release checklist |
-| `EH-SPEC-015` | `completed` | `spec_sync.py`, `engh spec-sync audit/record`, tests | optional deeper markdown status mutation | use JSONL + task ledger as source of truth |
+| `EH-SPEC-015` | `completed` | `spec_sync.py`, `engo spec-sync audit/record`, tests | optional deeper markdown status mutation | use JSONL + task ledger as source of truth |
 
 ## Maintenance Rules
 
-1. Every new stable harness capability gets an `EH-SPEC-*` id.
+1. Every new stable orchestrator capability gets an `EH-SPEC-*` id.
 2. Roadmap tasks cite requirement ids through `spec_refs`.
 3. Completed implementation tasks update `.engineering/spec_tasks.yaml` and append evidence.
 4. Changes that affect target-repository spec maintenance require both tests and documentation.

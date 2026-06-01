@@ -3,9 +3,9 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "engineering-harness"
+name = "engineering-orchestrator"
 version = "0.1.0"
-description = "Roadmap-driven control plane for autonomous software engineering agents."
+description = "Engineering Orchestrator: roadmap-driven control plane for autonomous software engineering agents."
 license = {file = "LICENSE"}
 requires-python = ">=3.11"
 dependencies = []
@@ -15,6 +15,7 @@ classifiers = [
 
 [project.scripts]
 engh = "engineering_harness.cli:main"
+engo = "engineering_harness.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

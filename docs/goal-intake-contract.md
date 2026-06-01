@@ -11,7 +11,7 @@ Use `engineering_harness.goal_intake.normalize_goal_intake` or
 
 - `project_name`: required display name for the new project. Whitespace is collapsed and a stable
   lowercase slug is derived.
-- `profile`: required harness profile id, such as `python-agent`, `node-frontend`, or
+- `profile`: required orchestrator profile id, such as `python-agent`, `node-frontend`, or
   `trading-research`.
 - `goal_text`: required high-level project goal. Empty or whitespace-only goals are rejected.
 - `blueprint_path`: optional local path to a blueprint or planning document. URLs are rejected.

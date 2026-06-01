@@ -1,7 +1,7 @@
 # Spec-Driven Development Plan
 
-This plan turns the Engineering Harness system specification into executable engineering stages.
-Each stage references requirement ids from [Engineering Harness System Specification](engineering-harness-system-spec.md).
+This plan turns the Engineering Orchestrator system specification into executable engineering stages.
+Each stage references requirement ids from [Engineering Orchestrator System Specification](engineering-harness-system-spec.md).
 
 ## Operating Model
 
@@ -17,7 +17,7 @@ spec
   -> checkpoint, CI, continuation
 ```
 
-The harness should describe this chain directly in project artifacts. A task without traceability can
+The orchestrator should describe this chain directly in project artifacts. A task without traceability can
 still run for backward compatibility, but production roadmaps should eventually cite the spec
 requirements they satisfy.
 
@@ -196,15 +196,15 @@ Tasks:
    `docs/spec_update_log.jsonl`.
 4. Add best-effort task-completion sync from `run` and `drive` when the roadmap task id exists in
    the target spec task ledger.
-5. Document how harness task packages should update the developed repository's spec after each
+5. Document how orchestrator task packages should update the developed repository's spec after each
    implementation stage.
 
 Acceptance:
 
-- `engh spec-sync audit --project-root <target> --json` reports passed/warning/failed with checks.
-- `engh spec-sync record --project-root <target> --task-id <id> --status completed --apply` updates
+- `engo spec-sync audit --project-root <target> --json` reports passed/warning/failed with checks.
+- `engo spec-sync record --project-root <target> --task-id <id> --status completed --apply` updates
   the task ledger and appends a JSONL update log.
-- A completed harness task records skipped/updated sync evidence in its result payload.
+- A completed orchestrator task records skipped/updated sync evidence in its result payload.
 - Target projects can keep requirement status independent from transient roadmap structure.
 
 ## Current Implementation Target
@@ -217,5 +217,5 @@ covered stages keep only the still-uncovered tasks. Generated spec traceability 
 stages advance into active milestones. Self-iteration context packs expose the spec traceability
 expectation, validation rejects new stages or tasks without `spec_refs` when the existing roadmap is
 spec-traceable, and accepted assessments report which requirement refs newly appended stages advance.
-Stage 7 adds target-project spec synchronization so Engineering Harness can update the developed
+Stage 7 adds target-project spec synchronization so Engineering Orchestrator can update the developed
 repository's own dynamic spec ledger after task or stage completion.

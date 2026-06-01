@@ -1,23 +1,34 @@
-# Engineering Harness System Specification
+# Engineering Orchestrator System Specification
 
 ## Purpose
 
-Engineering Harness is a roadmap-driven control plane for autonomous software engineering agents.
+Engineering Orchestrator is a roadmap-driven control plane for autonomous software engineering agents.
 It exists to turn a goal or specification into a durable production engineering workflow: planning,
 implementation, validation, repair, evidence capture, checkpointing, and continuation.
 
-The harness must be domain-neutral. It should support web applications, mobile applications, games,
+The orchestrator must be domain-neutral. It should support web applications, mobile applications, games,
 backend services, developer tools, agents, embedded software, Verilog/HDL, EDA flows, formal
 verification, data systems, CI/CD, and operational automation. Domain behavior should come from
 profiles, executors, playbooks, policies, and project-specific specifications rather than from a
 single hard-coded project type.
 
+## Compatibility Terminology
+
+Engineering Orchestrator is the canonical public product name. Engineering Harness is a legacy
+compatibility name retained for existing users and persisted artifacts. During the staged migration,
+`engineering_harness` imports, `engh`, `.engineering/state/harness-state.json`, `EH-SPEC-*`
+requirement ids, and `engineering-harness.*` schema kind strings remain valid compatibility
+contracts.
+
+Agent harness means an agent-internal LLM/tool/runtime loop component. It is distinct from
+Engineering Orchestrator, which is the external roadmap-driven engineering control plane.
+
 ## Product Boundary
 
-Engineering Harness is not itself the coding model. It is the engineering workflow around coding
+Engineering Orchestrator is not itself the coding model. It is the engineering workflow around coding
 models and local or remote tools.
 
-The harness owns:
+The orchestrator owns:
 
 - goal and specification intake;
 - roadmap and task state;
@@ -42,14 +53,26 @@ running HDL simulators, delegating to CI, or calling future model APIs.
 
 ## Requirement IDs
 
-Each stable product requirement uses an `EH-SPEC-###` id. Roadmap tasks and command gates should
-reference these ids with `spec_refs`.
+Most stable product requirements use an `EH-SPEC-###` id. Rename-specific requirements use an
+`EO-SPEC-###` id. Roadmap tasks and command gates should reference these ids with `spec_refs`.
+
+### EO-SPEC-001: Engineering Orchestrator Rename Compatibility
+
+The orchestrator must present Engineering Orchestrator as the canonical public product name while
+retaining Engineering Harness as a legacy compatibility name during the staged migration.
+
+Acceptance evidence:
+
+- README, docs, CLI help, and tests use Engineering Orchestrator as the canonical product name.
+- Documentation states that Engineering Harness is a legacy compatibility name.
+- `engineering_harness` imports, `engh`, existing state paths, and `engineering-harness.*` schema
+  kind strings remain valid compatibility contracts.
 
 ## Functional Requirements
 
 ### EH-SPEC-001: Specification Intake
 
-The harness must accept a project specification as a first-class input. The specification may be a
+The orchestrator must accept a project specification as a first-class input. The specification may be a
 local Markdown document, a structured JSON/YAML contract, or a generated normalized goal intake
 artifact.
 
@@ -61,7 +84,7 @@ Acceptance evidence:
 
 ### EH-SPEC-002: Spec-To-Roadmap Planning
 
-The harness must derive an executable roadmap from the project specification. The roadmap must
+The orchestrator must derive an executable roadmap from the project specification. The roadmap must
 contain milestones, tasks, continuation stages, acceptance gates, and end-to-end gates that trace
 back to spec requirements.
 
@@ -73,7 +96,7 @@ Acceptance evidence:
 
 ### EH-SPEC-003: Task Graph And Execution Phases
 
-The harness must model implementation work as tasks with explicit phases: `implementation`,
+The orchestrator must model implementation work as tasks with explicit phases: `implementation`,
 `acceptance`, `repair`, and `e2e`. Future versions should support dependencies and affected-task
 selection.
 
@@ -85,7 +108,7 @@ Acceptance evidence:
 
 ### EH-SPEC-004: Executor Abstraction
 
-The harness must use a stable executor contract so shell commands, coding agents, CI jobs, Dagger
+The orchestrator must use a stable executor contract so shell commands, coding agents, CI jobs, Dagger
 functions, HDL tools, and future workers can be swapped without changing roadmap semantics.
 
 Acceptance evidence:
@@ -96,7 +119,7 @@ Acceptance evidence:
 
 ### EH-SPEC-005: Model And Memory Layer
 
-The harness must support future model routing, prompt templates, context compression, project
+The orchestrator must support future model routing, prompt templates, context compression, project
 knowledge indexes, cost budgets, and long-term memory as auditable artifacts.
 
 Acceptance evidence:
@@ -107,7 +130,7 @@ Acceptance evidence:
 
 ### EH-SPEC-006: Durable Autonomous Runtime
 
-The harness must support unattended runs that can pause, resume, cancel, recover stale state, enforce
+The orchestrator must support unattended runs that can pause, resume, cancel, recover stale state, enforce
 timeouts, track heartbeats, and continue across roadmap stages.
 
 Acceptance evidence:
@@ -118,7 +141,7 @@ Acceptance evidence:
 
 ### EH-SPEC-007: Production Acceptance And E2E Evidence
 
-The harness must require production-relevant evidence for completion. Depending on domain, this may
+The orchestrator must require production-relevant evidence for completion. Depending on domain, this may
 include unit tests, integration tests, browser E2E, API journeys, CLI journeys, HDL simulation,
 formal checks, hardware-in-the-loop tests, security scans, or deployment smoke tests.
 
@@ -141,18 +164,18 @@ Acceptance evidence:
 
 ### EH-SPEC-009: Git, CI, And Release Integration
 
-The harness must support clean git boundaries, task checkpoints, optional pushes, CI workflow
+The orchestrator must support clean git boundaries, task checkpoints, optional pushes, CI workflow
 integration, PR feedback, failed-CI triage, and release evidence.
 
 Acceptance evidence:
 
-- Checkpoint readiness classifies clean, harness-owned, task-scoped, and unrelated dirty paths.
+- Checkpoint readiness classifies clean, orchestrator-owned, task-scoped, and unrelated dirty paths.
 - Successful tasks can create commits and optionally push.
 - Future CI adapters can map failed checks back to spec refs and roadmap tasks.
 
 ### EH-SPEC-010: Policy And Governance
 
-The harness must guard risky work through structured policy decisions.
+The orchestrator must guard risky work through structured policy decisions.
 
 Acceptance evidence:
 
@@ -164,7 +187,7 @@ Acceptance evidence:
 
 ### EH-SPEC-011: Operator Experience
 
-The harness must provide operator-facing status and, eventually, a local or hosted dashboard.
+The orchestrator must provide operator-facing status and, eventually, a local or hosted dashboard.
 
 Acceptance evidence:
 
@@ -174,7 +197,7 @@ Acceptance evidence:
 
 ### EH-SPEC-012: Domain Packs
 
-The harness must remain general while supporting domain-specific workflows through profiles,
+The orchestrator must remain general while supporting domain-specific workflows through profiles,
 executor adapters, templates, and playbooks.
 
 Acceptance evidence:
@@ -185,7 +208,7 @@ Acceptance evidence:
 
 ### EH-SPEC-013: Self-Iteration
 
-The harness must be able to assess current state and append the next bounded continuation stage when
+The orchestrator must be able to assess current state and append the next bounded continuation stage when
 configured to do so.
 
 Acceptance evidence:
@@ -196,7 +219,7 @@ Acceptance evidence:
 
 ### EH-SPEC-014: Public Distribution
 
-The harness must be usable as an open project for broad software engineering automation.
+The orchestrator must be usable as an open project for broad software engineering automation.
 
 Acceptance evidence:
 
@@ -206,18 +229,18 @@ Acceptance evidence:
 
 ### EH-SPEC-015: Target Spec Synchronization
 
-The harness must help target projects keep their own dynamic specification systems current after a
+The orchestrator must help target projects keep their own dynamic specification systems current after a
 task or stage is implemented. A target project may maintain `.engineering/spec_tasks.yaml`,
-implementation-status documentation, decision records, and a spec update log. The harness should be
+implementation-status documentation, decision records, and a spec update log. The orchestrator should be
 able to audit that structure and record task completion evidence without requiring the target project
-to use Engineering Harness internals.
+to use Engineering Orchestrator internals.
 
 Acceptance evidence:
 
-- `engh spec-sync audit` validates the target project's dynamic spec maintenance files.
-- `engh spec-sync record --apply` updates the target task ledger and appends a machine-readable
+- `engo spec-sync audit` validates the target project's dynamic spec maintenance files.
+- `engo spec-sync record --apply` updates the target task ledger and appends a machine-readable
   update log entry.
-- Completed harness tasks attempt a best-effort update when the target task id is present in
+- Completed orchestrator tasks attempt a best-effort update when the target task id is present in
   `.engineering/spec_tasks.yaml`.
 - Missing or unmatched spec tasks are reported as skipped evidence, not silently treated as success.
 
@@ -292,11 +315,11 @@ Projects can opt into a lightweight dynamic spec contract:
 }
 ```
 
-The harness command surface is:
+The orchestrator command surface is:
 
 ```bash
-engh spec-sync audit --project-root /path/to/target --json
-engh spec-sync record --project-root /path/to/target \
+engo spec-sync audit --project-root /path/to/target --json
+engo spec-sync record --project-root /path/to/target \
   --task-id example-task \
   --status completed \
   --evidence "python3 -m pytest -q" \

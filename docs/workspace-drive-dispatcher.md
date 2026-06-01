@@ -1,6 +1,6 @@
 # Workspace Drive Dispatcher
 
-`engh workspace-drive` scans a local workspace, builds a deterministic project queue, and starts at
+`engo workspace-drive` scans a local workspace, builds a deterministic project queue, and starts at
 most one eligible project drive per invocation. It is intended for unattended loops such as cron or a
 local supervisor where each tick should make bounded progress without pushing, deploying, or requiring
 external accounts.
@@ -8,19 +8,19 @@ external accounts.
 Inspect the workspace first:
 
 ```bash
-bin/engh scan --workspace /path/to/workspace --json
+bin/engo scan --workspace /path/to/workspace --json
 ```
 
 Run one bounded dispatch tick:
 
 ```bash
-bin/engh workspace-drive --workspace /path/to/workspace --max-tasks 1 --json
+bin/engo workspace-drive --workspace /path/to/workspace --max-tasks 1 --json
 ```
 
 For long unattended rolling work, keep each tick small:
 
 ```bash
-bin/engh workspace-drive \
+bin/engo workspace-drive \
   --workspace /path/to/workspace \
   --max-tasks 1 \
   --rolling \
@@ -34,7 +34,7 @@ For a local daemon-style loop that persists supervisor metadata between ticks, u
 process manager, cron, or shell can restart it safely because the loop state is durable:
 
 ```bash
-bin/engh daemon-supervisor \
+bin/engo daemon-supervisor \
   --workspace /path/to/workspace \
   --max-ticks 12 \
   --run-window-seconds 3600 \
@@ -80,7 +80,7 @@ Equal fair scores are resolved by stable resolved-path ordering. For compatibili
 assert the old first-eligible-path behavior, pass:
 
 ```bash
-bin/engh workspace-drive --workspace /path/to/workspace --scheduler-policy path-order --json
+bin/engo workspace-drive --workspace /path/to/workspace --scheduler-policy path-order --json
 ```
 
 Later eligible projects are left for later invocations and recorded with `one_project_per_invocation`.
@@ -95,7 +95,7 @@ An eligible project receives a bounded score penalty when its latest selected di
 as nonproductive. The default backoff window is 3600 seconds. Override it per invocation with:
 
 ```bash
-bin/engh workspace-drive --workspace /path/to/workspace --nonproductive-backoff-seconds 7200 --json
+bin/engo workspace-drive --workspace /path/to/workspace --nonproductive-backoff-seconds 7200 --json
 ```
 
 or set `ENGINEERING_HARNESS_WORKSPACE_DISPATCH_NONPRODUCTIVE_BACKOFF_SECONDS` for unattended
@@ -144,7 +144,7 @@ Stale leases are recovered locally before scanning when either:
 The default threshold is 3600 seconds. Override it for a command with:
 
 ```bash
-bin/engh workspace-drive --workspace /path/to/workspace --lease-stale-after-seconds 7200 --json
+bin/engo workspace-drive --workspace /path/to/workspace --lease-stale-after-seconds 7200 --json
 ```
 
 or set `ENGINEERING_HARNESS_WORKSPACE_DISPATCH_LEASE_STALE_AFTER_SECONDS` for cron or supervisor
@@ -213,7 +213,7 @@ WORKSPACE=/path/to/workspace
 TICKS=6
 
 for tick in $(seq 1 "$TICKS"); do
-  bin/engh workspace-drive \
+  bin/engo workspace-drive \
     --workspace "$WORKSPACE" \
     --max-tasks 1 \
     --time-budget-seconds 1800 \
@@ -226,14 +226,14 @@ done
 For cron, keep the same one-project tick shape and redirect stdout to your local supervisor logs:
 
 ```cron
-*/5 * * * * cd /path/to/engineering-harness && bin/engh workspace-drive --workspace /path/to/workspace --max-tasks 1 --time-budget-seconds 1800 --rolling --max-continuations 1 --json
+*/5 * * * * cd /path/to/engineering-harness && bin/engo workspace-drive --workspace /path/to/workspace --max-tasks 1 --time-budget-seconds 1800 --rolling --max-continuations 1 --json
 ```
 
 For a long-running shell supervisor, keep the interval outside the dispatcher:
 
 ```bash
 while true; do
-  bin/engh workspace-drive \
+  bin/engo workspace-drive \
     --workspace /path/to/workspace \
     --max-tasks 1 \
     --time-budget-seconds 1800 \
@@ -262,9 +262,9 @@ include:
 
 Resolve safety skips locally before expecting a project to re-enter the queue:
 
-- `bin/engh resume --project-root <project>` clears pause, cancel, or stale drive control after review.
-- `bin/engh approvals --project-root <project> --json` shows pending approval gates.
-- `bin/engh status --project-root <project> --json` shows unresolved isolated failure evidence.
+- `bin/engo resume --project-root <project>` clears pause, cancel, or stale drive control after review.
+- `bin/engo approvals --project-root <project> --json` shows pending approval gates.
+- `bin/engo status --project-root <project> --json` shows unresolved isolated failure evidence.
 
 Review evidence after each run from newest to oldest:
 
@@ -294,7 +294,7 @@ Project status now carries the nearest workspace dispatch evidence under
 `runtime_dashboard.workspace_dispatch`. From a project directory, use:
 
 ```bash
-bin/engh status --project-root . --json
+bin/engo status --project-root . --json
 ```
 
 That dashboard block shows the latest dispatch queue, queue summary, selected project, active

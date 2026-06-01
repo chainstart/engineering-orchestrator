@@ -138,7 +138,7 @@ def default_roadmap(project_name: str, profile_id: str) -> dict[str, Any]:
                 "id": "baseline",
                 "title": "Project Baseline",
                 "status": "active",
-                "objective": "Verify the project can run its baseline checks under the shared engineering harness.",
+                "objective": "Verify the project can run its baseline checks under the shared Engineering Orchestrator.",
                 "tasks": tasks,
             }
         ],

@@ -1,6 +1,6 @@
 # Local Full Lifecycle Smoke
 
-The local full-lifecycle smoke is a bounded unattended E2E check for the harness itself. It creates a
+The local full-lifecycle smoke is a bounded unattended E2E check for the orchestrator itself. It creates a
 temporary workspace, materializes a starter roadmap through `plan-goal`, validates that generated
 roadmap, seeds one shell-only task, dispatches a single `workspace-drive` tick, and verifies the
 resulting local evidence.
@@ -32,5 +32,5 @@ checkpoint readiness, failure-isolation absence, goal-gap scorecard, and runtime
 For operator visibility after a smoke stage or before a longer supervisor loop, inspect status JSON:
 
 ```bash
-bin/engh status --project-root . --json
+bin/engo status --project-root . --json
 ```

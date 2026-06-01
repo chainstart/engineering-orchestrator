@@ -18,6 +18,6 @@ Static declarations describe:
 - `expect_forms`: form selectors plus expected fields and submit text.
 
 The fallback writes DOM evidence under `artifacts/browser-e2e/<journey>/dom-evidence.json` and a
-small DOM snapshot text file when configured. `engh status --json` exposes the machine-readable
+small DOM snapshot text file when configured. `engo status --json` exposes the machine-readable
 summary at `browser_user_experience` and
 `runtime_dashboard.browser_user_experience`.

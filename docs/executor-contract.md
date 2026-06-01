@@ -1,6 +1,6 @@
 # Executor Contract
 
-Executor adapters let the harness run shell commands, Codex/OpenHands prompts, and future execution
+Executor adapters let the orchestrator run shell commands, Codex/OpenHands prompts, and future execution
 backends without changing task semantics. Roadmap tasks still define command groups with `executor`,
 `command` or `prompt`, `timeout_seconds`, optional `no_progress_timeout_seconds`, `required`,
 `model`, `sandbox`, and optional `requested_capabilities`.
@@ -27,9 +27,9 @@ Built-in executors are registered in `default_executor_registry()`:
 
 Tests and future integrations can pass a custom registry to `Harness(..., executor_registry=...)`.
 Unknown executor ids fail roadmap validation and task preflight with the same clear messages used
-by existing harness behavior.
+by existing orchestrator behavior.
 
-`engh status --json` includes `executor_diagnostics` at the top level and under
+`engo status --json` includes `executor_diagnostics` at the top level and under
 `runtime_dashboard.executor_diagnostics`. The diagnostics payload records each registered executor's
 status, configured/enabled booleans, capability metadata, unsafe capability classes, and
 adapter-specific health details when available.
@@ -56,10 +56,10 @@ capability names. The current local vocabulary is:
 - Unsafe request markers: `network`, `network_access`, `secret_access`, `secrets`,
   `browser_automation`, `deployment`, `deploy`, `live_operations`, and `live`.
 
-Before a command runs, the harness compares `requested_capabilities` with the selected executor's
+Before a command runs, the orchestrator compares `requested_capabilities` with the selected executor's
 metadata capabilities. Supported low-risk requests are allowed. Unsupported requests are denied.
 Unsafe request markers are denied even if an executor could technically perform them, because the
-unattended local harness does not yet have an explicit approval mechanism for network access,
+unattended local orchestrator does not yet have an explicit approval mechanism for network access,
 secret access, browser automation, deployment, or live operations.
 
 ## Manifest Contract
@@ -93,7 +93,7 @@ record capabilities and result details.
 
 ## Agent Context Packs
 
-Before a real `agent` executor run with prompt input, the harness writes a redacted JSON context pack
+Before a real `agent` executor run with prompt input, the orchestrator writes a redacted JSON context pack
 under `.engineering/reports/tasks/agent-context-packs/`. The pack includes bounded task metadata,
 the current command, verification command summaries, relevant `spec_refs`, compact spec index
 metadata, and short requirement excerpts extracted from the configured local spec path or structured
@@ -130,7 +130,7 @@ self-iteration result and report.
 ## OpenHands Adapter Stub
 
 The OpenHands adapter is intentionally gated for local experimentation. Roadmaps select it with
-`executor: "openhands"` and provide a natural-language task in `prompt`. The harness expands the
+`executor: "openhands"` and provide a natural-language task in `prompt`. The orchestrator expands the
 prompt with the same task context used for Codex, records the auditable display command as
 `openhands --headless --json --override-with-envs -t <task:...>`, runs from the project root, and
 captures stdout/stderr into the standard manifest fields.
@@ -141,7 +141,7 @@ By default the adapter returns a blocked executor result:
 - return code: `null`
 - metadata: `{"configured": false, "required_environment": "ENGINEERING_HARNESS_ENABLE_OPENHANDS"}`
 
-To opt into local OpenHands execution, set `ENGINEERING_HARNESS_ENABLE_OPENHANDS=1` in the harness
+To opt into local OpenHands execution, set `ENGINEERING_HARNESS_ENABLE_OPENHANDS=1` in the orchestrator
 environment and ensure the `openhands` binary is on `PATH`. Set
 `ENGINEERING_HARNESS_OPENHANDS_BINARY=/path/to/openhands` to use a specific binary. If the roadmap
 entry sets `model`, the adapter exports it as `LLM_MODEL` and passes `--override-with-envs`, matching
@@ -151,7 +151,7 @@ OpenHands executor metadata includes a `health` summary with the selected binary
 found on `PATH`, whether `LLM_MODEL`, `LLM_API_KEY`, or `LLM_BASE_URL` are present, and whether
 `~/.openhands/agent_settings.json` exists. Successful runs also include an `openhands_jsonl` summary
 of parsed JSONL output: event counts, recent compact events, touched paths, and any non-JSON lines.
-The harness records booleans for credentials and redacted previews; it does not copy API keys into
+The orchestrator records booleans for credentials and redacted previews; it does not copy API keys into
 manifests.
 
 While the process is still running, complete JSONL objects written to stdout are also translated into
@@ -164,7 +164,7 @@ also include warning-level capability audit evidence for those inherent executor
 warning does not replace the adapter enablement gate; execution still requires
 `ENGINEERING_HARNESS_ENABLE_OPENHANDS=1` and `--allow-agent`.
 
-This keeps the current harness safe while leaving a clear integration path for later work:
+This keeps the current orchestrator safe while leaving a clear integration path for later work:
 
 - define finer local workspace, network, and browser policies before unattended use;
 - keep all OpenHands outcomes flowing through the same executor metadata and result contract used by
@@ -185,11 +185,11 @@ By default the adapter returns a blocked executor result:
 - return code: `null`
 - metadata: `{"configured": false, "required_environment": "ENGINEERING_HARNESS_ENABLE_DAGGER"}`
 
-To opt into local Dagger execution, set `ENGINEERING_HARNESS_ENABLE_DAGGER=1` in the harness
+To opt into local Dagger execution, set `ENGINEERING_HARNESS_ENABLE_DAGGER=1` in the orchestrator
 environment and ensure the `dagger` binary is on `PATH`. If the flag is enabled but the binary is
 missing, the adapter still blocks and records `{"configured": true, "missing_binary": "dagger"}`.
 
-This keeps the current harness safe while leaving a clear integration path for later work:
+This keeps the current orchestrator safe while leaving a clear integration path for later work:
 
 - add project-level Dagger module discovery;
 - map roadmap task metadata into Dagger function arguments;

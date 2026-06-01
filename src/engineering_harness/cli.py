@@ -489,7 +489,7 @@ def materialization_task_checkpoint_defer_payload(checkpoint: dict) -> dict:
     elif reason in {"preexisting_unrelated_dirty_paths", "checkpoint_readiness_blocked"}:
         detail = "unrelated dirty paths were present before roadmap materialization"
     elif reason == "unrelated_dirty_paths":
-        detail = "unrelated dirty paths appeared beside the harness-owned roadmap materialization"
+        detail = "unrelated dirty paths appeared beside the orchestrator-owned roadmap materialization"
     elif reason == "git_push_failed":
         detail = "the roadmap materialization commit could not be pushed before generated tasks"
     else:
@@ -1021,7 +1021,7 @@ def maybe_sync_completed_spec_task(root: Path, task, result: dict, *, phase: str
             status="completed",
             evidence=evidence,
             requirement_ids=list(getattr(task, "spec_refs", ()) or ()),
-            note="Recorded automatically after a completed harness task.",
+            note="Recorded automatically after a completed orchestrator task.",
             actor="engineering-harness:auto",
             phase=phase,
             apply=True,
@@ -4184,7 +4184,7 @@ def cmd_workspace_drive(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Goal-driven engineering harness")
+    parser = argparse.ArgumentParser(description="Engineering Orchestrator: roadmap-driven engineering control plane")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     profiles = subparsers.add_parser("profiles", help="List built-in project profiles")

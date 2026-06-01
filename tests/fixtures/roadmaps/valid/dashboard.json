@@ -27,7 +27,7 @@
       "id": "dashboard-foundation",
       "title": "Dashboard Foundation",
       "status": "active",
-      "objective": "Expose harness run state through an operator dashboard.",
+      "objective": "Expose orchestrator run state through an operator dashboard.",
       "tasks": [
         {
           "id": "dashboard-status-panel",

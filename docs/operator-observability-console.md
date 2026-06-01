@@ -1,12 +1,12 @@
 # Operator Observability Console
 
 The operator console is a bounded, local-only observability payload layered on top of the existing
-`engh status --json` contract. It does not call external services and does not require credentials.
+`engo status --json` contract. It does not call external services and does not require credentials.
 
 Inspect the structured summary in status JSON:
 
 ```bash
-bin/engh status --project-root . --json
+bin/engo status --project-root . --json
 ```
 
 The top-level `operator_console` block aggregates:
@@ -25,7 +25,7 @@ The top-level `operator_console` block aggregates:
 Generate static local artifacts:
 
 ```bash
-bin/engh operator-console --project-root . --write --json
+bin/engo operator-console --project-root . --write --json
 ```
 
 This writes:

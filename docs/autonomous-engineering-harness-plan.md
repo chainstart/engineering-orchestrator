@@ -1,12 +1,12 @@
-# Autonomous Engineering Harness Development Plan
+# Autonomous Engineering Orchestrator Development Plan
 
-This plan defines the long-range direction for Engineering Harness as a local-first control and
+This plan defines the long-range direction for Engineering Orchestrator as a local-first control and
 execution layer for roadmap-driven software work, coding agents, safety gates, project-specific
 frontends, and end-to-end user validation.
 
 ## Product Positioning
 
-Engineering Harness should remain the control layer, not another CI system or another coding agent.
+Engineering Orchestrator should remain the control layer, not another CI system or another coding agent.
 It should coordinate work across tools, keep policies explicit, select tasks, invoke executors,
 capture evidence, and decide whether a task is complete.
 
@@ -24,7 +24,7 @@ The system should learn from mature platforms without copying their full weight:
 
 - Local-first by default. Every workflow should be runnable from a developer machine before it is
   delegated to CI or hosted infrastructure.
-- Control plane, not worker. The harness owns task intent, policy, state, evidence, and completion
+- Control plane, not worker. The orchestrator owns task intent, policy, state, evidence, and completion
   rules. Shell commands, Dagger functions, CI jobs, and coding agents are replaceable executors.
 - Project-specific experience. Each project should define the frontend or operator surface that
   matches its users, roles, and risk profile.
@@ -37,7 +37,7 @@ The system should learn from mature platforms without copying their full weight:
 
 ## Target Architecture
 
-Engineering Harness should evolve into these modules:
+Engineering Orchestrator should evolve into these modules:
 
 1. Roadmap and task model
    - Milestones, tasks, continuation stages, self-iteration plans, dependencies, owners, risks,
@@ -68,9 +68,9 @@ Engineering Harness should evolve into these modules:
 6. Frontend experience module
    - Each project defines an experience spec describing target users, roles, UI surfaces, state
      views, workflows, authentication needs, and E2E journeys.
-   - If a substantial project does not define an experience spec, the harness should derive a
+   - If a substantial project does not define an experience spec, the orchestrator should derive a
      default visualization plan from its profile, task shape, and project kind.
-   - The harness uses that spec to create frontend roadmap tasks, UI acceptance gates, and E2E tests.
+   - The orchestrator uses that spec to create frontend roadmap tasks, UI acceptance gates, and E2E tests.
 
 7. E2E and user simulation
    - First-class `e2e` task phase after normal acceptance.
@@ -91,7 +91,7 @@ Engineering Harness should evolve into these modules:
 
 ## Frontend Experience Module
 
-The harness should treat frontend design as project-specific engineering work, not a generic addon.
+The orchestrator should treat frontend design as project-specific engineering work, not a generic addon.
 Every substantial project can define an `experience` block in its roadmap:
 
 ```json
@@ -115,7 +115,7 @@ Every substantial project can define an `experience` block in its roadmap:
 }
 ```
 
-If a project has no explicit `experience` block, the harness should still provide a default
+If a project has no explicit `experience` block, the orchestrator should still provide a default
 visualization plan instead of leaving the frontend undefined. Defaults should be conservative:
 
 - autonomous or research workers get an operator dashboard;
@@ -183,7 +183,7 @@ Acceptance:
 
 ### Stage 3: Executor Plugin Framework
 
-Goal: make executors replaceable while keeping harness policy and evidence consistent.
+Goal: make executors replaceable while keeping orchestrator policy and evidence consistent.
 
 Tasks:
 
@@ -257,7 +257,7 @@ Current durable drive controls:
   current task, last progress message, and watchdog status. Stale state is reported when the pid is
   gone or the heartbeat exceeds the local `drive_watchdog.stale_after_seconds` threshold.
 - Rolling drives with task checkpointing record roadmap materialization checkpoint intent before
-  generated tasks run. Clean or harness-owned roadmap/materialization dirtiness is checkpointed first;
+  generated tasks run. Clean or orchestrator-owned roadmap/materialization dirtiness is checkpointed first;
   pre-existing unrelated user dirtiness blocks materialization before roadmap mutation and is recorded
   as a deferred checkpoint boundary in the drive report.
 - Drive reports include a deterministic goal-gap retrospective and JSON sidecar that compare final
@@ -284,14 +284,14 @@ Tasks:
 Acceptance:
 
 - Projects can declare their user roles and UI surfaces.
-- `engh status` exposes frontend readiness and missing E2E journeys.
+- `engo status` exposes frontend readiness and missing E2E journeys.
 - Frontend-related tasks are generated with file scope and acceptance commands.
 
 Current helper:
 
-- `engh frontend-tasks` proposes a `frontend-visualization` milestone from the explicit
+- `engo frontend-tasks` proposes a `frontend-visualization` milestone from the explicit
   `experience` block or the derived default plan.
-- `engh frontend-tasks --materialize` appends that milestone to the roadmap and records a decision
+- `engo frontend-tasks --materialize` appends that milestone to the roadmap and records a decision
   log event.
 - Generated tasks remain framework-neutral. Dashboard, submission-review, and multi-role projects
   may use browser E2E checks if the project already has them; API-only and CLI-only projects can use
@@ -304,7 +304,7 @@ Goal: provide practical frontend starting points without forcing every project i
 Tasks:
 
 - Add template packs for dashboard, submission-review, and multi-role app projects.
-- Keep templates framework-neutral at the harness level, with adapters for common stacks.
+- Keep templates framework-neutral at the orchestrator level, with adapters for common stacks.
 - Add generated UI acceptance criteria such as role-based routes, empty states, loading states,
   error states, audit trails, and responsive layout checks.
 - Add documentation for tailoring the frontend to the project domain.
@@ -313,7 +313,7 @@ Acceptance:
 
 - A project can bootstrap a domain-appropriate frontend plan and task set.
 - Generated tasks include realistic UI states and role flows.
-- The harness does not assume every project needs the same UI.
+- The orchestrator does not assume every project needs the same UI.
 
 ### Stage 8: E2E and Real User Simulation
 
@@ -334,7 +334,7 @@ Acceptance:
 
 ### Stage 9: Observability and Dashboard
 
-Goal: make harness activity visible without reading raw logs.
+Goal: make orchestrator activity visible without reading raw logs.
 
 Tasks:
 
@@ -351,7 +351,7 @@ Acceptance:
 
 ### Stage 10: GitHub and CI Integration
 
-Goal: connect local harness runs to repository-native workflows.
+Goal: connect local orchestrator runs to repository-native workflows.
 
 Tasks:
 
@@ -363,7 +363,7 @@ Tasks:
 Acceptance:
 
 - A repository can opt into generated CI with one command.
-- PR feedback links back to harness tasks and evidence.
+- PR feedback links back to orchestrator tasks and evidence.
 
 ### Stage 11: Intelligent Task Selection and Caching
 
@@ -378,12 +378,12 @@ Tasks:
 
 Acceptance:
 
-- The harness can explain why a task was selected or skipped.
+- The orchestrator can explain why a task was selected or skipped.
 - Independent checks can run concurrently without corrupting state.
 
 ### Stage 12: Production Hardening
 
-Goal: make the harness dependable enough for long-lived real projects.
+Goal: make the orchestrator dependable enough for long-lived real projects.
 
 Tasks:
 
@@ -398,10 +398,10 @@ Acceptance:
 
 ## Roadmap Operating Model
 
-- Use `engh plan-goal` to create the first local starter roadmap from a high-level project goal.
+- Use `engo plan-goal` to create the first local starter roadmap from a high-level project goal.
 - Use explicit milestones for work that is already committed to the current repository.
-- Use `continuation.stages` for future planned work that can be materialized by `engh advance` or
-  `engh drive --rolling`.
+- Use `continuation.stages` for future planned work that can be materialized by `engo advance` or
+  `engo drive --rolling`.
 - Use `self_iteration` only when the repository has enough policy and test coverage to let a planner
   append the next stage safely.
 - Every implementation task should define file scope, acceptance commands, and E2E commands when a

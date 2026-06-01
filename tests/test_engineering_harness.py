@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 import time
+import tomllib
 from copy import deepcopy
 from dataclasses import replace
 from pathlib import Path
@@ -33,7 +34,7 @@ from engineering_harness.executors import (
     ShellExecutorAdapter,
     default_executor_registry,
 )
-from engineering_harness.cli import main as cli_main
+from engineering_harness.cli import build_parser, main as cli_main
 from engineering_harness.policy_compat import (
     evaluate_opa_policy_input,
     export_policy_input_for_opa,
@@ -42,6 +43,7 @@ from engineering_harness.policy_compat import (
 from engineering_harness.profiles import list_profiles
 
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 ROADMAP_FIXTURES = Path(__file__).parent / "fixtures" / "roadmaps"
 
 
@@ -453,6 +455,32 @@ def test_profiles_are_available():
     assert "evm-protocol" in profile_ids
     assert "python-agent" in profile_ids
     assert "trading-research" in profile_ids
+
+
+def test_cli_help_uses_engineering_orchestrator_name():
+    help_text = build_parser().format_help()
+
+    assert "Engineering Orchestrator" in help_text
+    assert "Goal-driven engineering harness" not in help_text
+
+
+def test_canonical_and_legacy_cli_entry_points_are_packaged():
+    pyproject = tomllib.loads((PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    scripts = pyproject["project"]["scripts"]
+
+    assert scripts["engo"] == "engineering_harness.cli:main"
+    assert scripts["engh"] == "engineering_harness.cli:main"
+    assert (PROJECT_ROOT / "bin/engo").read_text(encoding="utf-8") == (
+        PROJECT_ROOT / "bin/engh"
+    ).read_text(encoding="utf-8")
+
+
+def test_readme_declares_orchestrator_canonical_name_and_legacy_compatibility():
+    readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
+
+    assert readme.startswith("# Engineering Orchestrator")
+    assert "Engineering Harness is a legacy compatibility name" in readme
+    assert "Agent harness is reserved" in readme
 
 
 def test_goal_intake_normalizes_local_contract_shape():

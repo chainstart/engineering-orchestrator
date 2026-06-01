@@ -667,7 +667,7 @@ class CodexExecutorAdapter:
         context_pack = _format_context_pack(task_context.context_pack or invocation.context_pack)
         verification = acceptance if not e2e else f"{acceptance}\n\nE2E/user-experience commands:\n{e2e}"
         expanded_prompt = (
-            "You are executing one roadmap task for an autonomous engineering harness.\n\n"
+            "You are executing one roadmap task for Engineering Orchestrator.\n\n"
             f"Project root: {task_context.project_root}\n"
             f"Milestone: {task_context.milestone_id} - {task_context.milestone_title}\n"
             f"Task: {task_context.task_id} - {task_context.title}\n\n"
@@ -685,7 +685,7 @@ class CodexExecutorAdapter:
             f"{verification}\n\n"
             "Constraints:\n"
             "- Edit files directly in the working tree.\n"
-            "- Do not commit or push; the harness handles git checkpoints.\n"
+            "- Do not commit or push; the orchestrator handles git checkpoints.\n"
             "- Do not use private keys, paid live deployment, or live trading.\n"
             "- Prefer focused, test-driven changes that satisfy the acceptance commands.\n"
             "- If the task cannot be completed locally, write a clear blocker into the relevant project docs.\n"
@@ -773,7 +773,7 @@ class OpenHandsExecutorAdapter:
         context_pack = _format_context_pack(task_context.context_pack or invocation.context_pack)
         verification = acceptance if not e2e else f"{acceptance}\n\nE2E/user-experience commands:\n{e2e}"
         expanded_prompt = (
-            "You are executing one roadmap task for an autonomous engineering harness through OpenHands headless mode.\n\n"
+            "You are executing one roadmap task for Engineering Orchestrator through OpenHands headless mode.\n\n"
             f"Project root: {task_context.project_root}\n"
             f"Milestone: {task_context.milestone_id} - {task_context.milestone_title}\n"
             f"Task: {task_context.task_id} - {task_context.title}\n\n"
@@ -791,7 +791,7 @@ class OpenHandsExecutorAdapter:
             f"{verification}\n\n"
             "Constraints:\n"
             "- Edit files directly in the working tree.\n"
-            "- Do not commit or push; the harness handles git checkpoints.\n"
+            "- Do not commit or push; the orchestrator handles git checkpoints.\n"
             "- Do not use private keys, paid live deployment, or live trading.\n"
             "- Prefer focused, test-driven changes that satisfy the acceptance commands.\n"
             "- If the task cannot be completed locally, write a clear blocker into the relevant project docs.\n"

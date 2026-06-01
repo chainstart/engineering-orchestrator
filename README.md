@@ -1,14 +1,24 @@
-# Engineering Harness
+# Engineering Orchestrator
 
-Engineering Harness is a production-oriented engineering mothership for autonomous software development. It organizes goals, specifications, roadmaps, state, policies, executors, tests, reports, commits, and recovery into one durable workflow so AI coding capability can keep moving a real engineering target forward over long-running, auditable loops.
+Engineering Orchestrator is a production-oriented engineering mothership for autonomous software development. It organizes goals, specifications, roadmaps, state, policies, executors, tests, reports, commits, and recovery into one durable workflow so AI coding capability can keep moving a real engineering target forward over long-running, auditable loops.
 
-It is not a personal script for one local workspace, and it is not a toy demo generator. Its purpose is to become a general software engineering agent control plane: a user provides a goal, specification, or product direction; the harness turns that intent into a roadmap and tasks; replaceable executors implement the work; acceptance and end-to-end checks decide whether the work is complete; state and evidence are recorded; failures are repaired or paused; successful tasks can be committed and pushed; unattended drives continue into the next stage.
+It is not a personal script for one local workspace, and it is not a toy demo generator. Its purpose is to become a general software engineering agent control plane: a user provides a goal, specification, or product direction; the orchestrator turns that intent into a roadmap and tasks; replaceable executors implement the work; acceptance and end-to-end checks decide whether the work is complete; state and evidence are recorded; failures are repaired or paused; successful tasks can be committed and pushed; unattended drives continue into the next stage.
 
-The target domain is intentionally open ended. Engineering Harness should be able to drive websites, apps, games, agents, backend services, CLIs, data and research systems, embedded software, Verilog/HDL, EDA flows, formal verification, protocol engineering, CI/CD, and operational automation. Its real limits are current model capability, target-project toolchain maturity, and whether the project can provide reliable validation and safety feedback.
+The target domain is intentionally open ended. Engineering Orchestrator should be able to drive websites, apps, games, agents, backend services, CLIs, data and research systems, embedded software, Verilog/HDL, EDA flows, formal verification, protocol engineering, CI/CD, and operational automation. Its real limits are current model capability, target-project toolchain maturity, and whether the project can provide reliable validation and safety feedback.
+
+## Compatibility And Terminology
+
+Engineering Orchestrator is the canonical product name. The canonical slug for new public packaging and documentation is `engineering-orchestrator`, and the Chinese product name is `工程编排器`.
+
+Engineering Harness is a legacy compatibility name. Existing downstream users can keep using the Python import path `engineering_harness`, the legacy CLI entry point `engh`, the existing `.engineering/state/harness-state.json` state path, and historical `engineering-harness.*` report/schema kind strings during the migration window.
+
+Use `engo` for new command examples. `engh` remains supported as a legacy compatibility command and should behave the same. Agent harness is reserved for an agent-internal LLM/tool/runtime loop component, not this external roadmap-driven engineering control plane.
+
+The staged migration path is: update public docs and help first, keep all compatibility contracts working, introduce forward aliases, then consider deeper package/source/repository renames only after downstream users have a migration window.
 
 ## Core Positioning
 
-Engineering Harness is not another coding model. It is the production workflow around coding models and engineering tools.
+Engineering Orchestrator is not another coding model. It is the production workflow around coding models and engineering tools.
 
 - **Goal driven**: work is anchored to user requirements, specifications, blueprints, and roadmaps, not one-off prompts.
 - **Roadmap driven**: project progress is modeled through `.engineering/roadmap.yaml`, task phases, acceptance commands, and continuation stages.
@@ -20,7 +30,7 @@ Engineering Harness is not another coding model. It is the production workflow a
 
 ## What It Is Not
 
-Engineering Harness should not be understood as:
+Engineering Orchestrator should not be understood as:
 
 - a personal script for projects under one local directory;
 - a scaffold for web demos or toy projects;
@@ -92,12 +102,12 @@ A task is the smallest autonomous work unit. It usually defines:
 
 Devin publicly positions itself as an AI software engineer that can write, run, and test code, and can enter team workflows through Web, IDE, Shell, Browser, API, Slack/Teams, GitHub/GitLab/Bitbucket, Linear/Jira, scheduled sessions, playbooks, and session insights. See the official Devin docs for [Introducing Devin](https://docs.devin.ai/get-started/devin-intro), [Scheduled Sessions](https://docs.devin.ai/product-guides/scheduled-sessions), and [Session Insights](https://docs.devin.ai/product-guides/session-insights).
 
-Engineering Harness can learn from that direction, but the product boundary is different:
+Engineering Orchestrator can learn from that direction, but the product boundary is different:
 
-- Devin is closer to a hosted AI engineer product; Engineering Harness is closer to an open, local-first, executor-neutral control plane.
-- Devin focuses on delegating work to an AI engineer; Engineering Harness focuses on institutionalizing the long-running software development workflow that can drive many executors through a roadmap.
-- Devin emphasizes interactive takeover, team integrations, and hosted product experience; Engineering Harness should emphasize roadmap schema, durable state machines, policy, evidence, resumability, executor plugins, and auditable autonomy.
-- Devin strengths such as task delegation, parallel backlog work, scheduled sessions, knowledge/playbooks, session insights, and ready-made integrations should become open modules in Engineering Harness rather than platform-bound features.
+- Devin is closer to a hosted AI engineer product; Engineering Orchestrator is closer to an open, local-first, executor-neutral control plane.
+- Devin focuses on delegating work to an AI engineer; Engineering Orchestrator focuses on institutionalizing the long-running software development workflow that can drive many executors through a roadmap.
+- Devin emphasizes interactive takeover, team integrations, and hosted product experience; Engineering Orchestrator should emphasize roadmap schema, durable state machines, policy, evidence, resumability, executor plugins, and auditable autonomy.
+- Devin strengths such as task delegation, parallel backlog work, scheduled sessions, knowledge/playbooks, session insights, and ready-made integrations should become open modules in Engineering Orchestrator rather than platform-bound features.
 
 Useful ideas to borrow:
 
@@ -110,7 +120,7 @@ Useful ideas to borrow:
 
 ## Development Direction
 
-To become a real software engineering agent, Engineering Harness should prioritize these layers:
+To become a real software engineering agent, Engineering Orchestrator should prioritize these layers:
 
 1. **Roadmap schema and migrations**
    - Define stable schemas for goals, specs, tasks, dependencies, risks, budgets, acceptance, E2E, hardware simulation, deployment, and approvals.
@@ -147,7 +157,7 @@ To become a real software engineering agent, Engineering Harness should prioriti
 
 9. **Domain packs**
    - Provide profiles, acceptance templates, toolchain detection, and playbooks for Web, App, Game, Agent, Embedded, Verilog, Formal, Data, and DevOps domains.
-   - Keep the harness general and add domain-specific power through profiles, executors, and playbooks.
+   - Keep the orchestrator general and add domain-specific power through profiles, executors, and playbooks.
 
 ## Installation
 
@@ -160,7 +170,7 @@ python3 -m pip install -e .
 Then use the CLI:
 
 ```bash
-engh --help
+engo --help
 ```
 
 You can also run without installing:
@@ -174,7 +184,7 @@ PYTHONPATH=src python3 -m engineering_harness.cli --help
 List built-in profiles:
 
 ```bash
-engh profiles
+engo profiles
 ```
 
 Current profiles:
@@ -194,7 +204,7 @@ These profiles are starting points, not domain limits. Embedded, Verilog, games,
 Initialize the engineering control directory for any target project:
 
 ```bash
-engh init \
+engo init \
   --project-root /path/to/project \
   --profile python-agent \
   --name my-project
@@ -203,14 +213,14 @@ engh init \
 Validate the roadmap:
 
 ```bash
-engh validate --project-root /path/to/project
+engo validate --project-root /path/to/project
 ```
 
 Inspect status:
 
 ```bash
-engh status --project-root /path/to/project
-engh status --project-root /path/to/project --json
+engo status --project-root /path/to/project
+engo status --project-root /path/to/project --json
 ```
 
 ## Create A Roadmap From A Goal
@@ -218,7 +228,7 @@ engh status --project-root /path/to/project --json
 Generate a starter roadmap from a goal:
 
 ```bash
-engh plan-goal \
+engo plan-goal \
   --project-root /path/to/project \
   --name my-project \
   --profile python-agent \
@@ -228,7 +238,7 @@ engh plan-goal \
 Write the roadmap to `.engineering/roadmap.yaml`:
 
 ```bash
-engh plan-goal \
+engo plan-goal \
   --project-root /path/to/project \
   --name my-project \
   --profile python-agent \
@@ -244,25 +254,25 @@ If a roadmap already exists and you intentionally want to replace it, add `--for
 Show the next task:
 
 ```bash
-engh next --project-root /path/to/project
+engo next --project-root /path/to/project
 ```
 
 Run a dry run without executing real commands:
 
 ```bash
-engh run --project-root /path/to/project --dry-run
+engo run --project-root /path/to/project --dry-run
 ```
 
 Execute the next task:
 
 ```bash
-engh run --project-root /path/to/project
+engo run --project-root /path/to/project
 ```
 
 If the task needs a coding agent, explicitly allow it:
 
 ```bash
-engh run --project-root /path/to/project --allow-agent
+engo run --project-root /path/to/project --allow-agent
 ```
 
 ## Autonomous Drive
@@ -270,7 +280,7 @@ engh run --project-root /path/to/project --allow-agent
 Run pending tasks until completion, failure, blocking, or budget exhaustion:
 
 ```bash
-engh drive \
+engo drive \
   --project-root /path/to/project \
   --max-tasks 5 \
   --time-budget-seconds 14400
@@ -279,7 +289,7 @@ engh drive \
 Allow rolling continuation:
 
 ```bash
-engh drive \
+engo drive \
   --project-root /path/to/project \
   --rolling \
   --time-budget-seconds 14400
@@ -288,7 +298,7 @@ engh drive \
 Allow a self-iteration planner to append the next stage after the roadmap queue is exhausted:
 
 ```bash
-engh drive \
+engo drive \
   --project-root /path/to/project \
   --rolling \
   --self-iterate \
@@ -299,7 +309,7 @@ engh drive \
 Create a git checkpoint after each passed task:
 
 ```bash
-engh drive \
+engo drive \
   --project-root /path/to/project \
   --rolling \
   --allow-agent \
@@ -309,7 +319,7 @@ engh drive \
 Commit and push:
 
 ```bash
-engh drive \
+engo drive \
   --project-root /path/to/project \
   --rolling \
   --allow-agent \
@@ -322,7 +332,7 @@ engh drive \
 `daemon-supervisor` rotates across projects in a workspace for long-running operation:
 
 ```bash
-engh daemon-supervisor \
+engo daemon-supervisor \
   --workspace /path/to/workspace \
   --rolling \
   --self-iterate \
@@ -339,36 +349,36 @@ It repeatedly runs `workspace-drive` ticks, selects projects by budget and sched
 Pause future scheduling:
 
 ```bash
-engh pause --project-root /path/to/project --reason "operator review"
+engo pause --project-root /path/to/project --reason "operator review"
 ```
 
 Resume:
 
 ```bash
-engh resume --project-root /path/to/project --reason "review complete"
+engo resume --project-root /path/to/project --reason "review complete"
 ```
 
 Cancel future scheduling until resumed:
 
 ```bash
-engh cancel --project-root /path/to/project --reason "stop this run"
+engo cancel --project-root /path/to/project --reason "stop this run"
 ```
 
 List approval gates:
 
 ```bash
-engh approvals --project-root /path/to/project
+engo approvals --project-root /path/to/project
 ```
 
 Approve all pending gates:
 
 ```bash
-engh approve --project-root /path/to/project --all --reason "approved by operator"
+engo approve --project-root /path/to/project --all --reason "approved by operator"
 ```
 
 ## Frontend, API, CLI, And E2E Experience
 
-Production software must define how users or operators validate that it works. The harness uses an `experience` block to describe the target experience:
+Production software must define how users or operators validate that it works. The orchestrator uses an `experience` block to describe the target experience:
 
 ```json
 {
@@ -394,15 +404,15 @@ Production software must define how users or operators validate that it works. T
 Generate experience-related tasks:
 
 ```bash
-engh frontend-tasks --project-root /path/to/project
-engh frontend-tasks --project-root /path/to/project --materialize
+engo frontend-tasks --project-root /path/to/project
+engo frontend-tasks --project-root /path/to/project --materialize
 ```
 
 Here "frontend" does not only mean a web UI. It can also mean an API journey, CLI journey, hardware simulation report, EDA waveform artifact, operator dashboard, or any surface a real user or engineer uses to judge system completeness.
 
 ## Roadmap Continuation
 
-When explicit tasks are exhausted, the harness can materialize the next continuation stages:
+When explicit tasks are exhausted, the orchestrator can materialize the next continuation stages:
 
 ```json
 {
@@ -437,18 +447,18 @@ When explicit tasks are exhausted, the harness can materialize the next continua
 Advance manually:
 
 ```bash
-engh advance --project-root /path/to/project
+engo advance --project-root /path/to/project
 ```
 
 Advance automatically during a drive:
 
 ```bash
-engh drive --project-root /path/to/project --rolling
+engo drive --project-root /path/to/project --rolling
 ```
 
 ## Spec Backlog
 
-For spec-driven projects, the harness can turn Markdown `Stage` / `Tasks` sections into
+For spec-driven projects, the orchestrator can turn Markdown `Stage` / `Tasks` sections into
 continuation stages with a dedicated planning command. By default `plan-spec` reads
 `spec.development_plan` from `.engineering/roadmap.yaml`; pass `--spec` to read an explicit local
 document. Use `--from-stage` when earlier stages are already implemented:
@@ -469,19 +479,19 @@ Roadmaps can also declare the canonical project specification:
 inline list/mapping that exposes requirement ids such as `EH-SPEC-001`; nested groups and
 requirement-id mapping keys are also indexed. Markdown `spec.path` documents with requirement
 headings are indexed too. Roadmap validation reports task or command `spec_refs` that point to
-unknown ids. `engh status --json` includes compact spec coverage at top-level `spec` and under
-`runtime_dashboard.spec`; plain `engh status` prints the same coverage as a compact one-line
+unknown ids. `engo status --json` includes compact spec coverage at top-level `spec` and under
+`runtime_dashboard.spec`; plain `engo status` prints the same coverage as a compact one-line
 summary.
 
 ```bash
-engh plan-spec --project-root /path/to/project --from-stage 2
-engh plan-spec --project-root /path/to/project --from-stage 2 --materialize
+engo plan-spec --project-root /path/to/project --from-stage 2
+engo plan-spec --project-root /path/to/project --from-stage 2 --materialize
 ```
 
 Additional sources can be passed explicitly:
 
 ```bash
-engh plan-spec \
+engo plan-spec \
   --project-root /path/to/project \
   --spec docs/spec-driven-development-plan.md \
   --spec docs/autonomous-engineering-harness-plan.md \
@@ -493,10 +503,10 @@ ids, Codex implementation and repair commands, local pytest and validation gates
 E2E evidence. Re-running the command skips stages that are already present or already covered by
 the same spec refs and task semantics. When only some source tasks are already covered, the planner
 keeps the remaining tasks and reports the skipped coverage in `skipped_task_count` and
-`skipped_tasks`. `engh spec-backlog` remains available as a compatibility alias and accepts the
+`skipped_tasks`. `engo spec-backlog` remains available as a compatibility alias and accepts the
 same inputs.
 
-When generated continuation stages are advanced into active milestones, the harness preserves stage
+When generated continuation stages are advanced into active milestones, the orchestrator preserves stage
 source metadata plus task and command `spec_refs`, so manifests and reports still trace back to the
 source specification. Self-iteration assessments also summarize the requirement refs advanced by
 newly appended stages.
@@ -549,7 +559,7 @@ Default principle: production autonomy must be able to stop, explain itself, and
 - Command execution records policy decisions, capability classification, and safety audits.
 - Sensitive values are redacted from reports, manifests, and state.
 - File scope guards prevent task execution from modifying unrelated paths.
-- Checkpoint readiness distinguishes clean worktrees, harness-generated changes, and unrelated user changes.
+- Checkpoint readiness distinguishes clean worktrees, orchestrator-generated changes, and unrelated user changes.
 
 Safety policy should not block production development. It should make risk explicit: what can run automatically, what needs human approval, and what should never be executed by an unattended agent.
 
@@ -557,8 +567,8 @@ Safety policy should not block production development. It should make risk expli
 
 More design documents:
 
-- [Autonomous Engineering Harness Development Plan](docs/autonomous-engineering-harness-plan.md)
-- [Engineering Harness System Specification](docs/engineering-harness-system-spec.md)
+- [Autonomous Engineering Orchestrator Development Plan](docs/autonomous-engineering-harness-plan.md)
+- [Engineering Orchestrator System Specification](docs/engineering-harness-system-spec.md)
 - [Spec-Driven Development Plan](docs/spec-driven-development-plan.md)
 - [Durable Drive Controls](docs/durable-drive-controls.md)
 - [Executor Contract](docs/executor-contract.md)
@@ -570,4 +580,4 @@ More design documents:
 
 ## License
 
-Engineering Harness is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE).
+Engineering Orchestrator is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE).

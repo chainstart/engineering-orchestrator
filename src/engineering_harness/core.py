@@ -3440,7 +3440,7 @@ class Harness:
                 reason = "self_iteration_harness_dirty"
             payload["reason"] = reason
             payload["recommended_action"] = (
-                "Run self-iteration normally; only harness-owned self-iteration assessment/state "
+                "Run self-iteration normally; only orchestrator-owned self-iteration assessment/state "
                 "paths and roadmap materialization paths are dirty."
             )
             return payload
@@ -3453,7 +3453,7 @@ class Harness:
         )
         payload["recommended_action"] = (
             "Review, commit, stash, or move the blocking user paths yourself, then rerun "
-            "self-iteration. The harness will not commit or clean them."
+            "self-iteration. The orchestrator will not commit or clean them."
         )
         return payload
 
@@ -6113,7 +6113,7 @@ class Harness:
         objective = str(config.get("objective", "Assess current project status and plan the next engineering stage."))
         max_stages = int(config.get("max_stages_per_iteration", 1))
         base = f"""
-You are the self-iteration planner for an autonomous engineering harness.
+You are the self-iteration planner for Engineering Orchestrator.
 
 Project root: {self.project_root}
 Roadmap file: {self.roadmap_path}
@@ -6776,7 +6776,7 @@ continuation stage(s) were appended.
             "generated_at": utc_now(),
             "project": summary.get("project"),
             "root": summary.get("root"),
-            "status_source": "engh status --json",
+            "status_source": "engo status --json",
             "spec": spec_coverage,
             "frontend_experience": frontend_experience,
             "domain_frontend": self._runtime_domain_frontend_payload(frontend_experience),
@@ -6833,7 +6833,7 @@ continuation stage(s) were appended.
             "project": summary.get("project"),
             "root": summary.get("root"),
             "roadmap": summary.get("roadmap"),
-            "status_source": "engh status --json",
+            "status_source": "engo status --json",
             "snapshot_at": self._operator_console_snapshot_at(
                 summary=summary,
                 state=state,
@@ -9127,7 +9127,7 @@ continuation stage(s) were appended.
                 "checkpoint_pending",
             )
         if "missing_task_manifests" in risk_ids:
-            add("produce-manifest-evidence", "Run a local harness task to produce manifest evidence", "missing_task_manifests")
+            add("produce-manifest-evidence", "Run a local orchestrator task to produce manifest evidence", "missing_task_manifests")
         if not themes:
             add(
                 "monitor-next-drive",
@@ -9726,7 +9726,7 @@ continuation stage(s) were appended.
             f"Guidance: {guidance}\n"
             "Keep the work local and deterministic. Browser projects may use their existing browser test framework; "
             "when no local Playwright runner is installed, declare static HTML routes, expected forms, and roles for "
-            "the harness browser smoke. API-only and CLI-only projects may use documented examples, API tests, CLI "
+            "the orchestrator browser smoke. API-only and CLI-only projects may use documented examples, API tests, CLI "
             "tests, or shell/Python checks.\n"
             f"Place journey evidence or executable checks in one of: {', '.join(candidates)}.\n"
             "For browser journeys, capture screenshot or DOM evidence under `artifacts/browser-e2e/`.\n"
@@ -12311,7 +12311,7 @@ continuation stage(s) were appended.
                     "reason": reason,
                     "recommended_action": (
                         "Review, commit, stash, or move the blocking user paths yourself, then rerun "
-                        "status or workspace dispatch. The harness will not commit or clean them."
+                        "status or workspace dispatch. The orchestrator will not commit or clean them."
                     ),
                 }
             )
@@ -12319,7 +12319,7 @@ continuation stage(s) were appended.
         if classifications["harness_materialization"] and not classifications["task_scope"]:
             reason = "harness_materialization_dirty"
             action = (
-                "Checkpoint the harness-owned roadmap/materialization paths locally or let the "
+                "Checkpoint the orchestrator-owned roadmap/materialization paths locally or let the "
                 "rolling materialization checkpoint handle them before dispatching unrelated work."
             )
         elif classifications["task_scope"] and not classifications["harness_materialization"]:

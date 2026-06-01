@@ -69,8 +69,8 @@ The default routing is domain-aware:
 - API-first and CLI-first goals keep non-browser API or CLI experience contracts with local examples
   and deterministic journey checks.
 
-`bin/engh frontend-tasks` includes the same decision contract in its proposal/materialization output.
-`bin/engh status --json` exposes it at both top-level `domain_frontend` and
+`bin/engo frontend-tasks` includes the same decision contract in its proposal/materialization output.
+`bin/engo status --json` exposes it at both top-level `domain_frontend` and
 `runtime_dashboard.domain_frontend`, with the complete annotated plan under
 `runtime_dashboard.frontend_experience`.
 
@@ -96,19 +96,19 @@ commands remain local shell checks.
 ## Self-Iteration Safety Contract
 
 When `self_iteration` is enabled, planner output is treated as an untrusted roadmap diff. Before the
-planner runs, the harness evaluates local checkpoint readiness. If unrelated dirty git paths would
+planner runs, the orchestrator evaluates local checkpoint readiness. If unrelated dirty git paths would
 block a clean roadmap materialization checkpoint, the planner is not invoked, `.engineering/roadmap.yaml`
 is left unchanged, and a blocked self-iteration assessment is written under
 `.engineering/reports/tasks/assessments/` with the checkpoint readiness, dirty paths, blocking paths,
 reason, and recommended operator action.
 
-After the planner exits, the harness checks checkpoint readiness again before accepting the roadmap
+After the planner exits, the orchestrator checks checkpoint readiness again before accepting the roadmap
 diff. Harness-owned self-iteration artifacts from the current run, such as the snapshot, context pack,
-assessment sidecar, and active harness state file, are ignored for this acceptance check. Planner-made
+assessment sidecar, and active orchestrator state file, are ignored for this acceptance check. Planner-made
 unrelated dirty paths still block acceptance; the previous roadmap text is restored and the report
 records the compact evidence.
 
-The harness then reloads `.engineering/roadmap.yaml` and accepts the output only when it:
+The orchestrator then reloads `.engineering/roadmap.yaml` and accepts the output only when it:
 
 - appends exactly `self_iteration.max_stages_per_iteration` new unmaterialized
   `continuation.stages` entries;
@@ -130,12 +130,12 @@ The harness then reloads `.engineering/roadmap.yaml` and accepts the output only
 Accepted output is then checked with the normal roadmap validator. Invalid output is rejected, the
 previous roadmap text is restored, and the self-iteration report records the validation errors. To
 recover a checkpoint-gate block, resolve the listed `blocking_paths` locally with your own commit,
-stash, move, or cleanup, then rerun self-iteration; the harness will not clean or checkpoint those
+stash, move, or cleanup, then rerun self-iteration; the orchestrator will not clean or checkpoint those
 operator-owned paths.
 
 ## Self-Iteration Planner Input
 
-Before a self-iteration planner runs, the harness writes a bounded JSON context pack next to the
+Before a self-iteration planner runs, the orchestrator writes a bounded JSON context pack next to the
 self-iteration snapshot under `.engineering/reports/tasks/assessments/`. The planner prompt includes
 both paths:
 
@@ -143,7 +143,7 @@ both paths:
 - `Planner context pack`: the bounded planner input contract.
 
 Planners should read the context pack first and use the roadmap file only for the final append. The
-context pack is local-only, redacted with the harness secret redaction helper, and capped by count and
+context pack is local-only, redacted with the orchestrator secret redaction helper, and capped by count and
 excerpt size. Its top-level fields are:
 
 - `summary`: compact counts for continuation stages, duplicate-plan fingerprints, manifests,
@@ -168,7 +168,7 @@ summary, and goal-gap scorecard so an operator can audit exactly what the planne
 
 Planners should treat `goal_gap_scorecard.categories` as ordered priority evidence. A `blocked`
 category means the next stage should resolve that local blocker before adding broad new work.
-`missing` means the harness lacks local evidence for the category, not that the capability is known
+`missing` means the orchestrator lacks local evidence for the category, not that the capability is known
 to be absent. Use `risk_score`, `severity`, `evidence_paths`, and `recommended_next_stage_themes`
 instead of reading drive reports ad hoc when deciding the next self-iteration theme.
 
@@ -176,7 +176,7 @@ Do not treat protected live-drive or checkpoint-window evidence as a recovery bl
 stale-running category with an `in_progress` rationale means the current drive has a fresh heartbeat
 and planners should wait for or build around that local run, not request
 `recover-stale-running-drive`. A checkpoint category with `checkpoint_pending` or `in_progress`
-rationale means only harness-owned or file-scope paths are dirty. Plan `close-git-boundary` work only
+rationale means only orchestrator-owned or file-scope paths are dirty. Plan `close-git-boundary` work only
 when the category recommends it or `checkpoint_readiness.blocking_paths` is non-empty.
 
 ## Generated Goal Gates

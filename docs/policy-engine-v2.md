@@ -1,6 +1,6 @@
 # Policy Engine V2 Schema
 
-Policy Engine V2 records the data used for harness safety checks as a structured `policy_input`
+Policy Engine V2 records the data used for orchestrator safety checks as a structured `policy_input`
 contract and emits normalized `policy_decisions` from that input. Task manifests persist those
 decisions and a deterministic `policy_decision_summary`; Markdown task reports embed the same
 summary and decisions in a JSON evidence block; manifest indexes aggregate the summaries across
@@ -25,7 +25,7 @@ The input captures:
 - `file_scope`: allowed patterns plus out-of-scope and violation paths.
 - `approvals`: `allow_manual`, `allow_agent`, task approval requirements, and executor agent requirement.
 - `live`: `allow_live`, live-gated patterns, matched patterns, and whether a live action was detected.
-- `context`: policy profile, command policy version, and harness default timeout.
+- `context`: policy profile, command policy version, and orchestrator default timeout.
 
 ## Policy Decisions
 

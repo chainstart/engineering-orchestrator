@@ -1,4 +1,4 @@
-"""Goal-driven engineering harness for multi-repository workspaces."""
+"""Engineering Orchestrator compatibility package for multi-repository workspaces."""
 
 from .goal_intake import GoalIntakeValidationError, normalize_goal_intake, validate_goal_intake
 

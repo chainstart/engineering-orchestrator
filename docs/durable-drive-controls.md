@@ -1,6 +1,6 @@
 # Durable Drive Controls
 
-Engineering Harness stores drive controls and approval gates in the local project state file:
+Engineering Orchestrator stores drive controls and approval gates in the local project state file:
 
 ```text
 .engineering/state/harness-state.json
@@ -12,7 +12,7 @@ and phase state remain the durable evidence for what happened.
 
 For multi-project unattended operation, use the local workspace dispatcher instead of starting many
 project drives at once. See [Workspace Drive Dispatcher](workspace-drive-dispatcher.md) for
-`engh workspace-drive`, deterministic queue ordering, skip evidence, and workspace dispatch reports.
+`engo workspace-drive`, deterministic queue ordering, skip evidence, and workspace dispatch reports.
 
 ## Heartbeat And Watchdog
 
@@ -46,14 +46,14 @@ ENGINEERING_HARNESS_DRIVE_STALE_AFTER_SECONDS=7200 python3 -m engineering_harnes
 The watchdog only probes the recorded pid with a non-destructive local liveness check. It never kills
 or signals unrelated work beyond that liveness probe.
 
-Before a new `drive` starts selecting work, the harness runs a local stale-running recovery preflight
+Before a new `drive` starts selecting work, the orchestrator runs a local stale-running recovery preflight
 against the durable `drive_control` block. Automatic recovery only happens when all of these are true:
 
 - `drive_control.status` is `running`;
 - the last heartbeat is older than the configured watchdog threshold or missing;
 - the recorded pid is missing or no longer running.
 
-In that case the harness transitions `drive_control` back to `idle`, appends a
+In that case the orchestrator transitions `drive_control` back to `idle`, appends a
 `stale-running-recovery` history event, writes `stale_running_recovery` evidence with the previous
 pid, heartbeat age, threshold, reason, `recovered_at`, and recommended follow-up, then continues with
 normal task selection. If the recorded pid is alive, or if the heartbeat is still fresh, the preflight
@@ -67,7 +67,7 @@ runs. It is generated from local state, task manifests, drive reports, and works
 it does not start a server or require external services.
 
 ```bash
-bin/engh status --project-root /path/to/project --json
+bin/engo status --project-root /path/to/project --json
 ```
 
 Inspect these fields first:
@@ -108,7 +108,7 @@ open the referenced Markdown report when they need full stdout/stderr context, b
 is intended to answer the first triage questions without reading raw reports.
 
 `status --json` also exposes the same scorecard at top-level `goal_gap_scorecard`. Each category is
-ordered by harness priority and includes:
+ordered by orchestrator priority and includes:
 
 - `status`: `complete`, `partial`, `missing`, or `blocked`.
 - `risk_score`: integer `0` to `100`; higher values should be handled earlier.
@@ -134,20 +134,20 @@ next task's file scope are reported as `checkpoint_pending` or `in_progress` rat
 ## Rolling Checkpoint Boundaries
 
 When `drive --rolling` materializes continuation stages and `--commit-after-task` or
-`--push-after-task` is enabled, the harness treats roadmap materialization as its own checkpoint
+`--push-after-task` is enabled, the orchestrator treats roadmap materialization as its own checkpoint
 boundary before generated tasks run.
 
 If the git worktree is clean or only roadmap/materialization paths are dirty immediately before
-materialization, the harness commits the roadmap materialization first. This covers rolling
+materialization, the orchestrator commits the roadmap materialization first. This covers rolling
 self-iteration, where the planner may have already appended an unmaterialized continuation stage to
 `.engineering/roadmap.yaml`. Generated task checkpoints then run against a clean boundary and do not
-mistake harness-owned accumulated roadmap edits for pre-existing user dirtiness.
+mistake orchestrator-owned accumulated roadmap edits for pre-existing user dirtiness.
 
-If unrelated user changes are present before materialization, the harness blocks that rolling
+If unrelated user changes are present before materialization, the orchestrator blocks that rolling
 materialization before mutating the roadmap. The drive report records the checkpoint intent, the
 deferred materialization checkpoint result, `blocking_paths`, and the operator action needed to close
 the boundary. This preserves the protection against committing unrelated user changes while still
-allowing harness-owned roadmap batches to checkpoint deterministically.
+allowing orchestrator-owned roadmap batches to checkpoint deterministically.
 
 ## Checkpoint Readiness
 
@@ -155,7 +155,7 @@ allowing harness-owned roadmap batches to checkpoint deterministically.
 is a read-only local git model; it never commits, cleans, stashes, or pushes. It classifies current
 dirty paths as:
 
-- `harness_materialization`: harness-owned roadmap/materialization paths, such as
+- `harness_materialization`: orchestrator-owned roadmap/materialization paths, such as
   `.engineering/roadmap.yaml`;
 - `task_scope`: paths inside the active drive task's `file_scope`, or the next task's `file_scope`
   when no current drive task is recorded;
@@ -175,14 +175,14 @@ Interpret the fields conservatively:
 - `reason: task_scope_dirty`: dirty paths are inside the current or next task scope. Review and
   checkpoint them before switching to unrelated work.
 - `blocking: true`: unrelated user dirtiness is present. Commit, stash, move, or otherwise resolve
-  the `blocking_paths` yourself, then rerun `status --json` or the workspace dispatcher. The harness
+  the `blocking_paths` yourself, then rerun `status --json` or the workspace dispatcher. The orchestrator
   will not commit or clean those paths for you.
 
 ### Self-Iteration Checkpoint Gate
 
-Before self-iteration invokes a planner, the harness evaluates checkpoint readiness. If unrelated
+Before self-iteration invokes a planner, the orchestrator evaluates checkpoint readiness. If unrelated
 dirty paths are already present, the planner is not invoked and `.engineering/roadmap.yaml` is not
-changed. The harness writes a blocked self-iteration assessment under
+changed. The orchestrator writes a blocked self-iteration assessment under
 `.engineering/reports/tasks/assessments/` with:
 
 - `status: blocked`;
@@ -195,25 +195,25 @@ The same compact evidence is present in `drive --json`, the drive Markdown/JSON 
 `status --json` at `self_iteration.latest_assessment`, and
 `runtime_dashboard.self_iteration.latest_assessment`.
 
-After a planner exits, the harness checks checkpoint readiness again before accepting the roadmap
+After a planner exits, the orchestrator checks checkpoint readiness again before accepting the roadmap
 diff. Harness-owned files created by the self-iteration run itself, such as its snapshot, context
-pack, assessment sidecar, and active harness state file, are allowed for this acceptance check. Any
+pack, assessment sidecar, and active orchestrator state file, are allowed for this acceptance check. Any
 other planner-created dirty path blocks acceptance; the previous roadmap text is restored and the
 assessment records the blocking paths.
 
 Recovery is local and explicit: inspect `blocking_paths`, commit/stash/move or otherwise resolve
 only the operator-owned dirty paths yourself, then rerun `status --json`, `drive --self-iterate`, or
-the workspace dispatcher. The harness does not clean, stash, or commit those paths.
+the workspace dispatcher. The orchestrator does not clean, stash, or commit those paths.
 
 ## Goal-Gap Retrospective
 
 Every completed drive report includes a deterministic `Goal-Gap Retrospective` section and a matching
 JSON sidecar next to the Markdown report under `.engineering/reports/tasks/drives/`.
 
-The retrospective compares the final local harness state with the unattended reliability goal: drain
+The retrospective compares the final local orchestrator state with the unattended reliability goal: drain
 or safely extend the roadmap, preserve local audit evidence, surface blockers deterministically, and
 avoid unsafe external dependencies. It does not call a model or external service. The evidence is
-bounded to local harness artifacts:
+bounded to local orchestrator artifacts:
 
 - final status summary, including continuation and self-iteration settings;
 - manifest index summary and recent task/drive report metadata;
@@ -281,7 +281,7 @@ materializing continuation work, and the drive report points back to the isolate
 
 ## Executor No-Progress Watchdog
 
-Built-in subprocess executors run in an owned local process group. The harness records executor
+Built-in subprocess executors run in an owned local process group. The orchestrator records executor
 watchdog metadata for implementation, repair, acceptance, E2E, and self-iteration planner
 subprocesses: phase, executor id, command name, pid, start time, last output/progress time,
 `timeout_seconds`, configured no-progress threshold, and termination evidence when a watchdog fires.
