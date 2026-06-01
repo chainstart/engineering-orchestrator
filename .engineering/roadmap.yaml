@@ -276,6 +276,226 @@
       ]
     },
     {
+      "id": "target-documentation-synchronization",
+      "title": "Target Documentation Synchronization",
+      "status": "planned",
+      "objective": "Keep developed repositories' human-readable architecture, roadmap, spec, task-package, and deployment-status documents aligned with completed Engineering Orchestrator work.",
+      "tasks": [
+        {
+          "id": "EO-DOC-001-documentation-role-contract",
+          "title": "Define target documentation role contract",
+          "status": "pending",
+          "max_attempts": 2,
+          "spec_refs": [
+            "EH-SPEC-001",
+            "EH-SPEC-002",
+            "EH-SPEC-008",
+            "EH-SPEC-015",
+            "EH-SPEC-016"
+          ],
+          "file_scope": [
+            "docs/**",
+            ".engineering/spec_tasks.yaml",
+            "tests/**"
+          ],
+          "implementation": [
+            {
+              "name": "document target documentation roles",
+              "executor": "codex",
+              "model": "gpt-5.5",
+              "timeout_seconds": 1800,
+              "spec_refs": [
+                "EH-SPEC-016"
+              ],
+              "prompt": "Implement EO-DOC-001 only. Define the target documentation role contract for docs-sync. Update the system spec, implementation status, spec task ledger, and tests or fixtures as needed. The contract must distinguish architecture blueprint, roadmap, roadmap status table, canonical specs, traceability docs, task-package docs, deployment status docs, decision logs, and machine update logs."
+            }
+          ],
+          "acceptance": [
+            {
+              "name": "documentation role contract evidence",
+              "command": "rg -n \"EH-SPEC-016|roadmap status|documentation role|deployment status|docs-sync\" docs .engineering tests",
+              "required": true,
+              "timeout_seconds": 60
+            },
+            {
+              "name": "spec task ledger parses",
+              "command": "python3 -m json.tool .engineering/spec_tasks.yaml >/tmp/engineering-orchestrator-spec-tasks.json",
+              "required": true,
+              "timeout_seconds": 60
+            }
+          ]
+        },
+        {
+          "id": "EO-DOC-002-docs-sync-audit-command",
+          "title": "Add docs-sync audit command",
+          "status": "pending",
+          "max_attempts": 2,
+          "spec_refs": [
+            "EH-SPEC-008",
+            "EH-SPEC-015",
+            "EH-SPEC-016"
+          ],
+          "file_scope": [
+            "src/engineering_harness/**",
+            "tests/**",
+            "docs/**"
+          ],
+          "implementation": [
+            {
+              "name": "implement docs-sync audit",
+              "executor": "codex",
+              "model": "gpt-5.5",
+              "timeout_seconds": 2400,
+              "spec_refs": [
+                "EH-SPEC-016"
+              ],
+              "prompt": "Implement EO-DOC-002 only. Add a docs-sync audit command that reads target documentation role declarations, verifies paths, status links, task-package consistency, local-vs-deployed status separation, and emits JSON plus human-readable output. Keep it local-only and deterministic."
+            }
+          ],
+          "acceptance": [
+            {
+              "name": "docs-sync audit tests",
+              "command": "python3 -m pytest tests -q",
+              "required": true,
+              "timeout_seconds": 900
+            },
+            {
+              "name": "docs-sync audit command evidence",
+              "command": "rg -n \"docs-sync|documentation audit|roadmap_status|deployment_status\" src tests docs",
+              "required": true,
+              "timeout_seconds": 60
+            }
+          ]
+        },
+        {
+          "id": "EO-DOC-003-docs-sync-propose-record-command",
+          "title": "Add docs-sync propose and record commands",
+          "status": "pending",
+          "max_attempts": 2,
+          "spec_refs": [
+            "EH-SPEC-008",
+            "EH-SPEC-015",
+            "EH-SPEC-016"
+          ],
+          "file_scope": [
+            "src/engineering_harness/**",
+            "tests/**",
+            "docs/**"
+          ],
+          "implementation": [
+            {
+              "name": "implement docs-sync propose and record",
+              "executor": "codex",
+              "model": "gpt-5.5",
+              "timeout_seconds": 3000,
+              "spec_refs": [
+                "EH-SPEC-016"
+              ],
+              "prompt": "Implement EO-DOC-003 only. Add docs-sync propose/record behavior. Propose should write a bounded update plan with target paths, evidence, and safety classification. Record --apply may update low-risk status-table or machine-ledger fields and append docs_update_log.jsonl. Do not rewrite architecture goals unless explicitly requested by the task."
+            }
+          ],
+          "acceptance": [
+            {
+              "name": "docs-sync propose record tests",
+              "command": "python3 -m pytest tests -q",
+              "required": true,
+              "timeout_seconds": 900
+            },
+            {
+              "name": "docs update log evidence",
+              "command": "rg -n \"docs_update_log|update plan|safety classification|architecture goal\" src tests docs",
+              "required": true,
+              "timeout_seconds": 60
+            }
+          ]
+        },
+        {
+          "id": "EO-DOC-004-run-drive-docs-sync-evidence",
+          "title": "Record docs-sync evidence from run and drive",
+          "status": "pending",
+          "max_attempts": 2,
+          "spec_refs": [
+            "EH-SPEC-006",
+            "EH-SPEC-008",
+            "EH-SPEC-016"
+          ],
+          "file_scope": [
+            "src/engineering_harness/**",
+            "tests/**",
+            "docs/**"
+          ],
+          "implementation": [
+            {
+              "name": "wire docs-sync into run and drive",
+              "executor": "codex",
+              "model": "gpt-5.5",
+              "timeout_seconds": 3000,
+              "spec_refs": [
+                "EH-SPEC-016"
+              ],
+              "prompt": "Implement EO-DOC-004 only. After completed run/drive tasks, attempt best-effort docs-sync evidence separately from spec-sync. Task manifests must record applied/proposed/skipped/blocked docs-sync status with reasons, paths, and evidence."
+            }
+          ],
+          "acceptance": [
+            {
+              "name": "run drive docs-sync evidence tests",
+              "command": "python3 -m pytest tests -q",
+              "required": true,
+              "timeout_seconds": 900
+            },
+            {
+              "name": "manifest docs-sync evidence",
+              "command": "rg -n \"docs_sync|spec_sync|applied|proposed|blocked|skipped\" src tests docs",
+              "required": true,
+              "timeout_seconds": 60
+            }
+          ]
+        },
+        {
+          "id": "EO-DOC-005-context-pack-document-update-guidance",
+          "title": "Add context-pack guidance for target document updates",
+          "status": "pending",
+          "max_attempts": 2,
+          "spec_refs": [
+            "EH-SPEC-005",
+            "EH-SPEC-008",
+            "EH-SPEC-016"
+          ],
+          "file_scope": [
+            "src/engineering_harness/**",
+            "tests/**",
+            "docs/**"
+          ],
+          "implementation": [
+            {
+              "name": "add document update context guidance",
+              "executor": "codex",
+              "model": "gpt-5.5",
+              "timeout_seconds": 2400,
+              "spec_refs": [
+                "EH-SPEC-016"
+              ],
+              "prompt": "Implement EO-DOC-005 only. Extend bounded executor context packs and prompts so coding agents know when to update architecture docs, roadmap status tables, specs, traceability docs, task-package docs, or deployment status docs. Keep excerpts bounded and redacted."
+            }
+          ],
+          "acceptance": [
+            {
+              "name": "context pack document guidance tests",
+              "command": "python3 -m pytest tests -q",
+              "required": true,
+              "timeout_seconds": 900
+            },
+            {
+              "name": "context guidance evidence",
+              "command": "rg -n \"document update|roadmap status|traceability doc|deployment status|docs-sync\" src tests docs",
+              "required": true,
+              "timeout_seconds": 60
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "baseline",
       "title": "Project Baseline",
       "status": "active",

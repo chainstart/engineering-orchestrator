@@ -1,6 +1,6 @@
 # Engineering Orchestrator Implementation Status
 
-Date: 2026-05-19
+Date: 2026-06-01
 
 Status: dynamically maintained
 
@@ -31,6 +31,7 @@ Decision records: `docs/decisions/`
 | `EH-SPEC-013` | `completed` | self-iteration and duplicate-plan detection | higher-level planner quality can improve | continue goal-gap scoring |
 | `EH-SPEC-014` | `partial` | English docs and public positioning | packaging/release polish remains | prepare public release checklist |
 | `EH-SPEC-015` | `completed` | `spec_sync.py`, `engo spec-sync audit/record`, tests | optional deeper markdown status mutation | use JSONL + task ledger as source of truth |
+| `EH-SPEC-016` | `planned` | spec and decision record added | docs-sync commands and run/drive integration not implemented | implement target documentation synchronization task package |
 
 ## Maintenance Rules
 
@@ -38,3 +39,4 @@ Decision records: `docs/decisions/`
 2. Roadmap tasks cite requirement ids through `spec_refs`.
 3. Completed implementation tasks update `.engineering/spec_tasks.yaml` and append evidence.
 4. Changes that affect target-repository spec maintenance require both tests and documentation.
+5. Changes that affect target-repository documentation status must update or propose updates for the declared architecture, roadmap, roadmap status, spec, traceability, task-package, and deployment-status documents.

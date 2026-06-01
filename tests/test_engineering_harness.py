@@ -1639,6 +1639,204 @@ def test_agent_prompts_include_bounded_requirement_context_and_manifest_referenc
     )
 
 
+def test_agent_context_pack_includes_agent_development_evidence_and_reference_notes(tmp_path):
+    captured: dict[str, str] = {}
+
+    class RecordingCodexExecutor:
+        metadata = ExecutorMetadata(
+            id="codex",
+            name="Recording Codex",
+            kind="agent",
+            adapter="test.recording-codex",
+            input_mode="prompt",
+            capabilities=("agent", "workspace_write", "stdout", "stderr"),
+            requires_agent_approval=True,
+        )
+
+        def prepare_invocation(self, invocation, task_context):
+            return CodexExecutorAdapter().prepare_invocation(invocation, task_context)
+
+        def display_command(self, invocation):
+            return f"recording-codex <task:{invocation.task_id}>"
+
+        def execute(self, invocation):
+            captured["context_pack_path"] = invocation.context_pack["path"]
+            return ExecutorResult(
+                status="passed",
+                returncode=0,
+                started_at="2024-01-01T00:00:00Z",
+                finished_at="2024-01-01T00:00:01Z",
+                stdout="agent ok",
+                stderr="",
+                metadata={},
+            )
+
+    project = tmp_path / "agent-development-context-project"
+    project.mkdir()
+    init_project(project, "python-agent", name="agent-development-context-project")
+    (project / "docs").mkdir(exist_ok=True)
+    (project / "src/engineering_harness").mkdir(parents=True, exist_ok=True)
+    (project / "src/engineering_harness/executors.py").write_text(
+        "# Executor registry catalog\n",
+        encoding="utf-8",
+    )
+    (project / "docs/spec.md").write_text(
+        "\n".join(
+            [
+                "# Agent Development Spec",
+                "",
+                "## context-pack-task - Task-specific requirement excerpt",
+                "",
+                "This bounded excerpt is keyed by the roadmap task id and should reach the agent.",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report_dir = project / ".engineering/reports/tasks"
+    report_dir.mkdir(parents=True, exist_ok=True)
+    candidate_path = project / ".engineering/reports/task-agent-developer/candidate.json"
+    audit_path = project / "artifacts/task-agent-developer/audit.json"
+    for path in (candidate_path, audit_path):
+        path.parent.mkdir(parents=True, exist_ok=True)
+    candidate_path.write_text(json.dumps({"candidate": "agent package"}), encoding="utf-8")
+    audit_path.write_text(json.dumps({"audit": "agent package checked"}), encoding="utf-8")
+    previous_report = report_dir / "20240101T000000Z-prior-agent-task.md"
+    previous_manifest = previous_report.with_suffix(".json")
+    previous_report.write_text(
+        "\n".join(
+            [
+                "# Task Report: prior-agent-task",
+                "",
+                "### acceptance-1: failing context check",
+                "",
+                "- Status: `failed`",
+                "- Return code: `1`",
+                "",
+                "Stderr:",
+                "",
+                "```text",
+                "missing context pack evidence",
+                "```",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    previous_manifest.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "kind": "engineering-harness.task-run-manifest",
+                "project": "agent-development-context-project",
+                "project_root": str(project),
+                "profile": "python-agent",
+                "roadmap_path": ".engineering/roadmap.yaml",
+                "task_id": "prior-agent-task",
+                "milestone_id": "agent-development-toolchain",
+                "task": {"id": "prior-agent-task", "title": "Prior agent task"},
+                "milestone": {"id": "agent-development-toolchain", "title": "Agent Development"},
+                "status": "failed",
+                "message": "acceptance failed",
+                "started_at": "2024-01-01T00:00:00Z",
+                "finished_at": "2024-01-01T00:00:01Z",
+                "dry_run": False,
+                "attempt": 1,
+                "report_path": str(previous_report.relative_to(project)),
+                "manifest_path": str(previous_manifest.relative_to(project)),
+                "artifacts": [
+                    {
+                        "kind": "task_agent_developer_candidate",
+                        "path": str(candidate_path.relative_to(project)),
+                        "exists": True,
+                        "bytes": candidate_path.stat().st_size,
+                    },
+                    {
+                        "kind": "task_agent_developer_audit",
+                        "path": str(audit_path.relative_to(project)),
+                        "exists": True,
+                        "bytes": audit_path.stat().st_size,
+                    },
+                ],
+                "runs": [
+                    {
+                        "phase": "acceptance-1",
+                        "name": "failing context check",
+                        "executor": "shell",
+                        "command": "python3 -c 'raise SystemExit(1)'",
+                        "status": "failed",
+                        "returncode": 1,
+                        "stdout": {"bytes": 0, "sha256": None},
+                        "stderr": {"bytes": 29, "sha256": "stderr-sha"},
+                        "executor_result": {"metadata": {}},
+                        "artifacts": [
+                            {
+                                "kind": "task_agent_developer_candidate",
+                                "path": str(candidate_path.relative_to(project)),
+                                "exists": True,
+                                "bytes": candidate_path.stat().st_size,
+                            },
+                            {
+                                "kind": "task_agent_developer_audit",
+                                "path": str(audit_path.relative_to(project)),
+                                "exists": True,
+                                "bytes": audit_path.stat().st_size,
+                            },
+                        ],
+                    }
+                ],
+                "policy_decision_summary": {"total": 0, "by_kind": {}, "by_outcome": {}, "by_effect": {}, "by_severity": {}, "blocking": [], "requires_approval": []},
+                "safety_audit": {"unsafe_decision_count": 0, "unsafe_classes": [], "unsafe_capabilities": []},
+                "git": {"is_repository": False},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    roadmap_path = project / ".engineering/roadmap.yaml"
+    roadmap = json.loads(roadmap_path.read_text(encoding="utf-8"))
+    roadmap["spec"] = {"path": "docs/spec.md", "kind": "markdown"}
+    task = roadmap["milestones"][0]["tasks"][0]
+    task["id"] = "context-pack-task"
+    task["title"] = "Upgrade agent development context"
+    task["spec_refs"] = ["context-pack-task"]
+    task["reference_repositories"] = [
+        {
+            "name": "agent package reference repo",
+            "url": "https://example.invalid/agent-package.git",
+            "notes": "Use this reference repo note only as local design guidance.",
+        }
+    ]
+    task["implementation"] = [
+        {
+            "name": "agent implementation",
+            "executor": "codex",
+            "prompt": "Use the agent development context pack.",
+        }
+    ]
+    task["acceptance"] = [{"name": "local smoke", "command": "python3 -c \"print('ok')\""}]
+    roadmap_path.write_text(json.dumps(roadmap), encoding="utf-8")
+
+    result = Harness(
+        project,
+        executor_registry=ExecutorRegistry((RecordingCodexExecutor(), ShellExecutorAdapter())),
+    ).run_task(Harness(project).next_task(), allow_agent=True)
+    context_pack = json.loads((project / captured["context_pack_path"]).read_text(encoding="utf-8"))
+
+    assert result["status"] == "passed"
+    assert context_pack["requirements"][0]["id"] == "context-pack-task"
+    assert "roadmap task id" in context_pack["requirements"][0]["excerpt"]
+    assert context_pack["task_reference_excerpts"]["included_count"] == 1
+    assert context_pack["agent_artifacts"]["by_kind"]["task_agent_developer_candidate"] == 1
+    assert context_pack["agent_artifacts"]["by_kind"]["task_agent_developer_audit"] == 1
+    assert "agent package" in json.dumps(context_pack["agent_artifacts"])
+    assert context_pack["acceptance_failures"]["included_count"] == 1
+    assert "missing context pack evidence" in context_pack["acceptance_failures"]["failures"][0]["report_excerpt"]["excerpt"]
+    assert any(item["path"] == "src/engineering_harness/executors.py" for item in context_pack["registry_catalog"]["files"])
+    assert context_pack["reference_repositories"]["repositories"][0]["notes"] == (
+        "Use this reference repo note only as local design guidance."
+    )
+
+
 def test_opa_policy_input_export_shape(tmp_path):
     project = tmp_path / "agent-project"
     project.mkdir()

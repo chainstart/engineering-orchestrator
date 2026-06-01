@@ -207,6 +207,46 @@ Acceptance:
 - A completed orchestrator task records skipped/updated sync evidence in its result payload.
 - Target projects can keep requirement status independent from transient roadmap structure.
 
+## Stage 8: Target Documentation Synchronization
+
+Requirement refs:
+
+- `EH-SPEC-001`
+- `EH-SPEC-002`
+- `EH-SPEC-008`
+- `EH-SPEC-015`
+- `EH-SPEC-016`
+
+Goal:
+
+Keep the developed project's human-readable documentation hierarchy current after each task or stage,
+without collapsing architecture, roadmap, spec, task-package, and deployment status into one document.
+
+Tasks:
+
+1. Extend the target-project contract with optional documentation roles: architecture blueprint, roadmap,
+   roadmap status table, canonical specs, traceability docs, task-package docs, deployment status docs,
+   decision log directory, and machine-readable update logs.
+2. Add a `docs-sync audit` command that reports missing roles, stale links, conflicting task statuses,
+   outdated status docs, and ambiguity between local implementation and deployed status.
+3. Add a `docs-sync propose` or `docs-sync record` path that writes a bounded update plan for a completed
+   task and can apply low-risk status-table / ledger updates when explicitly requested.
+4. Connect completed `run` and `drive` tasks to best-effort documentation sync evidence, separate from
+   spec-sync evidence.
+5. Add context-pack support so coding executors know which target docs must be updated when a task changes
+   architecture, roadmap, spec, task package, tests, deployment, or user-facing behavior.
+
+Acceptance:
+
+- `engo docs-sync audit --project-root <target> --json` reports role coverage and status consistency.
+- `engo docs-sync propose --project-root <target> --task-id <id> --json` produces a bounded update plan
+  with target paths, update reasons, evidence, and safety classification.
+- `engo docs-sync record --project-root <target> --task-id <id> --apply` can update safe status-table or
+  machine-ledger fields and append a documentation update log.
+- Task manifests distinguish `spec_sync` from `docs_sync` and preserve skipped / blocked reasons.
+- The orchestrator refuses to mark architecture or deployment status complete unless the task evidence
+  explicitly supports that status.
+
 ## Current Implementation Target
 
 Stages 1 and 2 establish traceability and the canonical spec index. Stage 3 starts with the local
@@ -218,4 +258,7 @@ stages advance into active milestones. Self-iteration context packs expose the s
 expectation, validation rejects new stages or tasks without `spec_refs` when the existing roadmap is
 spec-traceable, and accepted assessments report which requirement refs newly appended stages advance.
 Stage 7 adds target-project spec synchronization so Engineering Orchestrator can update the developed
-repository's own dynamic spec ledger after task or stage completion.
+repository's own dynamic spec ledger after task or stage completion. Stage 8 extends that idea from a
+machine ledger to the target repository's documentation hierarchy: architecture blueprints remain the
+total goal, roadmaps remain implementation plans, specs remain sub-plans and requirement sources, and
+task packages / engineering roadmaps remain the smallest executable work units.

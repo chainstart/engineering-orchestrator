@@ -418,6 +418,15 @@ AGENT_CONTEXT_PACK_LIMITS = {
     "test_name_count": 12,
     "git_commit_count": 6,
     "message_chars": 500,
+    "task_reference_excerpt_count": 8,
+    "registry_catalog_file_count": 8,
+    "registry_catalog_excerpt_chars": 900,
+    "agent_artifact_count": 8,
+    "agent_artifact_excerpt_chars": 700,
+    "acceptance_failure_count": 5,
+    "acceptance_failure_excerpt_chars": 1000,
+    "reference_repository_count": 8,
+    "reference_repository_note_chars": 700,
 }
 OPERATOR_CONSOLE_LIMITS = {
     "recent_task_runs": 8,
@@ -10563,38 +10572,78 @@ continuation stage(s) were appended.
             title = title[1:].strip()
         return title
 
-    def _requirement_excerpts_from_markdown(
+    def _markdown_heading_ref_for_targets(self, heading_text: str, targets: list[str]) -> str | None:
+        heading = str(heading_text or "").strip()
+        if not heading:
+            return None
+        for ref in sorted((str(item).strip() for item in targets), key=len, reverse=True):
+            if not ref:
+                continue
+            if heading == ref:
+                return ref
+            if heading.startswith((f"{ref}:", f"{ref} ", f"{ref}-", f"{ref} -")):
+                return ref
+            if f"`{ref}`" in heading:
+                return ref
+            boundary_pattern = rf"(?<![A-Za-z0-9_.-]){re.escape(ref)}(?![A-Za-z0-9_.-])"
+            if re.search(boundary_pattern, heading):
+                return ref
+            ref_slug = self._slugify(ref)
+            heading_slug = self._slugify(heading)
+            if ref_slug and (heading_slug == ref_slug or heading_slug.startswith(f"{ref_slug}-")):
+                return ref
+        return None
+
+    def _markdown_heading_title_for_ref(self, heading_text: str, ref: str) -> str:
+        heading = str(heading_text or "").strip()
+        ref_text = str(ref or "").strip()
+        if not heading or not ref_text:
+            return heading
+        if heading == ref_text:
+            return ""
+        if heading.startswith(ref_text):
+            title = heading[len(ref_text) :].strip()
+            while title.startswith((":", "-", " ")):
+                title = title[1:].strip()
+            return title
+        return heading
+
+    def _markdown_heading_excerpts_for_refs(
         self,
         path: Path,
         refs: list[str],
         *,
         errors: list[str],
-    ) -> dict[str, dict[str, Any]]:
-        targets = set(refs)
-        if not targets:
-            return {}
+        source_kind: str,
+        max_chars: int,
+        max_count: int,
+    ) -> list[dict[str, Any]]:
+        targets = [str(ref).strip() for ref in refs if str(ref).strip()]
+        if not targets or max_count <= 0:
+            return []
         if not path.exists():
-            errors.append(f"spec.path file does not exist: {self._project_relative_path(path)}")
-            return {}
-        limit = int(AGENT_CONTEXT_PACK_LIMITS["requirement_excerpt_chars"])
-        found: dict[str, dict[str, Any]] = {}
+            errors.append(f"markdown context file does not exist: {self._project_relative_path(path)}")
+            return []
+        entries: list[dict[str, Any]] = []
         active_id: str | None = None
         active_title = ""
         active_level = 0
         active_lines: list[str] = []
         active_chars = 0
-        capture_limit = limit + 1
+        capture_limit = max_chars + 1
 
         def finish_active() -> None:
             nonlocal active_id, active_title, active_level, active_lines, active_chars
-            if active_id is not None:
-                found[active_id] = {
-                    "id": active_id,
-                    "title": active_title,
-                    "source_kind": "markdown",
-                    "source_path": self._project_relative_path(path),
-                    "excerpt": self._truncate_text("\n".join(active_lines).strip(), limit),
-                }
+            if active_id is not None and len(entries) < max_count:
+                entries.append(
+                    {
+                        "id": active_id,
+                        "title": active_title,
+                        "source_kind": source_kind,
+                        "source_path": self._project_relative_path(path),
+                        "excerpt": self._truncate_text("\n".join(active_lines).strip(), max_chars),
+                    }
+                )
             active_id = None
             active_title = ""
             active_level = 0
@@ -10606,27 +10655,52 @@ continuation stage(s) were appended.
                 for raw_line in handle:
                     line = raw_line.rstrip("\n")
                     heading = SPEC_MARKDOWN_ANY_HEADING_RE.match(line)
-                    requirement_heading = SPEC_MARKDOWN_REQUIREMENT_HEADING_RE.match(line)
                     if active_id is not None and heading is not None and len(heading.group("marks")) <= active_level:
                         finish_active()
-                    if requirement_heading is not None:
-                        requirement_id = requirement_heading.group("id")
-                        if requirement_id in targets:
-                            active_id = requirement_id
-                            active_title = self._requirement_heading_title(requirement_heading.group("title"))
-                            active_level = len(requirement_heading.group("marks"))
+                    if heading is not None and len(entries) < max_count:
+                        heading_text = line[len(heading.group("marks")) :].strip()
+                        matched_ref = self._markdown_heading_ref_for_targets(heading_text, targets)
+                        if matched_ref is not None:
+                            active_id = matched_ref
+                            active_title = self._markdown_heading_title_for_ref(heading_text, matched_ref)
+                            active_level = len(heading.group("marks"))
                             active_lines = [line.strip()]
                             active_chars = len(active_lines[0])
                             continue
-                    if active_id is not None:
-                        if active_chars < capture_limit:
-                            remaining = capture_limit - active_chars
-                            piece = line[:remaining]
-                            active_lines.append(piece)
-                            active_chars += len(piece) + 1
+                    if active_id is not None and active_chars < capture_limit:
+                        remaining = capture_limit - active_chars
+                        piece = line[:remaining]
+                        active_lines.append(piece)
+                        active_chars += len(piece) + 1
             finish_active()
         except OSError as exc:
-            errors.append(f"spec.path file is not readable: {exc}")
+            errors.append(f"markdown context file is not readable: {exc}")
+        return entries
+
+    def _requirement_excerpts_from_markdown(
+        self,
+        path: Path,
+        refs: list[str],
+        *,
+        errors: list[str],
+    ) -> dict[str, dict[str, Any]]:
+        if not path.exists():
+            errors.append(f"spec.path file does not exist: {self._project_relative_path(path)}")
+            return {}
+        limit = int(AGENT_CONTEXT_PACK_LIMITS["requirement_excerpt_chars"])
+        excerpts = self._markdown_heading_excerpts_for_refs(
+            path,
+            refs,
+            errors=errors,
+            source_kind="markdown",
+            max_chars=limit,
+            max_count=max(0, len(refs)),
+        )
+        found: dict[str, dict[str, Any]] = {}
+        for entry in excerpts:
+            requirement_id = str(entry.get("id") or "")
+            if requirement_id and requirement_id not in found:
+                found[requirement_id] = entry
         return found
 
     def _structured_requirement_text(self, value: Any) -> str:
@@ -10767,6 +10841,510 @@ continuation stage(s) were appended.
                 requirements.append(entry)
         return requirements, errors
 
+    def _agent_context_pack_raw_task_payload(self, task: HarnessTask) -> dict[str, Any]:
+        for milestone in self.roadmap.get("milestones", []):
+            if not isinstance(milestone, dict):
+                continue
+            for item in milestone.get("tasks", []):
+                if isinstance(item, dict) and str(item.get("id", "")).strip() == task.id:
+                    return item
+        return {}
+
+    def _agent_context_pack_raw_command_payload(
+        self,
+        task_payload: dict[str, Any],
+        command: AcceptanceCommand,
+        *,
+        phase: str | None,
+    ) -> dict[str, Any]:
+        phase_root = str(phase or "").split("-", 1)[0]
+        group_names = [phase_root] if phase_root in {"implementation", "repair", "acceptance", "e2e"} else []
+        group_names.extend(name for name in ("implementation", "repair", "acceptance", "e2e") if name not in group_names)
+        for group_name in group_names:
+            group = task_payload.get(group_name, [])
+            if not isinstance(group, list):
+                continue
+            for item in group:
+                if not isinstance(item, dict):
+                    continue
+                if str(item.get("name") or item.get("command") or item.get("prompt") or "").strip() != command.name:
+                    continue
+                if str(item.get("executor", "shell")) != command.executor:
+                    continue
+                return item
+        return {}
+
+    def _agent_context_pack_markdown_context_paths(self) -> list[Path]:
+        paths = self._self_iteration_doc_paths()
+        spec = self.roadmap.get("spec") if isinstance(self.roadmap.get("spec"), dict) else {}
+        spec_path_value = spec.get("path") if isinstance(spec, dict) else None
+        if spec_path_value is not None:
+            errors: list[str] = []
+            spec_path = self._resolve_project_config_path(spec_path_value, location="spec.path", errors=errors)
+            if spec_path is not None:
+                family = self._spec_kind_family(str(spec.get("kind") or ""), self._project_relative_path(spec_path))
+                if family == "markdown":
+                    paths.append(spec_path)
+        unique = {self._project_relative_path(path): path for path in paths if path.exists() and path.is_file()}
+        return [unique[key] for key in sorted(unique)]
+
+    def _agent_context_pack_task_reference_context(self, task: HarnessTask) -> dict[str, Any]:
+        refs: list[str] = []
+        for value in (task.id, task.milestone_id):
+            text = str(value or "").strip()
+            if text and text not in refs:
+                refs.append(text)
+        limit = int(AGENT_CONTEXT_PACK_LIMITS["task_reference_excerpt_count"])
+        errors: list[str] = []
+        excerpts: list[dict[str, Any]] = []
+        scanned_paths = self._agent_context_pack_markdown_context_paths()
+        for path in scanned_paths:
+            remaining = limit - len(excerpts)
+            if remaining <= 0:
+                break
+            excerpts.extend(
+                self._markdown_heading_excerpts_for_refs(
+                    path,
+                    refs,
+                    errors=errors,
+                    source_kind="task_reference_markdown",
+                    max_chars=int(AGENT_CONTEXT_PACK_LIMITS["requirement_excerpt_chars"]),
+                    max_count=remaining,
+                )
+            )
+        return {
+            "refs": refs,
+            "file_count": len(scanned_paths),
+            "included_count": len(excerpts),
+            "truncated": len(excerpts) >= limit,
+            "excerpts": excerpts,
+            "errors": errors,
+        }
+
+    def _agent_context_pack_project_file(self, value: Any) -> Path | None:
+        text = str(value or "").strip()
+        if not text or "://" in text or text.startswith("git@"):
+            return None
+        candidate = Path(text)
+        absolute = candidate if candidate.is_absolute() else self.project_root / candidate
+        try:
+            resolved = absolute.resolve(strict=False)
+            root = self.project_root.resolve(strict=False)
+        except OSError:
+            return None
+        if not resolved.is_relative_to(root):
+            return None
+        return resolved
+
+    def _agent_context_pack_text_file_summary(
+        self,
+        path: Path,
+        *,
+        max_chars: int,
+        include_excerpt: bool = True,
+    ) -> dict[str, Any]:
+        exists = path.exists() and path.is_file()
+        payload: dict[str, Any] = {
+            "path": self._project_relative_path(path),
+            "exists": exists,
+            "bytes": self._file_size(path) if exists else None,
+        }
+        if exists and include_excerpt:
+            payload.update(self._text_excerpt_payload(path, max_chars))
+            if path.suffix.lower() in {".md", ".rst", ".txt"}:
+                payload["title"] = self._markdown_title(path)
+        return payload
+
+    def _agent_context_pack_agent_artifacts_context(self) -> dict[str, Any]:
+        wanted_kinds = {
+            "task_agent_developer_candidate",
+            "task_agent_developer_audit",
+            "task_agent_developer_report",
+        }
+        limit = int(AGENT_CONTEXT_PACK_LIMITS["agent_artifact_count"])
+        index = self._build_manifest_index()
+        summaries: list[dict[str, Any]] = []
+        total_count = 0
+        by_kind: dict[str, int] = {}
+        seen: set[tuple[str, str]] = set()
+        for entry in reversed(index.get("manifests", [])):
+            manifest_path = self._agent_context_pack_project_file(entry.get("manifest_path"))
+            if manifest_path is None or not manifest_path.exists():
+                continue
+            try:
+                manifest = load_mapping(manifest_path)
+            except Exception:
+                continue
+            run_sources: list[tuple[dict[str, Any], dict[str, Any]]] = []
+            runs = manifest.get("runs", []) if isinstance(manifest.get("runs"), list) else []
+            for run in runs:
+                if not isinstance(run, dict):
+                    continue
+                for artifact in run.get("artifacts", []) if isinstance(run.get("artifacts"), list) else []:
+                    if isinstance(artifact, dict):
+                        run_sources.append((artifact, run))
+            for artifact in manifest.get("artifacts", []) if isinstance(manifest.get("artifacts"), list) else []:
+                if isinstance(artifact, dict):
+                    run_sources.append((artifact, {}))
+            for artifact, run in run_sources:
+                kind = str(artifact.get("kind") or "").strip()
+                path_text = str(artifact.get("path") or "").strip()
+                if kind not in wanted_kinds or not path_text:
+                    continue
+                key = (kind, path_text)
+                if key in seen:
+                    continue
+                seen.add(key)
+                total_count += 1
+                by_kind[kind] = by_kind.get(kind, 0) + 1
+                if len(summaries) >= limit:
+                    continue
+                item = {
+                    "kind": kind,
+                    "path": path_text,
+                    "exists": bool(artifact.get("exists", False)),
+                    "bytes": artifact.get("bytes"),
+                    "sha256": artifact.get("sha256"),
+                    "source": artifact.get("source"),
+                    "task_id": manifest.get("task_id"),
+                    "status": manifest.get("status"),
+                    "manifest_path": manifest.get("manifest_path") or entry.get("manifest_path"),
+                    "report_path": manifest.get("report_path") or entry.get("report_path"),
+                }
+                if run:
+                    item["run"] = {
+                        "phase": run.get("phase"),
+                        "name": run.get("name"),
+                        "executor": run.get("executor"),
+                        "status": run.get("status"),
+                        "returncode": run.get("returncode"),
+                    }
+                artifact_path = self._agent_context_pack_project_file(path_text)
+                if artifact_path is not None and artifact_path.exists() and artifact_path.suffix.lower() in {
+                    ".json",
+                    ".md",
+                    ".txt",
+                    ".yaml",
+                    ".yml",
+                }:
+                    item["content"] = self._agent_context_pack_text_file_summary(
+                        artifact_path,
+                        max_chars=int(AGENT_CONTEXT_PACK_LIMITS["agent_artifact_excerpt_chars"]),
+                    )
+                summaries.append({key: value for key, value in item.items() if value is not None})
+        return {
+            "total_count": total_count,
+            "included_count": len(summaries),
+            "truncated": total_count > len(summaries),
+            "by_kind": dict(sorted(by_kind.items())),
+            "artifacts": summaries,
+        }
+
+    def _agent_context_pack_report_section_excerpt(
+        self,
+        report_path_value: Any,
+        *,
+        phase: str,
+        name: str,
+    ) -> dict[str, Any]:
+        report_path = self._agent_context_pack_project_file(report_path_value)
+        if report_path is None or not report_path.exists():
+            return {"path": str(report_path_value or ""), "excerpt": "", "exists": False}
+        limit = int(AGENT_CONTEXT_PACK_LIMITS["acceptance_failure_excerpt_chars"])
+        try:
+            text = report_path.read_text(encoding="utf-8", errors="ignore")
+        except OSError as exc:
+            return {
+                "path": self._project_relative_path(report_path),
+                "exists": False,
+                "excerpt": "",
+                "read_error": self._truncate_text(str(exc), int(AGENT_CONTEXT_PACK_LIMITS["message_chars"])),
+            }
+        heading = f"### {phase}: {name}"
+        start = text.find(heading)
+        if start < 0:
+            start = text.lower().find(f"### {phase}".lower())
+        if start < 0:
+            return {"path": self._project_relative_path(report_path), "exists": True, "excerpt": ""}
+        next_positions = [
+            position
+            for marker in ("\n### ", "\n## ")
+            if (position := text.find(marker, start + len(heading))) >= 0
+        ]
+        end = min(next_positions) if next_positions else len(text)
+        return {
+            "path": self._project_relative_path(report_path),
+            "exists": True,
+            "excerpt": self._truncate_text(text[start:end].strip(), limit),
+            "excerpt_truncated": end - start > limit,
+        }
+
+    def _agent_context_pack_acceptance_failures_context(self) -> dict[str, Any]:
+        limit = int(AGENT_CONTEXT_PACK_LIMITS["acceptance_failure_count"])
+        index = self._build_manifest_index()
+        failures: list[dict[str, Any]] = []
+        total_count = 0
+        for entry in reversed(index.get("manifests", [])):
+            manifest_path = self._agent_context_pack_project_file(entry.get("manifest_path"))
+            if manifest_path is None or not manifest_path.exists():
+                continue
+            try:
+                manifest = load_mapping(manifest_path)
+            except Exception:
+                continue
+            runs = manifest.get("runs", []) if isinstance(manifest.get("runs"), list) else []
+            for run in reversed(runs):
+                if not isinstance(run, dict):
+                    continue
+                phase = str(run.get("phase") or "")
+                if not (phase.startswith("acceptance") or phase.startswith("e2e")):
+                    continue
+                status = str(run.get("status") or "unknown")
+                returncode = run.get("returncode")
+                if status in COMPLETED_STATUSES and returncode in (None, 0):
+                    continue
+                total_count += 1
+                if len(failures) >= limit:
+                    continue
+                failure = {
+                    "task_id": manifest.get("task_id") or entry.get("task_id"),
+                    "task_title": entry.get("task_title"),
+                    "manifest_status": manifest.get("status"),
+                    "manifest_message": self._truncate_text(
+                        str(manifest.get("message") or ""),
+                        int(AGENT_CONTEXT_PACK_LIMITS["message_chars"]),
+                    ),
+                    "manifest_path": manifest.get("manifest_path") or entry.get("manifest_path"),
+                    "report_path": manifest.get("report_path") or entry.get("report_path"),
+                    "run": {
+                        "phase": phase,
+                        "name": run.get("name"),
+                        "executor": run.get("executor"),
+                        "status": status,
+                        "returncode": returncode,
+                        "stdout": run.get("stdout") if isinstance(run.get("stdout"), dict) else {},
+                        "stderr": run.get("stderr") if isinstance(run.get("stderr"), dict) else {},
+                    },
+                    "report_excerpt": self._agent_context_pack_report_section_excerpt(
+                        manifest.get("report_path") or entry.get("report_path"),
+                        phase=phase,
+                        name=str(run.get("name") or ""),
+                    ),
+                }
+                if isinstance(manifest.get("failure_isolation"), dict):
+                    failure["failure_isolation"] = self._compact_failure_isolation(manifest["failure_isolation"])
+                failures.append(failure)
+        return {
+            "total_count": total_count,
+            "included_count": len(failures),
+            "truncated": total_count > len(failures),
+            "failures": failures,
+        }
+
+    def _agent_context_pack_registry_catalog_context(self, task: HarnessTask, command: AcceptanceCommand) -> dict[str, Any]:
+        selected_executors: list[str] = []
+        for item in (*task.implementation, *task.repair, *task.acceptance, *task.e2e):
+            if item.executor not in selected_executors:
+                selected_executors.append(item.executor)
+        if command.executor not in selected_executors:
+            selected_executors.append(command.executor)
+        known_candidates = [
+            ("src/engineering_harness/executors.py", "executor registry and agent adapter catalog"),
+            ("src/engineering_harness/profiles.py", "profile and starter roadmap catalog"),
+            ("src/engineering_harness/goal_planner.py", "goal-to-roadmap task catalog"),
+            ("src/engineering_harness/domain_frontend.py", "domain frontend catalog"),
+            (".engineering/spec_tasks.yaml", "spec task registry"),
+            (".engineering/policies/command-allowlist.yaml", "command policy registry"),
+            ("docs/executor-contract.md", "executor contract"),
+            ("docs/goal-roadmap-planner.md", "planner and context pack contract"),
+        ]
+        paths: dict[str, str] = {}
+        for relative, reason in known_candidates:
+            path = self.project_root / relative
+            if path.exists() and path.is_file():
+                paths[relative] = reason
+        for root_name in ("src", "docs", ".engineering"):
+            root = self.project_root / root_name
+            if not root.exists():
+                continue
+            for path in root.rglob("*"):
+                if not path.is_file():
+                    continue
+                relative = self._project_relative_path(path)
+                lowered = relative.lower()
+                parts = Path(relative).parts
+                if any(part in PRUNE_DIRS for part in parts):
+                    continue
+                if parts[:1] == (".engineering",) and any(part in {"reports", "state"} for part in parts):
+                    continue
+                if any(keyword in lowered for keyword in ("registry", "catalog")):
+                    paths.setdefault(relative, "matched registry/catalog filename")
+        limit = int(AGENT_CONTEXT_PACK_LIMITS["registry_catalog_file_count"])
+        files = [
+            {
+                "reason": reason,
+                **self._agent_context_pack_text_file_summary(
+                    self.project_root / relative,
+                    max_chars=int(AGENT_CONTEXT_PACK_LIMITS["registry_catalog_excerpt_chars"]),
+                ),
+            }
+            for relative, reason in list(sorted(paths.items()))[:limit]
+        ]
+        return {
+            "selected_executors": selected_executors,
+            "executors": [
+                self.executor_registry.metadata_for(executor_id)
+                for executor_id in self.executor_registry.ids()
+            ],
+            "files": files,
+            "file_count": len(paths),
+            "included_file_count": len(files),
+            "files_truncated": len(paths) > limit,
+        }
+
+    def _agent_context_pack_reference_repository_entries_from_value(
+        self,
+        value: Any,
+        *,
+        source: str,
+        notes_only: bool = False,
+    ) -> list[dict[str, Any]]:
+        limit_chars = int(AGENT_CONTEXT_PACK_LIMITS["reference_repository_note_chars"])
+        entries: list[dict[str, Any]] = []
+        if value is None:
+            return entries
+        if isinstance(value, list):
+            for index, item in enumerate(value):
+                entries.extend(
+                    self._agent_context_pack_reference_repository_entries_from_value(
+                        item,
+                        source=f"{source}[{index}]",
+                        notes_only=notes_only,
+                    )
+                )
+            return entries
+        if isinstance(value, str):
+            text = value.strip()
+            if not text:
+                return entries
+            entry: dict[str, Any] = {"source": source}
+            if notes_only:
+                entry["notes"] = self._truncate_text(text, limit_chars)
+            elif "://" in text or text.startswith("git@"):
+                entry["url"] = redact(text)
+            else:
+                entry["path"] = redact(text)
+                local_path = self._agent_context_pack_project_file(text)
+                if local_path is not None:
+                    entry["local_path_exists"] = local_path.exists()
+            entries.append(entry)
+            return entries
+        if not isinstance(value, dict):
+            return entries
+        for nested_key in ("repositories", "repos", "reference_repositories", "reference_repos"):
+            nested = value.get(nested_key)
+            if nested is not None:
+                entries.extend(
+                    self._agent_context_pack_reference_repository_entries_from_value(
+                        nested,
+                        source=f"{source}.{nested_key}",
+                        notes_only=notes_only,
+                    )
+                )
+        field_names = (
+            "name",
+            "title",
+            "url",
+            "remote",
+            "path",
+            "branch",
+            "ref",
+            "revision",
+            "notes",
+            "note",
+            "description",
+            "guidance",
+            "reason",
+        )
+        if any(value.get(field) is not None for field in field_names):
+            entry = {"source": source}
+            for field in ("name", "title", "url", "remote", "path", "branch", "ref", "revision"):
+                if value.get(field) is not None:
+                    entry[field] = redact(str(value.get(field)))
+            notes = "\n".join(
+                str(value.get(field)).strip()
+                for field in ("notes", "note", "description", "guidance", "reason")
+                if isinstance(value.get(field), str) and str(value.get(field)).strip()
+            )
+            if notes:
+                entry["notes"] = self._truncate_text(notes, limit_chars)
+            local_path_value = entry.get("path")
+            if local_path_value:
+                local_path = self._agent_context_pack_project_file(local_path_value)
+                if local_path is not None:
+                    entry["local_path_exists"] = local_path.exists()
+            entries.append(entry)
+            return entries
+        if notes_only:
+            for key, item in value.items():
+                if isinstance(item, str) and item.strip():
+                    entries.append(
+                        {
+                            "source": f"{source}.{key}",
+                            "name": str(key),
+                            "notes": self._truncate_text(item.strip(), limit_chars),
+                        }
+                    )
+        return entries
+
+    def _agent_context_pack_reference_repositories_context(
+        self,
+        task: HarnessTask,
+        command: AcceptanceCommand,
+        *,
+        phase: str | None,
+    ) -> dict[str, Any]:
+        raw_task = self._agent_context_pack_raw_task_payload(task)
+        raw_command = self._agent_context_pack_raw_command_payload(raw_task, command, phase=phase)
+        containers = [
+            ("roadmap", self.roadmap),
+            ("task", raw_task),
+            ("command", raw_command),
+        ]
+        repo_keys = ("reference_repositories", "reference_repos", "reference_repository", "reference_repo")
+        note_keys = ("reference_repository_notes", "reference_repo_notes", "reference_repositories_notes")
+        entries: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        for source_name, container in containers:
+            if not isinstance(container, dict):
+                continue
+            for key in repo_keys:
+                for entry in self._agent_context_pack_reference_repository_entries_from_value(
+                    container.get(key),
+                    source=f"{source_name}.{key}",
+                ):
+                    fingerprint = json.dumps(entry, sort_keys=True)
+                    if fingerprint not in seen:
+                        seen.add(fingerprint)
+                        entries.append(entry)
+            for key in note_keys:
+                for entry in self._agent_context_pack_reference_repository_entries_from_value(
+                    container.get(key),
+                    source=f"{source_name}.{key}",
+                    notes_only=True,
+                ):
+                    fingerprint = json.dumps(entry, sort_keys=True)
+                    if fingerprint not in seen:
+                        seen.add(fingerprint)
+                        entries.append(entry)
+        limit = int(AGENT_CONTEXT_PACK_LIMITS["reference_repository_count"])
+        return {
+            "declared_count": len(entries),
+            "included_count": min(len(entries), limit),
+            "truncated": len(entries) > limit,
+            "repositories": entries[:limit],
+        }
+
     def _write_agent_context_pack(
         self,
         task: HarnessTask,
@@ -10782,6 +11360,15 @@ continuation stage(s) were appended.
         manifest_context = self._agent_context_pack_manifest_context()
         test_context = self._agent_context_pack_test_context()
         git_context = self._agent_context_pack_git_context()
+        task_reference_context = self._agent_context_pack_task_reference_context(task)
+        agent_artifacts_context = self._agent_context_pack_agent_artifacts_context()
+        acceptance_failures_context = self._agent_context_pack_acceptance_failures_context()
+        registry_catalog_context = self._agent_context_pack_registry_catalog_context(task, command)
+        reference_repositories_context = self._agent_context_pack_reference_repositories_context(
+            task,
+            command,
+            phase=phase,
+        )
         context_dir = self.report_dir / AGENT_CONTEXT_PACK_DIRNAME
         fingerprint = hashlib.sha256(
             f"{task.id}\0{phase or ''}\0{command.name}\0{time.time_ns()}".encode("utf-8")
@@ -10807,6 +11394,19 @@ continuation stage(s) were appended.
             "git_is_repository": git_context.get("is_repository", False),
             "git_status_line_count": len(git_context.get("status_lines", [])),
             "recent_commit_count": len(git_context.get("recent_commits", [])),
+            "task_reference_excerpt_count": task_reference_context.get("included_count", 0),
+            "agent_artifact_count": agent_artifacts_context.get("included_count", 0),
+            "candidate_artifact_count": agent_artifacts_context.get("by_kind", {}).get(
+                "task_agent_developer_candidate",
+                0,
+            ),
+            "audit_artifact_count": agent_artifacts_context.get("by_kind", {}).get(
+                "task_agent_developer_audit",
+                0,
+            ),
+            "acceptance_failure_count": acceptance_failures_context.get("included_count", 0),
+            "registry_catalog_file_count": registry_catalog_context.get("included_file_count", 0),
+            "reference_repository_count": reference_repositories_context.get("included_count", 0),
         }
         payload = {
             "schema_version": AGENT_CONTEXT_PACK_SCHEMA_VERSION,
@@ -10847,6 +11447,11 @@ continuation stage(s) were appended.
             "roadmap": roadmap_context,
             "tests": test_context,
             "manifests": manifest_context,
+            "task_reference_excerpts": task_reference_context,
+            "agent_artifacts": agent_artifacts_context,
+            "acceptance_failures": acceptance_failures_context,
+            "registry_catalog": registry_catalog_context,
+            "reference_repositories": reference_repositories_context,
             "git": git_context,
             "limits": dict(AGENT_CONTEXT_PACK_LIMITS),
         }

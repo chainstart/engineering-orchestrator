@@ -129,6 +129,20 @@ the current command, verification command summaries, relevant `spec_refs`, compa
 metadata, and short requirement excerpts extracted from the configured local spec path or structured
 requirements index.
 
+Agent-development context packs also include local evidence that a coding agent would otherwise have
+to rediscover manually:
+
+- Markdown excerpts whose headings match declared requirement refs or the current task id;
+- candidate artifact and audit artifact summaries from recent Task Agent Developer manifests;
+- recent acceptance failure summaries with report excerpts for failed acceptance or E2E phases;
+- executor registry and project catalog files, including bounded excerpts from local registry/catalog
+  sources when they exist in the project;
+- reference repo notes declared on the roadmap, task, or command through fields such as
+  `reference_repositories`, `reference_repos`, or `reference_repository_notes`.
+
+Reference repo declarations are recorded as local notes and paths or URLs only. The orchestrator does
+not clone repositories or make network calls while building a context pack.
+
 The Codex and OpenHands prompt templates include:
 
 - the relevant `spec_refs`;
