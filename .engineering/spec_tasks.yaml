@@ -1,52 +1,207 @@
 {
   "kind": "engineering-harness.spec_tasks.v1",
   "project": "engineering-orchestrator",
-  "updated_at": "2026-05-19T00:00:00Z",
+  "updated_at": "2026-06-01T00:00:00Z",
   "source_spec": "docs/engineering-orchestrator-system-spec.md",
   "status_doc": "docs/engineering_orchestrator_implementation_status.md",
   "decision_log_dir": "docs/decisions",
   "requirements": [
-    {"id": "EH-SPEC-001", "title": "Specification intake", "status": "completed"},
-    {"id": "EH-SPEC-002", "title": "Spec-to-roadmap planning", "status": "completed"},
-    {"id": "EH-SPEC-003", "title": "Task graph and execution phases", "status": "completed"},
-    {"id": "EH-SPEC-004", "title": "Executor abstraction", "status": "partial"},
-    {"id": "EH-SPEC-005", "title": "Model and memory layer", "status": "partial"},
-    {"id": "EH-SPEC-006", "title": "Durable autonomous runtime", "status": "completed"},
-    {"id": "EH-SPEC-007", "title": "Production acceptance and E2E evidence", "status": "partial"},
-    {"id": "EH-SPEC-008", "title": "Manifest, report, and audit trail", "status": "completed"},
-    {"id": "EH-SPEC-009", "title": "Git, CI, and release integration", "status": "partial"},
-    {"id": "EH-SPEC-010", "title": "Policy and governance", "status": "partial"},
-    {"id": "EH-SPEC-011", "title": "Operator experience", "status": "partial"},
-    {"id": "EH-SPEC-012", "title": "Domain packs", "status": "partial"},
-    {"id": "EH-SPEC-013", "title": "Self-iteration", "status": "completed"},
-    {"id": "EH-SPEC-014", "title": "Public distribution", "status": "partial"},
-    {"id": "EH-SPEC-015", "title": "Target spec synchronization", "status": "completed"},
-    {"id": "EH-SPEC-016", "title": "Target documentation synchronization", "status": "planned"}
+    {
+      "id": "EH-SPEC-001",
+      "title": "Specification intake",
+      "status": "completed"
+    },
+    {
+      "id": "EH-SPEC-002",
+      "title": "Spec-to-roadmap planning",
+      "status": "completed"
+    },
+    {
+      "id": "EH-SPEC-003",
+      "title": "Task graph and execution phases",
+      "status": "completed"
+    },
+    {
+      "id": "EH-SPEC-004",
+      "title": "Executor abstraction",
+      "status": "partial"
+    },
+    {
+      "id": "EH-SPEC-005",
+      "title": "Model and memory layer",
+      "status": "partial"
+    },
+    {
+      "id": "EH-SPEC-006",
+      "title": "Durable autonomous runtime",
+      "status": "completed"
+    },
+    {
+      "id": "EH-SPEC-007",
+      "title": "Production acceptance and E2E evidence",
+      "status": "partial"
+    },
+    {
+      "id": "EH-SPEC-008",
+      "title": "Manifest, report, and audit trail",
+      "status": "completed"
+    },
+    {
+      "id": "EH-SPEC-009",
+      "title": "Git, CI, and release integration",
+      "status": "partial"
+    },
+    {
+      "id": "EH-SPEC-010",
+      "title": "Policy and governance",
+      "status": "partial"
+    },
+    {
+      "id": "EH-SPEC-011",
+      "title": "Operator experience",
+      "status": "partial"
+    },
+    {
+      "id": "EH-SPEC-012",
+      "title": "Domain packs",
+      "status": "partial"
+    },
+    {
+      "id": "EH-SPEC-013",
+      "title": "Self-iteration",
+      "status": "completed"
+    },
+    {
+      "id": "EH-SPEC-014",
+      "title": "Public distribution",
+      "status": "partial"
+    },
+    {
+      "id": "EH-SPEC-015",
+      "title": "Target spec synchronization",
+      "status": "completed"
+    },
+    {
+      "id": "EH-SPEC-016",
+      "title": "Target documentation synchronization",
+      "status": "planned"
+    },
+    {
+      "id": "EH-SPEC-017",
+      "title": "Native parallel development orchestration",
+      "status": "planned"
+    }
   ],
   "tasks": [
     {
       "id": "EH-SPEC-SYNC-001",
       "title": "Implement target project spec synchronization",
       "status": "completed",
-      "requirement_ids": ["EH-SPEC-001", "EH-SPEC-002", "EH-SPEC-008", "EH-SPEC-015"],
+      "requirement_ids": [
+        "EH-SPEC-001",
+        "EH-SPEC-002",
+        "EH-SPEC-008",
+        "EH-SPEC-015"
+      ],
       "evidence": [
-        {"kind": "code", "path": "src/engineering_orchestrator/spec_sync.py"},
-        {"kind": "test", "path": "tests/test_spec_sync.py"},
-        {"kind": "doc", "path": "docs/decisions/2026-05-19-target-spec-sync.md"}
+        {
+          "kind": "code",
+          "path": "src/engineering_orchestrator/spec_sync.py"
+        },
+        {
+          "kind": "test",
+          "path": "tests/test_spec_sync.py"
+        },
+        {
+          "kind": "doc",
+          "path": "docs/decisions/2026-05-19-target-spec-sync.md"
+        }
       ],
       "next_action": "Use spec-sync in downstream task packages after implementation stages."
     },
     {
       "id": "EH-DOC-SYNC-001",
       "title": "Specify target project documentation synchronization",
-      "status": "planned",
-      "requirement_ids": ["EH-SPEC-001", "EH-SPEC-002", "EH-SPEC-008", "EH-SPEC-015", "EH-SPEC-016"],
-      "evidence": [
-        {"kind": "doc", "path": "docs/engineering-orchestrator-system-spec.md"},
-        {"kind": "doc", "path": "docs/spec-driven-development-plan.md"},
-        {"kind": "doc", "path": "docs/decisions/2026-06-01-target-documentation-sync.md"}
+      "status": "completed",
+      "requirement_ids": [
+        "EH-SPEC-001",
+        "EH-SPEC-002",
+        "EH-SPEC-008",
+        "EH-SPEC-015",
+        "EH-SPEC-016"
       ],
-      "next_action": "Implement docs-sync audit/propose/record commands and connect run/drive evidence."
+      "evidence": [
+        {
+          "kind": "doc",
+          "path": "docs/engineering-orchestrator-system-spec.md"
+        },
+        {
+          "kind": "doc",
+          "path": "docs/spec-driven-development-plan.md"
+        },
+        {
+          "kind": "doc",
+          "path": "docs/decisions/2026-06-01-target-documentation-sync.md"
+        }
+      ],
+      "next_action": "Implement docs-sync in EH-DOC-SYNC-002.",
+      "completion_note": "Specification and decision record are present; implementation is tracked by EH-DOC-SYNC-002."
+    },
+    {
+      "id": "EH-PARALLEL-DRIVE-001",
+      "title": "Implement native parallel task development orchestration",
+      "status": "planned",
+      "requirement_ids": [
+        "EH-SPEC-003",
+        "EH-SPEC-006",
+        "EH-SPEC-008",
+        "EH-SPEC-009",
+        "EH-SPEC-011",
+        "EH-SPEC-017"
+      ],
+      "roadmap_task_id": "engineering-orchestrator-native-parallel-drive",
+      "evidence": [
+        {
+          "kind": "doc",
+          "path": "docs/engineering-orchestrator-system-spec.md"
+        },
+        {
+          "kind": "code",
+          "path": "src/engineering_orchestrator/"
+        },
+        {
+          "kind": "test",
+          "path": "tests/"
+        }
+      ],
+      "next_action": "Implement a native parallel-drive command with worktree/branch isolation, bounded workers, queue continuation, merge, cleanup, and durable reports."
+    },
+    {
+      "id": "EH-DOC-SYNC-002",
+      "title": "Implement post-task target documentation synchronization",
+      "status": "planned",
+      "requirement_ids": [
+        "EH-SPEC-008",
+        "EH-SPEC-009",
+        "EH-SPEC-015",
+        "EH-SPEC-016"
+      ],
+      "roadmap_task_id": "engineering-orchestrator-target-docs-sync-implementation",
+      "evidence": [
+        {
+          "kind": "doc",
+          "path": "docs/engineering-orchestrator-system-spec.md"
+        },
+        {
+          "kind": "code",
+          "path": "src/engineering_orchestrator/"
+        },
+        {
+          "kind": "test",
+          "path": "tests/"
+        }
+      ],
+      "next_action": "Implement docs-sync audit/propose/record flows and invoke them after completed target task runs when documentation roles are declared."
     }
   ]
 }

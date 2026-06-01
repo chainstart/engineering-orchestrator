@@ -266,8 +266,25 @@ Acceptance evidence:
   preserving the target project's hierarchy rules.
 - Completed task manifests record whether target documentation sync was applied, proposed, skipped, or
   blocked, with paths and evidence.
+- Post-task drive and run flows can invoke documentation synchronization for target repositories that declare documentation roles, including roadmap progress, implementation status, actual system state, traceability, and task package documents.
 - Documentation sync never marks work complete without local evidence, and never changes high-level
   architecture goals unless the task explicitly includes an architecture change.
+
+
+### EH-SPEC-017: Native Parallel Development Orchestration
+
+The orchestrator must be able to consume multiple eligible roadmap task packages and execute them as a bounded native parallel development run, without depending on an external auto-continuation supervisor or a human manually launching several orchestrator processes.
+
+A parallel run must plan safe work lanes from task package metadata, create isolated git branches and worktrees, launch bounded worker processes, monitor worker heartbeats and task manifests, schedule the next eligible task when a worker frees, and merge successful branches back to the base branch after local acceptance and merge validation pass. Successfully merged task branches and temporary worktrees should be cleaned automatically. Failed or blocked task branches must be preserved with reports so an operator can inspect and repair them.
+
+Acceptance evidence:
+
+- A native command, for example `engo parallel-drive`, can run a bounded number of eligible roadmap tasks with `--max-workers`, `--max-tasks`, and `--time-budget-seconds` controls.
+- The planner avoids parallelizing tasks with overlapping write scopes, explicit dependency conflicts, or unresolved dirty worktree state unless an explicit override is provided.
+- Each worker receives an isolated branch/worktree, writes a task manifest, and records implementation, acceptance, repair, merge, and cleanup results.
+- Completed task branches are merged back to the configured base branch only after acceptance passes; merged task branches and temporary worktrees are deleted automatically.
+- Blocked or failed tasks do not block unrelated queued tasks, but their branches, reports, and state are retained for review.
+- A parallel run is resumable from durable state and can continue dispatching the next backlog task when a worker completes.
 
 ## Nonfunctional Requirements
 

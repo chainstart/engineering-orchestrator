@@ -178,7 +178,6 @@
               "executor": "codex",
               "model": "gpt-5.5",
               "timeout_seconds": 5400,
-
               "prompt": "Improve task context packs for agent-development tasks. Bounded spec refs should extract useful excerpts from Markdown headings and task ids. Include candidate/audit artifact summaries, relevant registry/catalog files, acceptance failure summaries, and reference repository notes when declared."
             }
           ],
@@ -188,14 +187,12 @@
               "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 1800
-
             },
             {
               "name": "context pack evidence docs",
               "command": "rg -n \"context pack|requirement excerpt|reference repo|candidate artifact|audit artifact\" docs src tests",
               "required": true,
               "timeout_seconds": 1800
-
             }
           ]
         },
@@ -215,7 +212,6 @@
               "executor": "codex",
               "model": "gpt-5.5",
               "timeout_seconds": 5400,
-
               "prompt": "Improve acceptance diagnostics so fast failures still preserve command, cwd, return code, stderr/stdout tail, likely missing dependency hints, and a repair prompt input summary. Make repair phases consume the diagnostic summary."
             }
           ],
@@ -225,14 +221,12 @@
               "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 1800
-
             },
             {
               "name": "diagnostic evidence docs",
               "command": "rg -n \"acceptance diagnostics|stderr|stdout tail|repair prompt|missing dependency\" docs src tests",
               "required": true,
               "timeout_seconds": 1800
-
             }
           ]
         },
@@ -252,7 +246,6 @@
               "executor": "codex",
               "model": "gpt-5.5",
               "timeout_seconds": 5400,
-
               "prompt": "Add a merge planning report for multiple worktrees or task branches. It should summarize dirty paths, changed files, likely conflicts, recommended merge order, and post-merge acceptance commands without performing destructive git actions."
             }
           ],
@@ -262,14 +255,12 @@
               "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 1800
-
             },
             {
               "name": "merge planner evidence docs",
               "command": "rg -n \"merge planner|worktree|merge order|conflict|post-merge acceptance\" docs src tests",
               "required": true,
               "timeout_seconds": 1800
-
             }
           ]
         }
@@ -5076,6 +5067,143 @@
           ],
           "generated_by": "engineering-harness-continuation",
           "generated_at": "2026-05-14T13:39:15Z"
+        }
+      ]
+    },
+    {
+      "id": "native-parallel-development-orchestration",
+      "title": "Native Parallel Development Orchestration",
+      "status": "planned",
+      "objective": "Let Engineering Orchestrator natively split, dispatch, monitor, merge, and clean multiple task package branches without an external auto-continuation script.",
+      "tasks": [
+        {
+          "id": "engineering-orchestrator-native-parallel-drive",
+          "title": "Implement native parallel-drive execution, merge, and cleanup",
+          "status": "pending",
+          "manual_approval_required": false,
+          "agent_approval_required": true,
+          "max_task_iterations": 4,
+          "file_scope": [
+            "src/engineering_orchestrator/**",
+            "tests/**",
+            "docs/**",
+            "bin/**",
+            ".engineering/**"
+          ],
+          "implementation": [
+            {
+              "name": "engineering-orchestrator-native-parallel-drive",
+              "executor": "codex",
+              "timeout_seconds": 7200,
+              "sandbox": "workspace-write",
+              "spec_refs": [
+                "EH-SPEC-003",
+                "EH-SPEC-006",
+                "EH-SPEC-008",
+                "EH-SPEC-009",
+                "EH-SPEC-011",
+                "EH-SPEC-017"
+              ],
+              "prompt": "Read docs/engineering-orchestrator-system-spec.md and docs/parallel-merge-planner.md. Implement native parallel task package development. Add a command such as `engo parallel-drive` that selects eligible pending roadmap tasks, partitions them into safe lanes using dependencies/file_scope/git dirtiness, creates isolated branches and worktrees, launches up to --max-workers child orchestrator runs, monitors manifests and heartbeats, dispatches the next task when a worker completes, runs acceptance/repair, merges successful branches back to the configured base branch, and deletes merged task branches/worktrees. Preserve failed or blocked branches with reports. Keep local-first semantics and do not require external services."
+            }
+          ],
+          "acceptance": [
+            {
+              "name": "parallel drive tests pass",
+              "command": "python3 -m pytest -q tests -k 'parallel or merge_plan or workspace_drive or drive'",
+              "required": true,
+              "timeout_seconds": 1800,
+              "spec_refs": [
+                "EH-SPEC-017"
+              ]
+            },
+            {
+              "name": "orchestrator roadmap validates",
+              "command": "bin/engo validate --project-root .",
+              "required": true,
+              "timeout_seconds": 300,
+              "spec_refs": [
+                "EH-SPEC-003",
+                "EH-SPEC-017"
+              ]
+            },
+            {
+              "name": "parallel command is documented",
+              "command": "rg -n \"parallel-drive|Parallel Development|Native Parallel\" docs src tests bin .engineering",
+              "required": true,
+              "timeout_seconds": 120,
+              "spec_refs": [
+                "EH-SPEC-017"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "target-documentation-sync-implementation",
+      "title": "Target Documentation Synchronization Implementation",
+      "status": "planned",
+      "objective": "After a target task is completed, update or propose updates for the target repository documentation hierarchy so progress docs match actual implementation evidence.",
+      "tasks": [
+        {
+          "id": "engineering-orchestrator-target-docs-sync-implementation",
+          "title": "Implement docs-sync audit, propose, record, and post-task integration",
+          "status": "pending",
+          "manual_approval_required": false,
+          "agent_approval_required": true,
+          "max_task_iterations": 4,
+          "file_scope": [
+            "src/engineering_orchestrator/**",
+            "tests/**",
+            "docs/**",
+            ".engineering/**"
+          ],
+          "implementation": [
+            {
+              "name": "engineering-orchestrator-target-docs-sync-implementation",
+              "executor": "codex",
+              "timeout_seconds": 7200,
+              "sandbox": "workspace-write",
+              "spec_refs": [
+                "EH-SPEC-008",
+                "EH-SPEC-009",
+                "EH-SPEC-015",
+                "EH-SPEC-016"
+              ],
+              "prompt": "Read docs/engineering-orchestrator-system-spec.md and docs/decisions/2026-06-01-target-documentation-sync.md. Implement target documentation synchronization. Add `engo docs-sync audit`, `engo docs-sync propose`, and `engo docs-sync record` or equivalent subcommands. Target projects declare documentation roles in `.engineering/spec_tasks.yaml`; audit must report missing or stale architecture, roadmap, development progress, actual system state, traceability, task package, deployment, and decision documents. For completed task runs, propose or apply bounded evidence-based updates to the relevant target docs and record whether docs-sync was applied, proposed, skipped, or blocked in the manifest/report. Do not mark work complete without code/test/deployment evidence."
+            }
+          ],
+          "acceptance": [
+            {
+              "name": "docs sync tests pass",
+              "command": "python3 -m pytest -q tests -k 'docs_sync or spec_sync or documentation'",
+              "required": true,
+              "timeout_seconds": 1800,
+              "spec_refs": [
+                "EH-SPEC-016"
+              ]
+            },
+            {
+              "name": "orchestrator roadmap validates",
+              "command": "bin/engo validate --project-root .",
+              "required": true,
+              "timeout_seconds": 300,
+              "spec_refs": [
+                "EH-SPEC-015",
+                "EH-SPEC-016"
+              ]
+            },
+            {
+              "name": "docs sync command is documented",
+              "command": "rg -n \"docs-sync|Target Documentation Synchronization|documentation synchronization\" docs src tests bin .engineering",
+              "required": true,
+              "timeout_seconds": 120,
+              "spec_refs": [
+                "EH-SPEC-016"
+              ]
+            }
+          ]
         }
       ]
     }
