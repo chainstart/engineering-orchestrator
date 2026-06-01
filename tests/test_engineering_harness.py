@@ -4374,6 +4374,148 @@ def test_checkpoint_readiness_blocks_user_dirty_worktree(tmp_path):
     assert "will not commit or clean" in readiness["recommended_action"]
 
 
+def test_merge_plan_reports_branch_conflicts_order_and_acceptance(tmp_path, capsys):
+    project = tmp_path / "merge-plan-branches"
+    project.mkdir()
+    init_project(project, "python-agent", name="merge-plan-branches")
+    roadmap_path = project / ".engineering/roadmap.yaml"
+    roadmap = json.loads(roadmap_path.read_text(encoding="utf-8"))
+    roadmap["milestones"][0]["tasks"] = [
+        {
+            "id": "task-a",
+            "title": "Task A",
+            "status": "pending",
+            "file_scope": ["**"],
+            "acceptance": [{"name": "task a acceptance", "command": "python3 -c \"print('task-a ok')\""}],
+        },
+        {
+            "id": "task-b",
+            "title": "Task B",
+            "status": "pending",
+            "file_scope": ["**"],
+            "acceptance": [{"name": "task b acceptance", "command": "python3 -c \"print('task-b ok')\""}],
+        },
+    ]
+    roadmap_path.write_text(json.dumps(roadmap), encoding="utf-8")
+    (project / "shared.txt").write_text("base\n", encoding="utf-8")
+    init_git_repo(project)
+    base = subprocess.run(
+        ["git", "branch", "--show-current"],
+        cwd=project,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+    subprocess.run(["git", "checkout", "-b", "task-a"], cwd=project, check=True, capture_output=True, text=True)
+    (project / "shared.txt").write_text("task a\n", encoding="utf-8")
+    (project / "a.txt").write_text("a\n", encoding="utf-8")
+    subprocess.run(["git", "add", "-A"], cwd=project, check=True)
+    subprocess.run(["git", "commit", "-m", "task a"], cwd=project, check=True, capture_output=True, text=True)
+    subprocess.run(["git", "checkout", base], cwd=project, check=True, capture_output=True, text=True)
+
+    subprocess.run(["git", "checkout", "-b", "task-b"], cwd=project, check=True, capture_output=True, text=True)
+    (project / "shared.txt").write_text("task b\n", encoding="utf-8")
+    (project / "b.txt").write_text("b\n", encoding="utf-8")
+    subprocess.run(["git", "add", "-A"], cwd=project, check=True)
+    subprocess.run(["git", "commit", "-m", "task b"], cwd=project, check=True, capture_output=True, text=True)
+    subprocess.run(["git", "checkout", base], cwd=project, check=True, capture_output=True, text=True)
+
+    assert cli_main(
+        [
+            "merge-plan",
+            "--project-root",
+            str(project),
+            "--base",
+            base,
+            "--branch",
+            "task-a",
+            "--branch",
+            "task-b",
+            "--write",
+            "--json",
+        ]
+    ) == 0
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["kind"] == "engineering-harness.merge-planner"
+    assert payload["status"] == "needs_attention"
+    assert payload["safety"]["destructive_git_actions_performed"] is False
+    assert payload["changed_files"] == ["a.txt", "b.txt", "shared.txt"]
+    assert payload["likely_conflicts"]["status"] == "conflicts_likely"
+    assert any(
+        conflict["kind"] == "candidate_overlap" and conflict["paths"] == ["shared.txt"]
+        for conflict in payload["likely_conflicts"]["items"]
+    )
+    assert [item["candidate_id"] for item in payload["recommended_merge_order"]] == [
+        "branch:task-a",
+        "branch:task-b",
+    ]
+    commands = [command["command"] for command in payload["post_merge_acceptance"]["commands"]]
+    assert "python3 -c \"print('task-a ok')\"" in commands
+    assert "python3 -c \"print('task-b ok')\"" in commands
+
+    report_text = (project / payload["merge_plan_report"]).read_text(encoding="utf-8")
+    assert "merge planner" in report_text
+    assert "worktree" in report_text
+    assert "Recommended Merge Order" in report_text
+    assert "Likely Conflicts" in report_text
+    assert "Post-Merge Acceptance" in report_text
+    sidecar = json.loads((project / payload["merge_plan_report_json"]).read_text(encoding="utf-8"))
+    assert sidecar["likely_conflicts"]["count"] == payload["likely_conflicts"]["count"]
+
+
+def test_merge_plan_reports_dirty_worktree_paths_and_manual_acceptance(tmp_path, capsys):
+    project = tmp_path / "merge-plan-worktree"
+    project.mkdir()
+    init_project(project, "python-agent", name="merge-plan-worktree")
+    (project / "tracked.txt").write_text("base\n", encoding="utf-8")
+    init_git_repo(project)
+    subprocess.run(["git", "branch", "task-dirty"], cwd=project, check=True, capture_output=True, text=True)
+    worktree = tmp_path / "task-dirty-worktree"
+    subprocess.run(
+        ["git", "worktree", "add", str(worktree), "task-dirty"],
+        cwd=project,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    (worktree / "tracked.txt").write_text("dirty\n", encoding="utf-8")
+    (worktree / "untracked.txt").write_text("untracked\n", encoding="utf-8")
+
+    assert cli_main(
+        [
+            "merge-plan",
+            "--project-root",
+            str(project),
+            "--worktree",
+            str(worktree),
+            "--post-merge-acceptance",
+            "python3 -m pytest -q",
+            "--json",
+        ]
+    ) == 0
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["status"] == "needs_attention"
+    assert payload["dirty_paths"] == ["tracked.txt", "untracked.txt"]
+    candidate = payload["candidates"][0]
+    assert candidate["source"] == "worktree"
+    assert candidate["branch"] == "task-dirty"
+    assert candidate["dirty"] is True
+    assert candidate["dirty_paths"] == ["tracked.txt", "untracked.txt"]
+    assert payload["recommended_merge_order"][0]["candidate_id"].startswith("worktree:")
+    assert payload["post_merge_acceptance"]["commands"] == [
+        {
+            "source": "manual",
+            "task_id": None,
+            "phase": "post-merge acceptance",
+            "name": "manual post-merge acceptance",
+            "command": "python3 -m pytest -q",
+        }
+    ]
+
+
 def test_policy_decision_schema_records_dirty_worktree_warning(tmp_path):
     project = tmp_path / "agent-project"
     project.mkdir()
