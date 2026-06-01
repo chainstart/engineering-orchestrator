@@ -24,6 +24,7 @@ from .core import (
 )
 from .goal_planner import DEFAULT_GOAL_STAGE_COUNT, materialize_goal_roadmap, plan_goal_roadmap
 from .io import write_json
+from .merge_planner import plan_parallel_merges, write_merge_plan_report
 from .profiles import list_profiles
 from .spec_sync import SPEC_TASKS_RELATIVE_PATH, audit_spec_system, record_spec_task_update
 
@@ -404,6 +405,43 @@ def cmd_next(args: argparse.Namespace) -> int:
         for command in payload["acceptance"]:
             print(f"- {command['name']}: {command['command']}")
     return 0
+
+
+def cmd_merge_plan(args: argparse.Namespace) -> int:
+    root = resolve_project_root(args)
+    harness = Harness(root)
+    payload = plan_parallel_merges(
+        root,
+        roadmap=harness.roadmap,
+        base_ref=args.base,
+        branches=args.branch or (),
+        worktrees=[str(path) for path in (args.worktree or ())],
+        task_ids=args.task or (),
+        post_merge_acceptance=args.post_merge_acceptance or (),
+    )
+    if args.write:
+        write_merge_plan_report(root, payload)
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print(f"Merge planner: {payload['status']}")
+        print(f"Base: {payload.get('base', {}).get('ref') or 'unknown'}")
+        print(f"Candidates: {payload.get('candidate_count', 0)}")
+        print(f"Dirty paths: {len(payload.get('dirty_paths', []))}")
+        print(f"Changed files: {len(payload.get('changed_files', []))}")
+        conflicts = payload.get("likely_conflicts", {}) if isinstance(payload.get("likely_conflicts"), dict) else {}
+        print(f"Likely conflicts: {conflicts.get('count', 0)}")
+        if payload.get("merge_plan_report"):
+            print(f"Report: {payload['merge_plan_report']}")
+            print(f"Report JSON: {payload['merge_plan_report_json']}")
+        order = payload.get("recommended_merge_order", [])
+        if order:
+            print("Merge order:")
+            for item in order:
+                print(f"- {item['position']}: {item['candidate_id']}")
+        acceptance = payload.get("post_merge_acceptance", {})
+        print(f"Post-merge acceptance commands: {acceptance.get('command_count', 0)}")
+    return 1 if payload.get("status") == "failed" else 0
 
 
 def cmd_run(args: argparse.Namespace) -> int:
@@ -4310,6 +4348,28 @@ def build_parser() -> argparse.ArgumentParser:
     spec_sync_record.add_argument("--apply", action="store_true")
     spec_sync_record.add_argument("--json", action="store_true")
     spec_sync_record.set_defaults(func=cmd_spec_sync)
+
+    merge_plan = subparsers.add_parser(
+        "merge-plan",
+        help="Plan a non-destructive merge order for parallel worktrees or task branches",
+    )
+    merge_plan.add_argument("--project-root", type=Path, default=None)
+    merge_plan.add_argument("--workspace", type=Path, default=Path.cwd())
+    merge_plan.add_argument("--project", default=None)
+    merge_plan.add_argument("--max-depth", type=int, default=3)
+    merge_plan.add_argument("--base", default=None, help="Base branch or ref to plan merges into; defaults to current branch")
+    merge_plan.add_argument("--branch", action="append", default=None, help="Task branch to include in the merge planner")
+    merge_plan.add_argument("--worktree", type=Path, action="append", default=None, help="Git worktree path to include")
+    merge_plan.add_argument("--task", action="append", default=None, help="Roadmap task id whose acceptance commands should run after merge")
+    merge_plan.add_argument(
+        "--post-merge-acceptance",
+        action="append",
+        default=None,
+        help="Additional post-merge acceptance command to include in the report",
+    )
+    merge_plan.add_argument("--write", action="store_true", help="Write Markdown and JSON merge planner reports")
+    merge_plan.add_argument("--json", action="store_true")
+    merge_plan.set_defaults(func=cmd_merge_plan)
 
     for name, help_text, func in [
         ("status", "Show project or workspace status", cmd_status),

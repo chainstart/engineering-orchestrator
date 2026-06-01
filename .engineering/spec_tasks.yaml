@@ -20,7 +20,8 @@
     {"id": "EH-SPEC-012", "title": "Domain packs", "status": "partial"},
     {"id": "EH-SPEC-013", "title": "Self-iteration", "status": "completed"},
     {"id": "EH-SPEC-014", "title": "Public distribution", "status": "partial"},
-    {"id": "EH-SPEC-015", "title": "Target spec synchronization", "status": "completed"}
+    {"id": "EH-SPEC-015", "title": "Target spec synchronization", "status": "completed"},
+    {"id": "EH-SPEC-016", "title": "Target documentation synchronization", "status": "planned"}
   ],
   "tasks": [
     {
@@ -34,6 +35,18 @@
         {"kind": "doc", "path": "docs/decisions/2026-05-19-target-spec-sync.md"}
       ],
       "next_action": "Use spec-sync in downstream task packages after implementation stages."
+    },
+    {
+      "id": "EH-DOC-SYNC-001",
+      "title": "Specify target project documentation synchronization",
+      "status": "planned",
+      "requirement_ids": ["EH-SPEC-001", "EH-SPEC-002", "EH-SPEC-008", "EH-SPEC-015", "EH-SPEC-016"],
+      "evidence": [
+        {"kind": "doc", "path": "docs/engineering-harness-system-spec.md"},
+        {"kind": "doc", "path": "docs/spec-driven-development-plan.md"},
+        {"kind": "doc", "path": "docs/decisions/2026-06-01-target-documentation-sync.md"}
+      ],
+      "next_action": "Implement docs-sync audit/propose/record commands and connect run/drive evidence."
     }
   ]
 }

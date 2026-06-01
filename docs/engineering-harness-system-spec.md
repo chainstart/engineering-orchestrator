@@ -244,6 +244,29 @@ Acceptance evidence:
   `.engineering/spec_tasks.yaml`.
 - Missing or unmatched spec tasks are reported as skipped evidence, not silently treated as success.
 
+### EH-SPEC-016: Target Documentation Synchronization
+
+The orchestrator must help target projects keep their documentation hierarchy current after
+implementation work. Target repositories may separate architecture blueprints, roadmaps, roadmap status
+tables, canonical specs, traceability documents, task-package documents, deployment runbooks, and
+machine-readable `.engineering` ledgers. A completed task may need to update more than the spec task
+ledger; it may also need to refresh roadmap status, implementation status, traceability links, task
+package state, deployment state, or a decision record.
+
+Acceptance evidence:
+
+- Target projects can declare documentation roles such as architecture blueprint, roadmap, roadmap
+  status table, canonical specs, traceability documents, task package documents, deployment status, and
+  decision log directory.
+- A documentation audit reports missing docs, stale status links, inconsistent task/package statuses,
+  and local-implementation versus deployed-status ambiguity.
+- A documentation update command can propose or apply bounded updates for a completed task while
+  preserving the target project's hierarchy rules.
+- Completed task manifests record whether target documentation sync was applied, proposed, skipped, or
+  blocked, with paths and evidence.
+- Documentation sync never marks work complete without local evidence, and never changes high-level
+  architecture goals unless the task explicitly includes an architecture change.
+
 ## Nonfunctional Requirements
 
 - **Local-first**: workflows must be runnable on a developer machine before they are delegated to
@@ -309,6 +332,16 @@ Projects can opt into a lightweight dynamic spec contract:
   "project": "example",
   "source_spec": "docs/spec.md",
   "status_doc": "docs/implementation_status.md",
+  "roadmap_doc": "docs/roadmap.md",
+  "roadmap_status_doc": "docs/roadmap-status.md",
+  "documentation": {
+    "architecture_blueprint": "docs/architecture.md",
+    "roadmap": "docs/roadmap.md",
+    "roadmap_status": "docs/roadmap-status.md",
+    "traceability": ["docs/spec-traceability.md"],
+    "task_packages": ["docs/task-packages.md"],
+    "deployment_status": "docs/deployment-status.md"
+  },
   "decision_log_dir": "docs/decisions",
   "requirements": [{"id": "REQ-EXAMPLE-001", "title": "Example", "status": "pending"}],
   "tasks": [{"id": "example-task", "status": "pending", "requirement_ids": ["REQ-EXAMPLE-001"]}]
@@ -329,3 +362,8 @@ engo spec-sync record --project-root /path/to/target \
 This does not replace roadmaps. The roadmap remains the executable plan; the dynamic spec ledger is
 the requirement-level memory that survives across roadmap rewrites, long-running branches, and
 domain-specific repositories.
+
+Dynamic documentation maintenance is a sibling capability to spec synchronization. Spec sync records
+requirement and task status in a compact ledger. Documentation sync updates the target project's human
+source-of-truth documents so architecture, roadmap, spec, task-package, local implementation, and
+deployment status do not drift apart.

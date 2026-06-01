@@ -25,6 +25,7 @@ from engineering_harness.executors import (
     DAGGER_ENABLE_ENV,
     OPENHANDS_BINARY_ENV,
     OPENHANDS_ENABLE_ENV,
+    TASK_AGENT_DEVELOPER_BINARY_ENV,
     DaggerExecutorAdapter,
     ExecutorInvocation,
     ExecutorMetadata,
@@ -1638,6 +1639,204 @@ def test_agent_prompts_include_bounded_requirement_context_and_manifest_referenc
     )
 
 
+def test_agent_context_pack_includes_agent_development_evidence_and_reference_notes(tmp_path):
+    captured: dict[str, str] = {}
+
+    class RecordingCodexExecutor:
+        metadata = ExecutorMetadata(
+            id="codex",
+            name="Recording Codex",
+            kind="agent",
+            adapter="test.recording-codex",
+            input_mode="prompt",
+            capabilities=("agent", "workspace_write", "stdout", "stderr"),
+            requires_agent_approval=True,
+        )
+
+        def prepare_invocation(self, invocation, task_context):
+            return CodexExecutorAdapter().prepare_invocation(invocation, task_context)
+
+        def display_command(self, invocation):
+            return f"recording-codex <task:{invocation.task_id}>"
+
+        def execute(self, invocation):
+            captured["context_pack_path"] = invocation.context_pack["path"]
+            return ExecutorResult(
+                status="passed",
+                returncode=0,
+                started_at="2024-01-01T00:00:00Z",
+                finished_at="2024-01-01T00:00:01Z",
+                stdout="agent ok",
+                stderr="",
+                metadata={},
+            )
+
+    project = tmp_path / "agent-development-context-project"
+    project.mkdir()
+    init_project(project, "python-agent", name="agent-development-context-project")
+    (project / "docs").mkdir(exist_ok=True)
+    (project / "src/engineering_harness").mkdir(parents=True, exist_ok=True)
+    (project / "src/engineering_harness/executors.py").write_text(
+        "# Executor registry catalog\n",
+        encoding="utf-8",
+    )
+    (project / "docs/spec.md").write_text(
+        "\n".join(
+            [
+                "# Agent Development Spec",
+                "",
+                "## context-pack-task - Task-specific requirement excerpt",
+                "",
+                "This bounded excerpt is keyed by the roadmap task id and should reach the agent.",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    report_dir = project / ".engineering/reports/tasks"
+    report_dir.mkdir(parents=True, exist_ok=True)
+    candidate_path = project / ".engineering/reports/task-agent-developer/candidate.json"
+    audit_path = project / "artifacts/task-agent-developer/audit.json"
+    for path in (candidate_path, audit_path):
+        path.parent.mkdir(parents=True, exist_ok=True)
+    candidate_path.write_text(json.dumps({"candidate": "agent package"}), encoding="utf-8")
+    audit_path.write_text(json.dumps({"audit": "agent package checked"}), encoding="utf-8")
+    previous_report = report_dir / "20240101T000000Z-prior-agent-task.md"
+    previous_manifest = previous_report.with_suffix(".json")
+    previous_report.write_text(
+        "\n".join(
+            [
+                "# Task Report: prior-agent-task",
+                "",
+                "### acceptance-1: failing context check",
+                "",
+                "- Status: `failed`",
+                "- Return code: `1`",
+                "",
+                "Stderr:",
+                "",
+                "```text",
+                "missing context pack evidence",
+                "```",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    previous_manifest.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "kind": "engineering-harness.task-run-manifest",
+                "project": "agent-development-context-project",
+                "project_root": str(project),
+                "profile": "python-agent",
+                "roadmap_path": ".engineering/roadmap.yaml",
+                "task_id": "prior-agent-task",
+                "milestone_id": "agent-development-toolchain",
+                "task": {"id": "prior-agent-task", "title": "Prior agent task"},
+                "milestone": {"id": "agent-development-toolchain", "title": "Agent Development"},
+                "status": "failed",
+                "message": "acceptance failed",
+                "started_at": "2024-01-01T00:00:00Z",
+                "finished_at": "2024-01-01T00:00:01Z",
+                "dry_run": False,
+                "attempt": 1,
+                "report_path": str(previous_report.relative_to(project)),
+                "manifest_path": str(previous_manifest.relative_to(project)),
+                "artifacts": [
+                    {
+                        "kind": "task_agent_developer_candidate",
+                        "path": str(candidate_path.relative_to(project)),
+                        "exists": True,
+                        "bytes": candidate_path.stat().st_size,
+                    },
+                    {
+                        "kind": "task_agent_developer_audit",
+                        "path": str(audit_path.relative_to(project)),
+                        "exists": True,
+                        "bytes": audit_path.stat().st_size,
+                    },
+                ],
+                "runs": [
+                    {
+                        "phase": "acceptance-1",
+                        "name": "failing context check",
+                        "executor": "shell",
+                        "command": "python3 -c 'raise SystemExit(1)'",
+                        "status": "failed",
+                        "returncode": 1,
+                        "stdout": {"bytes": 0, "sha256": None},
+                        "stderr": {"bytes": 29, "sha256": "stderr-sha"},
+                        "executor_result": {"metadata": {}},
+                        "artifacts": [
+                            {
+                                "kind": "task_agent_developer_candidate",
+                                "path": str(candidate_path.relative_to(project)),
+                                "exists": True,
+                                "bytes": candidate_path.stat().st_size,
+                            },
+                            {
+                                "kind": "task_agent_developer_audit",
+                                "path": str(audit_path.relative_to(project)),
+                                "exists": True,
+                                "bytes": audit_path.stat().st_size,
+                            },
+                        ],
+                    }
+                ],
+                "policy_decision_summary": {"total": 0, "by_kind": {}, "by_outcome": {}, "by_effect": {}, "by_severity": {}, "blocking": [], "requires_approval": []},
+                "safety_audit": {"unsafe_decision_count": 0, "unsafe_classes": [], "unsafe_capabilities": []},
+                "git": {"is_repository": False},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    roadmap_path = project / ".engineering/roadmap.yaml"
+    roadmap = json.loads(roadmap_path.read_text(encoding="utf-8"))
+    roadmap["spec"] = {"path": "docs/spec.md", "kind": "markdown"}
+    task = roadmap["milestones"][0]["tasks"][0]
+    task["id"] = "context-pack-task"
+    task["title"] = "Upgrade agent development context"
+    task["spec_refs"] = ["context-pack-task"]
+    task["reference_repositories"] = [
+        {
+            "name": "agent package reference repo",
+            "url": "https://example.invalid/agent-package.git",
+            "notes": "Use this reference repo note only as local design guidance.",
+        }
+    ]
+    task["implementation"] = [
+        {
+            "name": "agent implementation",
+            "executor": "codex",
+            "prompt": "Use the agent development context pack.",
+        }
+    ]
+    task["acceptance"] = [{"name": "local smoke", "command": "python3 -c \"print('ok')\""}]
+    roadmap_path.write_text(json.dumps(roadmap), encoding="utf-8")
+
+    result = Harness(
+        project,
+        executor_registry=ExecutorRegistry((RecordingCodexExecutor(), ShellExecutorAdapter())),
+    ).run_task(Harness(project).next_task(), allow_agent=True)
+    context_pack = json.loads((project / captured["context_pack_path"]).read_text(encoding="utf-8"))
+
+    assert result["status"] == "passed"
+    assert context_pack["requirements"][0]["id"] == "context-pack-task"
+    assert "roadmap task id" in context_pack["requirements"][0]["excerpt"]
+    assert context_pack["task_reference_excerpts"]["included_count"] == 1
+    assert context_pack["agent_artifacts"]["by_kind"]["task_agent_developer_candidate"] == 1
+    assert context_pack["agent_artifacts"]["by_kind"]["task_agent_developer_audit"] == 1
+    assert "agent package" in json.dumps(context_pack["agent_artifacts"])
+    assert context_pack["acceptance_failures"]["included_count"] == 1
+    assert "missing context pack evidence" in context_pack["acceptance_failures"]["failures"][0]["report_excerpt"]["excerpt"]
+    assert any(item["path"] == "src/engineering_harness/executors.py" for item in context_pack["registry_catalog"]["files"])
+    assert context_pack["reference_repositories"]["repositories"][0]["notes"] == (
+        "Use this reference repo note only as local design guidance."
+    )
+
+
 def test_opa_policy_input_export_shape(tmp_path):
     project = tmp_path / "agent-project"
     project.mkdir()
@@ -1923,6 +2122,135 @@ def test_codex_executor_selection_uses_registered_adapter_and_preparation(tmp_pa
     assert result["runs"][0]["command"] == "recording-codex <task:tests>"
     assert result["runs"][0]["executor_metadata"]["adapter"] == "test.recording-codex"
     assert result["runs"][0]["executor_result"]["metadata"] == {"selected": "codex"}
+
+
+def test_task_agent_developer_executor_is_discoverable_and_validates_command_payload(tmp_path):
+    registry = default_executor_registry()
+    assert "task-agent-developer" in registry.ids()
+    metadata = registry.metadata_for("task-agent-developer")
+    assert metadata["adapter"] == "builtin.task-agent-developer"
+    assert metadata["kind"] == "agent"
+    assert metadata["input_mode"] == "command"
+    assert metadata["requires_agent_approval"] is True
+    assert "local_task_agent_developer_cli" in metadata["capabilities"]
+    assert "artifact_collection" in metadata["capabilities"]
+
+    project = tmp_path / "agent-project"
+    project.mkdir()
+    init_project(project, "python-agent", name="agent-project")
+    roadmap_path = project / ".engineering/roadmap.yaml"
+    roadmap = json.loads(roadmap_path.read_text(encoding="utf-8"))
+    roadmap["milestones"][0]["tasks"][0]["acceptance"][0] = {
+        "name": "task agent developer smoke",
+        "executor": "task-agent-developer",
+        "command": "develop --task tests",
+    }
+    roadmap_path.write_text(json.dumps(roadmap), encoding="utf-8")
+
+    assert Harness(project).validate_roadmap()["status"] == "passed"
+
+    roadmap["milestones"][0]["tasks"][0]["acceptance"][0].pop("command")
+    roadmap_path.write_text(json.dumps(roadmap), encoding="utf-8")
+    invalid = Harness(project).validate_roadmap()
+
+    assert invalid["status"] == "failed"
+    assert any("task-agent-developer command is required" in error for error in invalid["errors"])
+
+
+def test_task_agent_developer_executor_collects_artifacts_and_redacts_manifest_evidence(tmp_path, monkeypatch):
+    args_path = tmp_path / "task-agent-developer-args.json"
+    task_agent_developer_bin = tmp_path / "task-agent-developer"
+    task_agent_developer_bin.write_text(
+        "\n".join(
+            [
+                "#!/usr/bin/env python3",
+                "import json",
+                "import os",
+                "import pathlib",
+                "import sys",
+                "candidate = pathlib.Path('.engineering/reports/task-agent-developer/candidate.json')",
+                "audit = pathlib.Path('artifacts/task-agent-developer/audit.json')",
+                "report = pathlib.Path('.engineering/reports/task-agent-developer/report.md')",
+                "for path in (candidate, audit, report):",
+                "    path.parent.mkdir(parents=True, exist_ok=True)",
+                "candidate.write_text(json.dumps({'candidate': 'ok'}), encoding='utf-8')",
+                "audit.write_text(json.dumps({'audit': 'ok'}), encoding='utf-8')",
+                "report.write_text('# Task Agent Developer Report\\n', encoding='utf-8')",
+                "payload = {",
+                "    'args': sys.argv[1:],",
+                "    'cwd': os.getcwd(),",
+                "    'engineering_harness': os.environ.get('ENGINEERING_HARNESS'),",
+                "}",
+                "pathlib.Path(os.environ['TASK_AGENT_DEVELOPER_ARGS_PATH']).write_text(json.dumps(payload))",
+                "print(json.dumps({'artifacts': [",
+                "    {'kind': 'candidate', 'path': str(candidate)},",
+                "    {'kind': 'audit', 'path': str(audit)},",
+                "    {'kind': 'report', 'path': str(report)},",
+                "]}))",
+                "print('OPENAI_API_KEY=sk-taskagentsecret12345')",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    task_agent_developer_bin.chmod(0o755)
+    monkeypatch.setenv(TASK_AGENT_DEVELOPER_BINARY_ENV, str(task_agent_developer_bin))
+    monkeypatch.setenv("TASK_AGENT_DEVELOPER_ARGS_PATH", str(args_path))
+
+    project = tmp_path / "agent-project"
+    project.mkdir()
+    init_project(project, "python-agent", name="agent-project")
+    roadmap_path = project / ".engineering/roadmap.yaml"
+    roadmap = json.loads(roadmap_path.read_text(encoding="utf-8"))
+    roadmap["milestones"][0]["tasks"][0]["acceptance"][0] = {
+        "name": "task agent developer smoke",
+        "executor": "task-agent-developer",
+        "command": "task-agent-developer develop --task tests",
+    }
+    roadmap_path.write_text(json.dumps(roadmap), encoding="utf-8")
+
+    result = Harness(project).run_task(Harness(project).next_task(), allow_agent=True)
+    manifest = task_manifest(project, result)
+    run = manifest["runs"][0]
+    report_text = (project / result["report"]).read_text(encoding="utf-8")
+    task_agent_metadata = run["executor_result"]["metadata"]["task_agent_developer"]
+    artifacts = task_agent_metadata["artifacts"]
+    artifact_kinds = {artifact["kind"] for artifact in artifacts}
+    manifest_artifact_kinds = {artifact["kind"] for artifact in manifest["artifacts"]}
+    payload = json.loads(args_path.read_text(encoding="utf-8"))
+
+    assert result["status"] == "passed"
+    assert payload["args"] == ["develop", "--task", "tests"]
+    assert payload["cwd"] == str(project)
+    assert payload["engineering_harness"] == "1"
+    assert run["executor"] == "task-agent-developer"
+    assert run["command"] == "task-agent-developer develop --task tests <task:tests>"
+    assert run["executor_metadata"]["adapter"] == "builtin.task-agent-developer"
+    assert run["executor_metadata"]["capabilities"] == [
+        "agent",
+        "local_task_agent_developer_cli",
+        "workspace_write",
+        "artifact_collection",
+        "exit_code",
+        "stdout",
+        "stderr",
+    ]
+    assert run["executor_result"]["status"] == "passed"
+    assert task_agent_metadata["artifact_count"] == 3
+    assert artifact_kinds == {
+        "task_agent_developer_candidate",
+        "task_agent_developer_audit",
+        "task_agent_developer_report",
+    }
+    assert all(artifact["exists"] is True and artifact["sha256"] for artifact in artifacts)
+    assert run["artifacts"] == artifacts
+    assert {
+        "task_agent_developer_candidate",
+        "task_agent_developer_audit",
+        "task_agent_developer_report",
+    }.issubset(manifest_artifact_kinds)
+    assert "sk-taskagentsecret12345" not in json.dumps(manifest)
+    assert "sk-taskagentsecret12345" not in report_text
+    assert "OPENAI_API_KEY=[REDACTED]" in report_text
 
 
 def test_dagger_executor_is_discoverable_and_validates_command_payload(tmp_path):
@@ -2874,6 +3202,130 @@ def test_failure_isolation_records_acceptance_failure_after_repair(tmp_path):
     assert summary["unresolved_count"] == 1
     assert summary["latest_isolated_failures"][0]["task_id"] == "tests"
     assert summary["latest_isolated_failures"][0]["manifest_path"] == result["manifest"]
+
+
+def test_acceptance_failure_diagnostics_preserve_fast_failure_details(tmp_path):
+    project = tmp_path / "acceptance-diagnostics-project"
+    project.mkdir()
+    init_project(project, "python-agent", name="acceptance-diagnostics-project")
+    missing_module = "definitely_missing_dependency_eo004"
+    roadmap_path = project / ".engineering/roadmap.yaml"
+    roadmap = json.loads(roadmap_path.read_text(encoding="utf-8"))
+    task = roadmap["milestones"][0]["tasks"][0]
+    task["max_attempts"] = 1
+    task["acceptance"][0] = {
+        "name": "fast missing dependency",
+        "command": (
+            "python3 -c \"import sys; "
+            "print('stdout tail marker'); "
+            "print('stderr tail marker', file=sys.stderr); "
+            f"import {missing_module}\""
+        ),
+    }
+    roadmap_path.write_text(json.dumps(roadmap), encoding="utf-8")
+
+    result = Harness(project).run_task(Harness(project).next_task())
+    manifest = task_manifest(project, result)
+    run = result["runs"][0]
+    diagnostics = run["diagnostics"]
+
+    assert result["status"] == "failed"
+    assert diagnostics["command"] == task["acceptance"][0]["command"]
+    assert diagnostics["cwd"] == str(project)
+    assert diagnostics["returncode"] == 1
+    assert "stdout tail marker" in diagnostics["stdout_tail"]
+    assert "stderr tail marker" in diagnostics["stderr_tail"]
+    assert missing_module in diagnostics["stderr_tail"]
+    assert diagnostics["missing_dependency_hints"][0]["kind"] == "python_module"
+    assert diagnostics["missing_dependency_hints"][0]["name"] == missing_module
+    assert manifest["runs"][0]["diagnostics"] == diagnostics
+    assert manifest["failure_isolation"]["acceptance_diagnostics"]["failed_commands"][0]["command"] == diagnostics["command"]
+    assert "stdout tail marker" in manifest["failure_isolation"]["acceptance_diagnostics"]["repair_prompt_input_summary"]
+
+    report_text = (project / result["report"]).read_text(encoding="utf-8")
+    assert "Acceptance diagnostics:" in report_text
+    assert "missing_dependency_hints" in report_text
+
+
+def test_repair_agent_prompt_consumes_acceptance_diagnostics(tmp_path):
+    captured: dict[str, str] = {}
+    missing_module = "definitely_missing_dependency_eo004"
+
+    class RecordingCodexExecutor:
+        metadata = ExecutorMetadata(
+            id="codex",
+            name="Recording Codex",
+            kind="agent",
+            adapter="test.recording-codex",
+            input_mode="prompt",
+            capabilities=("agent", "workspace_write", "stdout", "stderr"),
+            requires_agent_approval=True,
+        )
+
+        def prepare_invocation(self, invocation, task_context):
+            return CodexExecutorAdapter().prepare_invocation(invocation, task_context)
+
+        def display_command(self, invocation):
+            return f"recording-codex <task:{invocation.task_id}>"
+
+        def execute(self, invocation):
+            captured["prompt"] = invocation.prompt or ""
+            captured["context_pack_path"] = invocation.context_pack["path"]
+            (invocation.project_root / f"{missing_module}.py").write_text("VALUE = 'fixed'\n", encoding="utf-8")
+            return ExecutorResult(
+                status="passed",
+                returncode=0,
+                started_at="2024-01-01T00:00:00Z",
+                finished_at="2024-01-01T00:00:01Z",
+                stdout="repair ok",
+                stderr="",
+                metadata={},
+            )
+
+    project = tmp_path / "repair-diagnostics-project"
+    project.mkdir()
+    init_project(project, "python-agent", name="repair-diagnostics-project")
+    roadmap_path = project / ".engineering/roadmap.yaml"
+    roadmap = json.loads(roadmap_path.read_text(encoding="utf-8"))
+    task = roadmap["milestones"][0]["tasks"][0]
+    task["max_task_iterations"] = 2
+    task["repair"] = [
+        {
+            "name": "agent repair from diagnostics",
+            "executor": "codex",
+            "prompt": "Repair the failing acceptance command using the diagnostic summary.",
+        }
+    ]
+    task["acceptance"][0] = {
+        "name": "imports repaired dependency",
+        "command": (
+            "python3 -c \"import sys; "
+            "print('stdout tail repair'); "
+            "print('stderr tail repair', file=sys.stderr); "
+            f"import {missing_module}\""
+        ),
+    }
+    roadmap_path.write_text(json.dumps(roadmap), encoding="utf-8")
+
+    result = Harness(
+        project,
+        executor_registry=ExecutorRegistry((RecordingCodexExecutor(), ShellExecutorAdapter())),
+    ).run_task(Harness(project).next_task(), allow_agent=True)
+    context_pack = json.loads((project / captured["context_pack_path"]).read_text(encoding="utf-8"))
+    prompt = captured["prompt"]
+
+    assert result["status"] == "passed"
+    assert [run["phase"] for run in result["runs"]] == ["acceptance-1", "repair-1", "acceptance-2"]
+    assert "Repair prompt input summary:" in prompt
+    assert task["acceptance"][0]["command"] in prompt
+    assert str(project) in prompt
+    assert "returned `1`" in prompt
+    assert "stdout tail repair" in prompt
+    assert "stderr tail repair" in prompt
+    assert missing_module in prompt
+    assert "missing dependency" in prompt
+    assert context_pack["repair_prompt_input"]["failed_commands"][0]["name"] == "imports repaired dependency"
+    assert context_pack["repair_prompt_input"]["missing_dependency_hints"][0]["name"] == missing_module
 
 
 def test_failure_isolation_records_policy_block(tmp_path):
@@ -3920,6 +4372,148 @@ def test_checkpoint_readiness_blocks_user_dirty_worktree(tmp_path):
     assert "deleted" in states["user-deleted.txt"]
     assert "untracked" in states["user-untracked.txt"]
     assert "will not commit or clean" in readiness["recommended_action"]
+
+
+def test_merge_plan_reports_branch_conflicts_order_and_acceptance(tmp_path, capsys):
+    project = tmp_path / "merge-plan-branches"
+    project.mkdir()
+    init_project(project, "python-agent", name="merge-plan-branches")
+    roadmap_path = project / ".engineering/roadmap.yaml"
+    roadmap = json.loads(roadmap_path.read_text(encoding="utf-8"))
+    roadmap["milestones"][0]["tasks"] = [
+        {
+            "id": "task-a",
+            "title": "Task A",
+            "status": "pending",
+            "file_scope": ["**"],
+            "acceptance": [{"name": "task a acceptance", "command": "python3 -c \"print('task-a ok')\""}],
+        },
+        {
+            "id": "task-b",
+            "title": "Task B",
+            "status": "pending",
+            "file_scope": ["**"],
+            "acceptance": [{"name": "task b acceptance", "command": "python3 -c \"print('task-b ok')\""}],
+        },
+    ]
+    roadmap_path.write_text(json.dumps(roadmap), encoding="utf-8")
+    (project / "shared.txt").write_text("base\n", encoding="utf-8")
+    init_git_repo(project)
+    base = subprocess.run(
+        ["git", "branch", "--show-current"],
+        cwd=project,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+    subprocess.run(["git", "checkout", "-b", "task-a"], cwd=project, check=True, capture_output=True, text=True)
+    (project / "shared.txt").write_text("task a\n", encoding="utf-8")
+    (project / "a.txt").write_text("a\n", encoding="utf-8")
+    subprocess.run(["git", "add", "-A"], cwd=project, check=True)
+    subprocess.run(["git", "commit", "-m", "task a"], cwd=project, check=True, capture_output=True, text=True)
+    subprocess.run(["git", "checkout", base], cwd=project, check=True, capture_output=True, text=True)
+
+    subprocess.run(["git", "checkout", "-b", "task-b"], cwd=project, check=True, capture_output=True, text=True)
+    (project / "shared.txt").write_text("task b\n", encoding="utf-8")
+    (project / "b.txt").write_text("b\n", encoding="utf-8")
+    subprocess.run(["git", "add", "-A"], cwd=project, check=True)
+    subprocess.run(["git", "commit", "-m", "task b"], cwd=project, check=True, capture_output=True, text=True)
+    subprocess.run(["git", "checkout", base], cwd=project, check=True, capture_output=True, text=True)
+
+    assert cli_main(
+        [
+            "merge-plan",
+            "--project-root",
+            str(project),
+            "--base",
+            base,
+            "--branch",
+            "task-a",
+            "--branch",
+            "task-b",
+            "--write",
+            "--json",
+        ]
+    ) == 0
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["kind"] == "engineering-harness.merge-planner"
+    assert payload["status"] == "needs_attention"
+    assert payload["safety"]["destructive_git_actions_performed"] is False
+    assert payload["changed_files"] == ["a.txt", "b.txt", "shared.txt"]
+    assert payload["likely_conflicts"]["status"] == "conflicts_likely"
+    assert any(
+        conflict["kind"] == "candidate_overlap" and conflict["paths"] == ["shared.txt"]
+        for conflict in payload["likely_conflicts"]["items"]
+    )
+    assert [item["candidate_id"] for item in payload["recommended_merge_order"]] == [
+        "branch:task-a",
+        "branch:task-b",
+    ]
+    commands = [command["command"] for command in payload["post_merge_acceptance"]["commands"]]
+    assert "python3 -c \"print('task-a ok')\"" in commands
+    assert "python3 -c \"print('task-b ok')\"" in commands
+
+    report_text = (project / payload["merge_plan_report"]).read_text(encoding="utf-8")
+    assert "merge planner" in report_text
+    assert "worktree" in report_text
+    assert "Recommended Merge Order" in report_text
+    assert "Likely Conflicts" in report_text
+    assert "Post-Merge Acceptance" in report_text
+    sidecar = json.loads((project / payload["merge_plan_report_json"]).read_text(encoding="utf-8"))
+    assert sidecar["likely_conflicts"]["count"] == payload["likely_conflicts"]["count"]
+
+
+def test_merge_plan_reports_dirty_worktree_paths_and_manual_acceptance(tmp_path, capsys):
+    project = tmp_path / "merge-plan-worktree"
+    project.mkdir()
+    init_project(project, "python-agent", name="merge-plan-worktree")
+    (project / "tracked.txt").write_text("base\n", encoding="utf-8")
+    init_git_repo(project)
+    subprocess.run(["git", "branch", "task-dirty"], cwd=project, check=True, capture_output=True, text=True)
+    worktree = tmp_path / "task-dirty-worktree"
+    subprocess.run(
+        ["git", "worktree", "add", str(worktree), "task-dirty"],
+        cwd=project,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    (worktree / "tracked.txt").write_text("dirty\n", encoding="utf-8")
+    (worktree / "untracked.txt").write_text("untracked\n", encoding="utf-8")
+
+    assert cli_main(
+        [
+            "merge-plan",
+            "--project-root",
+            str(project),
+            "--worktree",
+            str(worktree),
+            "--post-merge-acceptance",
+            "python3 -m pytest -q",
+            "--json",
+        ]
+    ) == 0
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["status"] == "needs_attention"
+    assert payload["dirty_paths"] == ["tracked.txt", "untracked.txt"]
+    candidate = payload["candidates"][0]
+    assert candidate["source"] == "worktree"
+    assert candidate["branch"] == "task-dirty"
+    assert candidate["dirty"] is True
+    assert candidate["dirty_paths"] == ["tracked.txt", "untracked.txt"]
+    assert payload["recommended_merge_order"][0]["candidate_id"].startswith("worktree:")
+    assert payload["post_merge_acceptance"]["commands"] == [
+        {
+            "source": "manual",
+            "task_id": None,
+            "phase": "post-merge acceptance",
+            "name": "manual post-merge acceptance",
+            "command": "python3 -m pytest -q",
+        }
+    ]
 
 
 def test_policy_decision_schema_records_dirty_worktree_warning(tmp_path):

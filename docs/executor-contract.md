@@ -1,7 +1,8 @@
 # Executor Contract
 
-Executor adapters let the orchestrator run shell commands, Codex/OpenHands prompts, and future execution
-backends without changing task semantics. Roadmap tasks still define command groups with `executor`,
+Executor adapters let the orchestrator run shell commands, Codex/OpenHands prompts, Task Agent
+Developer CLI calls, and future execution backends without changing task semantics. Roadmap tasks
+still define command groups with `executor`,
 `command` or `prompt`, `timeout_seconds`, optional `no_progress_timeout_seconds`, `required`,
 `model`, `sandbox`, and optional `requested_capabilities`.
 
@@ -22,6 +23,8 @@ Built-in executors are registered in `default_executor_registry()`:
 - `codex`: `codex exec` agent execution. It requires `--allow-agent`.
 - `openhands`: local OpenHands CLI headless agent execution. It requires `--allow-agent` and is
   blocked unless OpenHands support is explicitly enabled.
+- `task-agent-developer`: local Task Agent Developer CLI execution. It requires `--allow-agent`,
+  runs without a shell, and collects generated candidate, audit, and report artifacts.
 - `dagger`: local Dagger CLI execution. It is discoverable by roadmap validation, but execution is
   blocked unless Dagger support is explicitly enabled.
 
@@ -52,7 +55,7 @@ capability names. The current local vocabulary is:
 
 - Low-risk local capabilities: `local_process`, `workspace_write`, `exit_code`, `stdout`, `stderr`,
   `agent`, `local_dagger_cli`, `local_openhands_cli`, `containerized_execution`, and
-  `requires_explicit_configuration`.
+  `local_task_agent_developer_cli`, `artifact_collection`, and `requires_explicit_configuration`.
 - Unsafe request markers: `network`, `network_access`, `secret_access`, `secrets`,
   `browser_automation`, `deployment`, `deploy`, `live_operations`, and `live`.
 
@@ -87,9 +90,36 @@ Each run also includes normalized executor fields:
 - `executor_result`: schema version, status, return code, started/finished timestamps, stdout and
   stderr summaries, and optional adapter-specific result metadata.
 - `context_pack` for agent prompt runs, when a bounded local context pack was written.
+- `artifacts` for adapters that surface generated files. Task Agent Developer runs use this field
+  for candidate, audit, and report artifact evidence.
 
 This keeps reports and manifest readers compatible while giving future adapters a stable place to
 record capabilities and result details.
+
+## Task Agent Developer Adapter
+
+Roadmaps select Task Agent Developer with `executor: "task-agent-developer"` and provide the CLI
+arguments in `command`. The command may include the leading binary, such as
+`task-agent-developer develop --task tests`, or only the arguments, such as `develop --task tests`.
+The adapter records the auditable display command as `task-agent-developer ... <task:...>`, strips
+the optional leading binary, and launches the CLI directly from the project root without `/bin/bash`.
+
+The adapter declares `agent`, `local_task_agent_developer_cli`, `workspace_write`,
+`artifact_collection`, `exit_code`, `stdout`, and `stderr`, and requires `--allow-agent` like the
+other local agent executors. Set
+`ENGINEERING_HARNESS_TASK_AGENT_DEVELOPER_BINARY=/path/to/task-agent-developer` to use a specific
+binary; otherwise the adapter resolves `task-agent-developer` on `PATH`. If the binary is missing,
+the normalized executor result is blocked with clear missing-binary metadata. Existing shell commands
+that invoke `task-agent-developer ...` continue to use the shell executor path.
+
+Task Agent Developer output is redacted through the same stdout/stderr path as shell, Codex,
+OpenHands, and Dagger. The adapter also scans structured JSON/JSONL output for artifact paths and
+collects new or changed files under `.engineering/reports/task-agent-developer/` and
+`artifacts/task-agent-developer/`. Candidate, audit, and report artifacts are normalized as
+`task_agent_developer_candidate`, `task_agent_developer_audit`, and
+`task_agent_developer_report`, with path, existence, byte count, and SHA-256 evidence. The task
+manifest exposes these files both on the run's `artifacts` field and in top-level `artifacts`, while
+the full adapter summary is stored under `executor_result.metadata.task_agent_developer`.
 
 ## Agent Context Packs
 
@@ -98,6 +128,20 @@ under `.engineering/reports/tasks/agent-context-packs/`. The pack includes bound
 the current command, verification command summaries, relevant `spec_refs`, compact spec index
 metadata, and short requirement excerpts extracted from the configured local spec path or structured
 requirements index.
+
+Agent-development context packs also include local evidence that a coding agent would otherwise have
+to rediscover manually:
+
+- Markdown excerpts whose headings match declared requirement refs or the current task id;
+- candidate artifact and audit artifact summaries from recent Task Agent Developer manifests;
+- recent acceptance failure summaries with report excerpts for failed acceptance or E2E phases;
+- executor registry and project catalog files, including bounded excerpts from local registry/catalog
+  sources when they exist in the project;
+- reference repo notes declared on the roadmap, task, or command through fields such as
+  `reference_repositories`, `reference_repos`, or `reference_repository_notes`.
+
+Reference repo declarations are recorded as local notes and paths or URLs only. The orchestrator does
+not clone repositories or make network calls while building a context pack.
 
 The Codex and OpenHands prompt templates include:
 

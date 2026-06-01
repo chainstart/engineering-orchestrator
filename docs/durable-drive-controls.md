@@ -275,6 +275,13 @@ Local recovery is intentionally explicit:
 - for implementation, acceptance, repair, or E2E failures, inspect the named phase in the task report,
   apply a local fix inside the task file scope, then rerun the task.
 
+Acceptance diagnostics are captured for fast local failures before any repair phase starts. Each failed
+acceptance command records the command text, cwd, return code, stderr and stdout tail, and likely
+missing dependency hints such as an unimportable Python module or missing executable. The next repair
+prompt receives a repair prompt input summary with those same bounded details, and the agent context
+pack stores it under `repair_prompt_input` so agent repairs can work from the actual failing command
+instead of only the high-level phase message.
+
 Rolling drives and self-iteration will not extend the roadmap while unresolved isolated failures
 exist. A later `drive --rolling --self-iterate` stops with status `isolated_failure` before adding or
 materializing continuation work, and the drive report points back to the isolated task evidence.
