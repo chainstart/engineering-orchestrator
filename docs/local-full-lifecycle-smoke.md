@@ -8,13 +8,13 @@ resulting local evidence.
 Run it before long unattended supervisor loops:
 
 ```bash
-python3 -m pytest tests/test_engineering_harness.py -q -k local_full_lifecycle_unattended_smoke
+python3 -m pytest tests/test_engineering_orchestrator.py -q -k local_full_lifecycle_unattended_smoke
 ```
 
 The broader smoke selector is:
 
 ```bash
-python3 -m pytest tests/test_engineering_harness.py -q -k "full_lifecycle and smoke"
+python3 -m pytest tests/test_engineering_orchestrator.py -q -k "full_lifecycle and smoke"
 ```
 
 The smoke is intentionally local-only. It does not use network access, external accounts, private

@@ -3,7 +3,7 @@
 Generated browser-facing roadmap tasks can use:
 
 ```bash
-python3 -m engineering_harness.browser_e2e --project-root . --journey-id JOURNEY_ID
+python3 -m engineering_orchestrator.browser_e2e --project-root . --journey-id JOURNEY_ID
 ```
 
 The runner stays local-only. If a local Playwright executable and a matching spec are present, the

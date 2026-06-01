@@ -4,7 +4,7 @@ Date: 2026-06-01
 
 Status: dynamically maintained
 
-Primary spec: `docs/engineering-harness-system-spec.md`
+Primary spec: `docs/engineering-orchestrator-system-spec.md`
 
 Development plan: `docs/spec-driven-development-plan.md`
 
@@ -32,6 +32,7 @@ Decision records: `docs/decisions/`
 | `EH-SPEC-014` | `partial` | English docs and public positioning | packaging/release polish remains | prepare public release checklist |
 | `EH-SPEC-015` | `completed` | `spec_sync.py`, `engo spec-sync audit/record`, tests | optional deeper markdown status mutation | use JSONL + task ledger as source of truth |
 | `EH-SPEC-016` | `planned` | spec and decision record added | docs-sync commands and run/drive integration not implemented | implement target documentation synchronization task package |
+| `EO-SPEC-001` | `completed` | canonical source package `engineering_orchestrator`, compatibility package `engineering_harness`, `engo` / `engh`, README/spec/tests | GitHub repository and historical schema/state migration remain separate compatibility-window work | keep compatibility tests until a removal plan exists |
 
 ## Maintenance Rules
 

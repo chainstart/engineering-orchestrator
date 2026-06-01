@@ -14,9 +14,9 @@ classifiers = [
 ]
 
 [project.scripts]
-engh = "engineering_harness.cli:main"
-engo = "engineering_harness.cli:main"
+engh = "engineering_orchestrator.cli:main"
+engo = "engineering_orchestrator.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["engineering_harness*"]
+include = ["engineering_orchestrator*", "engineering_harness*"]

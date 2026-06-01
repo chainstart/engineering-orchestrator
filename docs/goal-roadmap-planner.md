@@ -11,7 +11,7 @@ trading. The planner only normalizes local input and renders a template-driven r
 Preview a roadmap without writing files:
 
 ```bash
-PYTHONPATH=src python3 -m engineering_harness.cli plan-goal \
+PYTHONPATH=src python3 -m engineering_orchestrator.cli plan-goal \
   --project-root /path/to/project \
   --name "Autonomous Report Worker" \
   --profile python-agent \
@@ -24,7 +24,7 @@ PYTHONPATH=src python3 -m engineering_harness.cli plan-goal \
 Write the starter roadmap:
 
 ```bash
-PYTHONPATH=src python3 -m engineering_harness.cli plan-goal \
+PYTHONPATH=src python3 -m engineering_orchestrator.cli plan-goal \
   --project-root /path/to/project \
   --name "Autonomous Report Worker" \
   --profile python-agent \
@@ -51,7 +51,7 @@ copied into generated task prompts.
 ## Domain Frontend Contract
 
 Roadmap generation always carries a required frontend experience plan. The shared
-`engineering_harness.domain_frontend` module emits a local decision contract under
+`engineering_orchestrator.domain_frontend` module emits a local decision contract under
 `experience.decision_contract`, `planning.domain_frontend`, and `generated_from.domain_frontend`.
 The contract records the selected domain, experience kind, rule id, surface policy, rationale,
 matched hints, and local-only constraints.
@@ -185,7 +185,7 @@ Continuation tasks now put behavioral checks before the small roadmap contract s
 
 - `python-agent` and `agent-monorepo` tasks start with `python3 -m pytest tests -q` and require a
   local `tests/e2e` pytest journey check.
-- Browser-facing experience plans add a `python3 -m engineering_harness.browser_e2e ...` user
+- Browser-facing experience plans add a `python3 -m engineering_orchestrator.browser_e2e ...` user
   experience gate. It uses local Playwright specs when installed and falls back to a static HTML
   route/form/role smoke that writes DOM evidence under `artifacts/browser-e2e/`.
 - `node-frontend` tasks still use npm-oriented gates such as `npm test` and, when relevant,

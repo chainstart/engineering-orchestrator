@@ -20,7 +20,7 @@ While `drive` is running, the `drive_control` block records the owning process i
 last heartbeat, current activity, current task when known, and last progress message. Inspect it with:
 
 ```bash
-python3 -m engineering_harness.cli status --project-root /path/to/project --json
+python3 -m engineering_orchestrator.cli status --project-root /path/to/project --json
 ```
 
 The JSON includes `drive_control.watchdog`. A healthy active drive reports `status: running` and
@@ -40,7 +40,7 @@ The default stale-heartbeat threshold is one hour. Configure it locally in the r
 For one shell session, override it with:
 
 ```bash
-ENGINEERING_HARNESS_DRIVE_STALE_AFTER_SECONDS=7200 python3 -m engineering_harness.cli status --project-root /path/to/project --json
+ENGINEERING_HARNESS_DRIVE_STALE_AFTER_SECONDS=7200 python3 -m engineering_orchestrator.cli status --project-root /path/to/project --json
 ```
 
 The watchdog only probes the recorded pid with a non-destructive local liveness check. It never kills
@@ -254,7 +254,7 @@ The task block records:
 Inspect unresolved isolated failures with:
 
 ```bash
-python3 -m engineering_harness.cli status --project-root /path/to/project --json
+python3 -m engineering_orchestrator.cli status --project-root /path/to/project --json
 ```
 
 The JSON response includes `failure_isolation.unresolved_count` and
@@ -316,10 +316,10 @@ variables override roadmap defaults for local recovery runs:
 
 ```bash
 ENGINEERING_HARNESS_EXECUTOR_NO_PROGRESS_SECONDS=300 \
-  python3 -m engineering_harness.cli drive --project-root /path/to/project
+  python3 -m engineering_orchestrator.cli drive --project-root /path/to/project
 
 ENGINEERING_HARNESS_EXECUTOR_NO_PROGRESS_ACCEPTANCE_SECONDS=60 \
-  python3 -m engineering_harness.cli run --project-root /path/to/project
+  python3 -m engineering_orchestrator.cli run --project-root /path/to/project
 ```
 
 Use `ENGINEERING_HARNESS_EXECUTOR_WATCHDOG_ENABLED=0` to disable no-progress checks locally.
@@ -330,19 +330,19 @@ manifest, task report, and `failure_isolation.executor_watchdog` evidence.
 ## Pause A Long Drive
 
 ```bash
-python3 -m engineering_harness.cli pause --project-root /path/to/project --reason "operator review"
+python3 -m engineering_orchestrator.cli pause --project-root /path/to/project --reason "operator review"
 ```
 
 The next `drive` invocation exits with status `paused` and does not start a task:
 
 ```bash
-python3 -m engineering_harness.cli drive --project-root /path/to/project
+python3 -m engineering_orchestrator.cli drive --project-root /path/to/project
 ```
 
 Inspect the durable state:
 
 ```bash
-python3 -m engineering_harness.cli status --project-root /path/to/project --json
+python3 -m engineering_orchestrator.cli status --project-root /path/to/project --json
 ```
 
 The `drive_control` block shows `status: paused` and `pause_requested: true`.
@@ -350,8 +350,8 @@ The `drive_control` block shows `status: paused` and `pause_requested: true`.
 ## Resume A Drive
 
 ```bash
-python3 -m engineering_harness.cli resume --project-root /path/to/project --reason "review complete"
-python3 -m engineering_harness.cli drive --project-root /path/to/project
+python3 -m engineering_orchestrator.cli resume --project-root /path/to/project --reason "review complete"
+python3 -m engineering_orchestrator.cli drive --project-root /path/to/project
 ```
 
 `resume` clears pause, cancel, and reviewed stale watchdog state. It does not start work by itself;
@@ -363,7 +363,7 @@ run `drive` after resuming. If a drive is still actively running with a live pid
 If status shows `drive_control.status: stale`, inspect the last activity and task fields first:
 
 ```bash
-python3 -m engineering_harness.cli status --project-root /path/to/project --json
+python3 -m engineering_orchestrator.cli status --project-root /path/to/project --json
 ```
 
 For unattended local drives, the next `drive` invocation automatically recovers only the deterministic
@@ -375,15 +375,15 @@ The local regression that exercises the dead-owner recovery path through a full 
 is:
 
 ```bash
-python3 -m pytest tests/test_engineering_harness.py -q -k stale_running_dead_owner_recovery_e2e
+python3 -m pytest tests/test_engineering_orchestrator.py -q -k stale_running_dead_owner_recovery_e2e
 ```
 
 When a stale state was already marked and reviewed, or when an operator intentionally wants to clear a
 paused/cancelled control, clear it locally:
 
 ```bash
-python3 -m engineering_harness.cli resume --project-root /path/to/project --reason "recover stale drive"
-python3 -m engineering_harness.cli drive --project-root /path/to/project
+python3 -m engineering_orchestrator.cli resume --project-root /path/to/project --reason "recover stale drive"
+python3 -m engineering_orchestrator.cli drive --project-root /path/to/project
 ```
 
 The next drive selects work from durable task state and reports. It does not kill the old pid. If the
@@ -413,13 +413,13 @@ recorded in:
 ## Cancel A Drive
 
 ```bash
-python3 -m engineering_harness.cli cancel --project-root /path/to/project --reason "superseded plan"
+python3 -m engineering_orchestrator.cli cancel --project-root /path/to/project --reason "superseded plan"
 ```
 
 Future `drive` invocations stop with status `cancelled` until the control state is cleared:
 
 ```bash
-python3 -m engineering_harness.cli resume --project-root /path/to/project --reason "clear cancellation"
+python3 -m engineering_orchestrator.cli resume --project-root /path/to/project --reason "clear cancellation"
 ```
 
 Cancellation is a drive control, not a roadmap edit. It does not delete tasks or reports.
@@ -430,8 +430,8 @@ Manual, live, and agent gates create pending approval records when a task is blo
 Each record is a local approval lease request, not a permanent bypass.
 
 ```bash
-python3 -m engineering_harness.cli drive --project-root /path/to/project
-python3 -m engineering_harness.cli approvals --project-root /path/to/project
+python3 -m engineering_orchestrator.cli drive --project-root /path/to/project
+python3 -m engineering_orchestrator.cli approvals --project-root /path/to/project
 ```
 
 The queue records the approval id, task id, gate kind, phase or command, reason, deterministic
@@ -441,14 +441,14 @@ executor id and metadata, decision kind, approval kind, approval flag, file scop
 metadata. To approve one gate:
 
 ```bash
-python3 -m engineering_harness.cli approve --project-root /path/to/project APPROVAL_ID --reason "approved by operator"
-python3 -m engineering_harness.cli drive --project-root /path/to/project
+python3 -m engineering_orchestrator.cli approve --project-root /path/to/project APPROVAL_ID --reason "approved by operator"
+python3 -m engineering_orchestrator.cli drive --project-root /path/to/project
 ```
 
 For local test projects, all pending gates can be approved at once:
 
 ```bash
-python3 -m engineering_harness.cli approve --project-root /path/to/project --all --reason "local dry-run approval"
+python3 -m engineering_orchestrator.cli approve --project-root /path/to/project --all --reason "local dry-run approval"
 ```
 
 Approved gates unblock the affected task for a later drive run only while the current policy decision

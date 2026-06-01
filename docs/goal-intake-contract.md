@@ -6,8 +6,8 @@ require unsafe live services.
 
 ## Accepted Inputs
 
-Use `engineering_harness.goal_intake.normalize_goal_intake` or
-`engineering_harness.goal_intake.validate_goal_intake` with these fields:
+Use `engineering_orchestrator.goal_intake.normalize_goal_intake` or
+`engineering_orchestrator.goal_intake.validate_goal_intake` with these fields:
 
 - `project_name`: required display name for the new project. Whitespace is collapsed and a stable
   lowercase slug is derived.

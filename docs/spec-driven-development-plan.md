@@ -1,7 +1,7 @@
 # Spec-Driven Development Plan
 
 This plan turns the Engineering Orchestrator system specification into executable engineering stages.
-Each stage references requirement ids from [Engineering Orchestrator System Specification](engineering-harness-system-spec.md).
+Each stage references requirement ids from [Engineering Orchestrator System Specification](engineering-orchestrator-system-spec.md).
 
 ## Operating Model
 

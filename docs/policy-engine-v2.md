@@ -78,7 +78,7 @@ External OPA/Rego evaluation is advisory unless a future integration explicitly 
 semantics. Task execution does not call this hook unless a caller opts in outside the default run
 path.
 
-The compatibility hook lives in `engineering_harness.policy_compat`:
+The compatibility hook lives in `engineering_orchestrator.policy_compat`:
 
 - `export_policy_input_for_opa(policy_input)` returns an OPA-friendly JSON document.
 - `serialize_policy_input_for_opa(policy_input)` returns the same document as deterministic JSON.
@@ -93,14 +93,14 @@ contract under `policy_input`.
 Recommended Rego layout:
 
 ```rego
-package engineering_harness.policy.v1
+package engineering_orchestrator.policy.v1
 
 default decisions := []
 
 policy_input := input.policy_input
 ```
 
-The export advertises `data.engineering_harness.policy.v1.decisions` as the entrypoint and
+The export advertises `data.engineering_orchestrator.policy.v1.decisions` as the entrypoint and
 `input.policy_input` as the input path. Rego policies that emit decisions should use the same
 normalized decision vocabulary as the Python evaluator: `allowed`, `denied`, `warning`, and
 `requires_approval`; `allow`, `deny`, `warn`, and `requires_approval`; plus the existing severity

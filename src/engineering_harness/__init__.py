@@ -1,7 +1,8 @@
-"""Engineering Orchestrator compatibility package for multi-repository workspaces."""
+"""Legacy compatibility package for Engineering Orchestrator.
 
-from .goal_intake import GoalIntakeValidationError, normalize_goal_intake, validate_goal_intake
+New code should import :mod:`engineering_orchestrator`. This package remains as
+the staged migration bridge for existing users.
+"""
 
-__all__ = ["GoalIntakeValidationError", "__version__", "normalize_goal_intake", "validate_goal_intake"]
+from engineering_orchestrator import *  # noqa: F401,F403
 
-__version__ = "0.1.0"

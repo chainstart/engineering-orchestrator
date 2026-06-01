@@ -3,9 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from engineering_harness.cli import main as cli_main
-from engineering_harness.io import load_mapping
-from engineering_harness.spec_sync import audit_spec_system, record_spec_task_update
+from engineering_orchestrator.cli import main as cli_main
+from engineering_orchestrator.io import load_mapping
+from engineering_orchestrator.spec_sync import audit_spec_system, record_spec_task_update
 
 
 def seed_spec_project(tmp_path: Path) -> Path:

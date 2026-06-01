@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import importlib
 import os
 import subprocess
 import time
@@ -11,16 +12,16 @@ from pathlib import Path
 
 import pytest
 
-from engineering_harness.browser_e2e import browser_user_experience_command
-from engineering_harness.goal_intake import GoalIntakeValidationError, normalize_goal_intake, validate_goal_intake
-from engineering_harness.goal_planner import plan_goal_roadmap
-from engineering_harness.core import Harness, discover_projects, init_project, redact_evidence, utc_now
-from engineering_harness.domain_frontend import (
+from engineering_orchestrator.browser_e2e import browser_user_experience_command
+from engineering_orchestrator.goal_intake import GoalIntakeValidationError, normalize_goal_intake, validate_goal_intake
+from engineering_orchestrator.goal_planner import plan_goal_roadmap
+from engineering_orchestrator.core import Harness, discover_projects, init_project, redact_evidence, utc_now
+from engineering_orchestrator.domain_frontend import (
     DOMAIN_FRONTEND_DECISION_KIND,
     DOMAIN_FRONTEND_GENERATOR_ID,
     build_domain_frontend_plan,
 )
-from engineering_harness.executors import (
+from engineering_orchestrator.executors import (
     CodexExecutorAdapter,
     DAGGER_ENABLE_ENV,
     OPENHANDS_BINARY_ENV,
@@ -35,13 +36,13 @@ from engineering_harness.executors import (
     ShellExecutorAdapter,
     default_executor_registry,
 )
-from engineering_harness.cli import build_parser, main as cli_main
-from engineering_harness.policy_compat import (
+from engineering_orchestrator.cli import build_parser, main as cli_main
+from engineering_orchestrator.policy_compat import (
     evaluate_opa_policy_input,
     export_policy_input_for_opa,
     serialize_policy_input_for_opa,
 )
-from engineering_harness.profiles import list_profiles
+from engineering_orchestrator.profiles import list_profiles
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -469,11 +470,21 @@ def test_canonical_and_legacy_cli_entry_points_are_packaged():
     pyproject = tomllib.loads((PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     scripts = pyproject["project"]["scripts"]
 
-    assert scripts["engo"] == "engineering_harness.cli:main"
-    assert scripts["engh"] == "engineering_harness.cli:main"
+    assert scripts["engo"] == "engineering_orchestrator.cli:main"
+    assert scripts["engh"] == "engineering_orchestrator.cli:main"
     assert (PROJECT_ROOT / "bin/engo").read_text(encoding="utf-8") == (
         PROJECT_ROOT / "bin/engh"
     ).read_text(encoding="utf-8")
+
+
+def test_legacy_engineering_harness_imports_remain_compatible():
+    legacy_cli = importlib.import_module("engineering_harness.cli")
+    canonical_cli = importlib.import_module("engineering_orchestrator.cli")
+    legacy_core = importlib.import_module("engineering_harness.core")
+    canonical_core = importlib.import_module("engineering_orchestrator.core")
+
+    assert legacy_cli.main is canonical_cli.main
+    assert legacy_core.Harness is canonical_core.Harness
 
 
 def test_readme_declares_orchestrator_canonical_name_and_legacy_compatibility():
@@ -881,14 +892,14 @@ Acceptance:
                     "id": "already-covered-generated-gates",
                     "title": "Generate milestones, tasks, acceptance gates, E2E gates, and `spec_refs`",
                     "status": "pending",
-                    "file_scope": ["src/engineering_harness/**", "tests/**", "docs/**"],
+                    "file_scope": ["src/engineering_orchestrator/**", "tests/**", "docs/**"],
                     "acceptance": [{"name": "local smoke", "command": "python3 -c \"print('ok')\""}],
                 },
                 {
                     "id": "already-covered-plan-spec",
                     "title": "Extend `plan-goal` or add a dedicated planning command that reads a spec document",
                     "status": "pending",
-                    "file_scope": ["src/engineering_harness/**", "tests/**", "docs/**"],
+                    "file_scope": ["src/engineering_orchestrator/**", "tests/**", "docs/**"],
                     "acceptance": [{"name": "local smoke", "command": "python3 -c \"print('ok')\""}],
                 },
             ],
@@ -962,7 +973,7 @@ Acceptance:
                     "title": "Add duplicate-plan detection based on spec refs and task semantics.",
                     "status": "pending",
                     "spec_refs": refs,
-                    "file_scope": ["src/engineering_harness/**", "tests/**", "docs/**"],
+                    "file_scope": ["src/engineering_orchestrator/**", "tests/**", "docs/**"],
                     "acceptance": [{"name": "local smoke", "command": "python3 -c \"print('ok')\""}],
                 }
             ],
@@ -1040,10 +1051,10 @@ def test_goal_planner_generates_node_frontend_npm_gates(tmp_path):
 
     assert task["acceptance"][0]["name"] == "frontend unit and integration tests pass"
     assert task["acceptance"][0]["command"] == "npm test"
-    assert task["e2e"][0]["command"] == "python3 -m engineering_harness.browser_e2e --project-root . --journey-id operator-observes-run"
+    assert task["e2e"][0]["command"] == "python3 -m engineering_orchestrator.browser_e2e --project-root . --journey-id operator-observes-run"
     assert task["e2e"][0]["user_experience_gate"]["runner"]["fallback"]["kind"] == "static-html-smoke"
     assert any(item["command"] == "npm run e2e" for item in task["e2e"])
-    assert "engineering_harness.browser_e2e" in task["implementation"][0]["prompt"]
+    assert "engineering_orchestrator.browser_e2e" in task["implementation"][0]["prompt"]
     assert "roadmap task contract smoke" == task["acceptance"][-1]["name"]
     assert validate_roadmap_payload(tmp_path, proposal["roadmap"])["status"] == "passed"
 
@@ -1675,8 +1686,8 @@ def test_agent_context_pack_includes_agent_development_evidence_and_reference_no
     project.mkdir()
     init_project(project, "python-agent", name="agent-development-context-project")
     (project / "docs").mkdir(exist_ok=True)
-    (project / "src/engineering_harness").mkdir(parents=True, exist_ok=True)
-    (project / "src/engineering_harness/executors.py").write_text(
+    (project / "src/engineering_orchestrator").mkdir(parents=True, exist_ok=True)
+    (project / "src/engineering_orchestrator/executors.py").write_text(
         "# Executor registry catalog\n",
         encoding="utf-8",
     )
@@ -1831,7 +1842,7 @@ def test_agent_context_pack_includes_agent_development_evidence_and_reference_no
     assert "agent package" in json.dumps(context_pack["agent_artifacts"])
     assert context_pack["acceptance_failures"]["included_count"] == 1
     assert "missing context pack evidence" in context_pack["acceptance_failures"]["failures"][0]["report_excerpt"]["excerpt"]
-    assert any(item["path"] == "src/engineering_harness/executors.py" for item in context_pack["registry_catalog"]["files"])
+    assert any(item["path"] == "src/engineering_orchestrator/executors.py" for item in context_pack["registry_catalog"]["files"])
     assert context_pack["reference_repositories"]["repositories"][0]["notes"] == (
         "Use this reference repo note only as local design guidance."
     )
@@ -1864,8 +1875,8 @@ def test_opa_policy_input_export_shape(tmp_path):
         "runtime_dependency": None,
     }
     assert exported["rego"] == {
-        "package": "engineering_harness.policy.v1",
-        "entrypoint": "data.engineering_harness.policy.v1.decisions",
+        "package": "engineering_orchestrator.policy.v1",
+        "entrypoint": "data.engineering_orchestrator.policy.v1.decisions",
         "input_path": "input.policy_input",
     }
     assert exported["policy_input"] == manifest["policy_input"]
@@ -2668,7 +2679,7 @@ def test_openhands_jsonl_progress_is_persisted_to_drive_control(tmp_path, monkey
 
 
 def test_manifest_index_keeps_repeated_task_runs_with_same_slug(tmp_path, monkeypatch):
-    monkeypatch.setattr("engineering_harness.core.slug_now", lambda: "20240101T000000Z")
+    monkeypatch.setattr("engineering_orchestrator.core.slug_now", lambda: "20240101T000000Z")
     project = tmp_path / "agent-project"
     project.mkdir()
     init_project(project, "python-agent", name="agent-project")

@@ -14,8 +14,9 @@ single hard-coded project type.
 
 ## Compatibility Terminology
 
-Engineering Orchestrator is the canonical public product name. Engineering Harness is a legacy
-compatibility name retained for existing users and persisted artifacts. During the staged migration,
+Engineering Orchestrator is the canonical public product name. `engineering_orchestrator` is the
+canonical Python implementation package for new code. Engineering Harness is a legacy compatibility
+name retained for existing users and persisted artifacts. During the staged migration,
 `engineering_harness` imports, `engh`, `.engineering/state/harness-state.json`, `EH-SPEC-*`
 requirement ids, and `engineering-harness.*` schema kind strings remain valid compatibility
 contracts.
@@ -65,8 +66,9 @@ Acceptance evidence:
 
 - README, docs, CLI help, and tests use Engineering Orchestrator as the canonical product name.
 - Documentation states that Engineering Harness is a legacy compatibility name.
-- `engineering_harness` imports, `engh`, existing state paths, and `engineering-harness.*` schema
-  kind strings remain valid compatibility contracts.
+- New code can import `engineering_orchestrator`; `engineering_harness` imports, `engh`, existing
+  state paths, and `engineering-harness.*` schema kind strings remain valid compatibility
+  contracts.
 
 ## Functional Requirements
 
@@ -298,7 +300,7 @@ index:
 ```json
 {
   "spec": {
-    "path": "docs/engineering-harness-system-spec.md",
+    "path": "docs/engineering-orchestrator-system-spec.md",
     "kind": "markdown",
     "requirements_index": "docs/spec-index.json"
   }

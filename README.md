@@ -10,11 +10,11 @@ The target domain is intentionally open ended. Engineering Orchestrator should b
 
 Engineering Orchestrator is the canonical product name. The canonical slug for new public packaging and documentation is `engineering-orchestrator`, and the Chinese product name is `工程编排器`.
 
-Engineering Harness is a legacy compatibility name. Existing downstream users can keep using the Python import path `engineering_harness`, the legacy CLI entry point `engh`, the existing `.engineering/state/harness-state.json` state path, and historical `engineering-harness.*` report/schema kind strings during the migration window.
+Engineering Harness is a legacy compatibility name. New code should use the Python import path `engineering_orchestrator` and the CLI entry point `engo`. Existing downstream users can keep using the compatibility import path `engineering_harness`, the legacy CLI entry point `engh`, the existing `.engineering/state/harness-state.json` state path, and historical `engineering-harness.*` report/schema kind strings during the migration window.
 
 Use `engo` for new command examples. `engh` remains supported as a legacy compatibility command and should behave the same. Agent harness is reserved for an agent-internal LLM/tool/runtime loop component, not this external roadmap-driven engineering control plane.
 
-The staged migration path is: update public docs and help first, keep all compatibility contracts working, introduce forward aliases, then consider deeper package/source/repository renames only after downstream users have a migration window.
+The staged migration path is: public docs and help now use the canonical name; the implementation source package and packaged CLI entry points now target `engineering_orchestrator`; compatibility wrappers keep `engineering_harness` and `engh` working; deeper repository hosting and historical schema/state migrations remain separate compatibility-window work.
 
 ## Core Positioning
 
@@ -176,7 +176,7 @@ engo --help
 You can also run without installing:
 
 ```bash
-PYTHONPATH=src python3 -m engineering_harness.cli --help
+PYTHONPATH=src python3 -m engineering_orchestrator.cli --help
 ```
 
 ## Built-In Profiles
@@ -468,7 +468,7 @@ Roadmaps can also declare the canonical project specification:
 ```json
 {
   "spec": {
-    "path": "docs/engineering-harness-system-spec.md",
+    "path": "docs/engineering-orchestrator-system-spec.md",
     "kind": "markdown",
     "requirements_index": "docs/spec-index.json"
   }
@@ -494,7 +494,7 @@ Additional sources can be passed explicitly:
 engo plan-spec \
   --project-root /path/to/project \
   --spec docs/spec-driven-development-plan.md \
-  --spec docs/autonomous-engineering-harness-plan.md \
+  --spec docs/autonomous-engineering-orchestrator-plan.md \
   --materialize
 ```
 
@@ -567,8 +567,8 @@ Safety policy should not block production development. It should make risk expli
 
 More design documents:
 
-- [Autonomous Engineering Orchestrator Development Plan](docs/autonomous-engineering-harness-plan.md)
-- [Engineering Orchestrator System Specification](docs/engineering-harness-system-spec.md)
+- [Autonomous Engineering Orchestrator Development Plan](docs/autonomous-engineering-orchestrator-plan.md)
+- [Engineering Orchestrator System Specification](docs/engineering-orchestrator-system-spec.md)
 - [Spec-Driven Development Plan](docs/spec-driven-development-plan.md)
 - [Durable Drive Controls](docs/durable-drive-controls.md)
 - [Executor Contract](docs/executor-contract.md)

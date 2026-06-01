@@ -1,9 +1,9 @@
 {
   "kind": "engineering-harness.spec_tasks.v1",
-  "project": "engineering-harness",
+  "project": "engineering-orchestrator",
   "updated_at": "2026-05-19T00:00:00Z",
-  "source_spec": "docs/engineering-harness-system-spec.md",
-  "status_doc": "docs/engineering_harness_implementation_status.md",
+  "source_spec": "docs/engineering-orchestrator-system-spec.md",
+  "status_doc": "docs/engineering_orchestrator_implementation_status.md",
   "decision_log_dir": "docs/decisions",
   "requirements": [
     {"id": "EH-SPEC-001", "title": "Specification intake", "status": "completed"},
@@ -30,7 +30,7 @@
       "status": "completed",
       "requirement_ids": ["EH-SPEC-001", "EH-SPEC-002", "EH-SPEC-008", "EH-SPEC-015"],
       "evidence": [
-        {"kind": "code", "path": "src/engineering_harness/spec_sync.py"},
+        {"kind": "code", "path": "src/engineering_orchestrator/spec_sync.py"},
         {"kind": "test", "path": "tests/test_spec_sync.py"},
         {"kind": "doc", "path": "docs/decisions/2026-05-19-target-spec-sync.md"}
       ],
@@ -42,7 +42,7 @@
       "status": "planned",
       "requirement_ids": ["EH-SPEC-001", "EH-SPEC-002", "EH-SPEC-008", "EH-SPEC-015", "EH-SPEC-016"],
       "evidence": [
-        {"kind": "doc", "path": "docs/engineering-harness-system-spec.md"},
+        {"kind": "doc", "path": "docs/engineering-orchestrator-system-spec.md"},
         {"kind": "doc", "path": "docs/spec-driven-development-plan.md"},
         {"kind": "doc", "path": "docs/decisions/2026-06-01-target-documentation-sync.md"}
       ],

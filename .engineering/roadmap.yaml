@@ -1,16 +1,16 @@
 {
   "version": 1,
-  "project": "engineering-harness",
+  "project": "engineering-orchestrator",
   "profile": "python-agent",
   "default_timeout_seconds": 300,
   "state_path": ".engineering/state/harness-state.json",
   "decision_log_path": ".engineering/state/decision-log.jsonl",
   "report_dir": ".engineering/reports/tasks",
   "vision": "Build a local-first autonomous engineering control layer for roadmap-driven software work, safety policy, coding-agent execution, project-specific frontends, and realistic end-to-end user validation.",
-  "blueprint": "docs/engineering-harness-system-spec.md",
+  "blueprint": "docs/engineering-orchestrator-system-spec.md",
   "spec": {
     "schema_version": 1,
-    "path": "docs/engineering-harness-system-spec.md",
+    "path": "docs/engineering-orchestrator-system-spec.md",
     "development_plan": "docs/spec-driven-development-plan.md",
     "traceability_field": "spec_refs"
   },
@@ -69,7 +69,7 @@
           "file_scope": [
             "README.md",
             "docs/**",
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "bin/**",
             ".engineering/**",
@@ -105,7 +105,7 @@
             },
             {
               "name": "roadmap validates",
-              "command": "PYTHONPATH=src python3 -m engineering_harness.cli validate --project-root .",
+              "command": "PYTHONPATH=src python3 -m engineering_orchestrator.cli validate --project-root .",
               "required": true,
               "timeout_seconds": 120
             },
@@ -132,7 +132,7 @@
           "status": "pending",
           "max_attempts": 2,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**",
             ".engineering/**"
@@ -149,7 +149,7 @@
           "acceptance": [
             {
               "name": "executor tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 600
             },
@@ -167,7 +167,7 @@
           "status": "pending",
           "max_attempts": 2,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**",
             ".engineering/**"
@@ -185,7 +185,7 @@
           "acceptance": [
             {
               "name": "context pack tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 1800
 
@@ -205,7 +205,7 @@
           "status": "pending",
           "max_attempts": 2,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -222,7 +222,7 @@
           "acceptance": [
             {
               "name": "diagnostic tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 1800
 
@@ -242,7 +242,7 @@
           "status": "pending",
           "max_attempts": 2,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -259,7 +259,7 @@
           "acceptance": [
             {
               "name": "merge planner tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 1800
 
@@ -336,7 +336,7 @@
             "EH-SPEC-016"
           ],
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -378,7 +378,7 @@
             "EH-SPEC-016"
           ],
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -420,7 +420,7 @@
             "EH-SPEC-016"
           ],
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -462,7 +462,7 @@
             "EH-SPEC-016"
           ],
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -544,7 +544,7 @@
             ".engineering/**",
             "README.md",
             "docs/**",
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**"
           ],
           "acceptance": [
@@ -611,7 +611,7 @@
           "acceptance": [
             {
               "name": "schema fixture tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
             }
           ],
           "generated_by": "engineering-harness-continuation",
@@ -626,7 +626,7 @@
           "manual_approval_required": false,
           "agent_approval_required": false,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -649,7 +649,7 @@
           "acceptance": [
             {
               "name": "experience validation tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
             }
           ],
           "generated_by": "engineering-harness-continuation",
@@ -674,7 +674,7 @@
           "manual_approval_required": false,
           "agent_approval_required": false,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -683,7 +683,7 @@
               "name": "Codex implementation",
               "executor": "codex",
               "timeout_seconds": 1800,
-              "prompt": "Implement machine-readable JSON task run manifests beside Markdown task reports. Include project, task, milestone, status, message, started/finished timestamps, command run summaries, safety data, report path, and enough git context to audit the run. Add focused pytest coverage that runs a task and asserts a matching manifest exists and contains the expected fields. Keep changes scoped to src/engineering_harness, tests, and docs."
+              "prompt": "Implement machine-readable JSON task run manifests beside Markdown task reports. Include project, task, milestone, status, message, started/finished timestamps, command run summaries, safety data, report path, and enough git context to audit the run. Add focused pytest coverage that runs a task and asserts a matching manifest exists and contains the expected fields. Keep changes scoped to src/engineering_orchestrator, tests, and docs."
             }
           ],
           "repair": [
@@ -697,7 +697,7 @@
           "acceptance": [
             {
               "name": "manifest tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
             }
           ],
           "generated_by": "engineering-harness-continuation",
@@ -712,7 +712,7 @@
           "manual_approval_required": false,
           "agent_approval_required": false,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -721,7 +721,7 @@
               "name": "Codex implementation",
               "executor": "codex",
               "timeout_seconds": 1800,
-              "prompt": "Implement a manifest index that lists task run manifests for dashboard and CI summary use. Add a Harness API and CLI/status-facing behavior if appropriate, with tests that create multiple task runs and assert the index can be read deterministically. Keep changes scoped to src/engineering_harness, tests, and docs."
+              "prompt": "Implement a manifest index that lists task run manifests for dashboard and CI summary use. Add a Harness API and CLI/status-facing behavior if appropriate, with tests that create multiple task runs and assert the index can be read deterministically. Keep changes scoped to src/engineering_orchestrator, tests, and docs."
             }
           ],
           "repair": [
@@ -735,7 +735,7 @@
           "acceptance": [
             {
               "name": "manifest index tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
             }
           ],
           "generated_by": "engineering-harness-continuation",
@@ -760,7 +760,7 @@
           "manual_approval_required": false,
           "agent_approval_required": false,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -769,7 +769,7 @@
               "name": "Codex implementation",
               "executor": "codex",
               "timeout_seconds": 1800,
-              "prompt": "Define a small executor contract for the harness that can represent shell, codex, and future adapters without changing task semantics. Preserve current behavior, keep reports/manifests compatible, and add tests for normalized executor metadata and results. Keep changes scoped to src/engineering_harness, tests, and docs."
+              "prompt": "Define a small executor contract for the harness that can represent shell, codex, and future adapters without changing task semantics. Preserve current behavior, keep reports/manifests compatible, and add tests for normalized executor metadata and results. Keep changes scoped to src/engineering_orchestrator, tests, and docs."
             }
           ],
           "repair": [
@@ -783,7 +783,7 @@
           "acceptance": [
             {
               "name": "executor contract tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
             }
           ],
           "generated_by": "engineering-harness-continuation",
@@ -798,7 +798,7 @@
           "manual_approval_required": false,
           "agent_approval_required": false,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**"
           ],
           "implementation": [
@@ -820,7 +820,7 @@
           "acceptance": [
             {
               "name": "executor adapter tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
             }
           ],
           "generated_by": "engineering-harness-continuation",
@@ -835,7 +835,7 @@
           "manual_approval_required": false,
           "agent_approval_required": false,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -858,7 +858,7 @@
           "acceptance": [
             {
               "name": "dagger adapter smoke tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
             }
           ],
           "generated_by": "engineering-harness-continuation",
@@ -883,7 +883,7 @@
           "manual_approval_required": false,
           "agent_approval_required": false,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -906,7 +906,7 @@
           "acceptance": [
             {
               "name": "default frontend planner tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
             }
           ],
           "generated_by": "engineering-harness-continuation",
@@ -921,7 +921,7 @@
           "manual_approval_required": false,
           "agent_approval_required": false,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**",
             "templates/**",
@@ -946,7 +946,7 @@
           "acceptance": [
             {
               "name": "frontend task generator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
             }
           ],
           "generated_by": "engineering-harness-continuation",
@@ -971,7 +971,7 @@
           "manual_approval_required": false,
           "agent_approval_required": false,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -980,7 +980,7 @@
               "name": "Codex implementation",
               "executor": "codex",
               "timeout_seconds": 1800,
-              "prompt": "Define a structured policy input and policy decision schema for the harness. Capture task, command, executor, phase, git/worktree, file_scope, approval flags, live flags, and project context. Preserve current behavior, but route existing command/executor/manual/live/file-scope decisions through the schema where practical. Add tests for allow, deny, warning, and requires-approval style decisions. Keep changes scoped to src/engineering_harness, tests, and docs."
+              "prompt": "Define a structured policy input and policy decision schema for the harness. Capture task, command, executor, phase, git/worktree, file_scope, approval flags, live flags, and project context. Preserve current behavior, but route existing command/executor/manual/live/file-scope decisions through the schema where practical. Add tests for allow, deny, warning, and requires-approval style decisions. Keep changes scoped to src/engineering_orchestrator, tests, and docs."
             }
           ],
           "repair": [
@@ -994,7 +994,7 @@
           "acceptance": [
             {
               "name": "policy schema tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
             }
           ],
           "generated_by": "engineering-harness-continuation",
@@ -1009,7 +1009,7 @@
           "manual_approval_required": false,
           "agent_approval_required": false,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -1032,7 +1032,7 @@
           "acceptance": [
             {
               "name": "policy report tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
             }
           ],
           "generated_by": "engineering-harness-continuation",
@@ -1048,7 +1048,7 @@
           "agent_approval_required": false,
           "file_scope": [
             "docs/**",
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**"
           ],
           "implementation": [
@@ -1070,7 +1070,7 @@
           "acceptance": [
             {
               "name": "policy docs and tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
             }
           ],
           "generated_by": "engineering-harness-continuation",
@@ -1095,7 +1095,7 @@
           "manual_approval_required": false,
           "agent_approval_required": false,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -1118,7 +1118,7 @@
           "acceptance": [
             {
               "name": "phase state tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
             }
           ],
           "generated_by": "engineering-harness-continuation",
@@ -1133,7 +1133,7 @@
           "manual_approval_required": false,
           "agent_approval_required": false,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -1156,7 +1156,7 @@
           "acceptance": [
             {
               "name": "durable command tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
             }
           ],
           "generated_by": "engineering-harness-continuation",
@@ -1181,7 +1181,7 @@
           "manual_approval_required": false,
           "agent_approval_required": false,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -1190,7 +1190,7 @@
           "acceptance": [
             {
               "name": "profile experience tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
             }
           ],
           "generated_by": "engineering-harness-continuation",
@@ -1205,7 +1205,7 @@
           "manual_approval_required": false,
           "agent_approval_required": false,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**"
           ],
           "implementation": [],
@@ -1213,7 +1213,7 @@
           "acceptance": [
             {
               "name": "status experience tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
             }
           ],
           "generated_by": "engineering-harness-continuation",
@@ -1247,7 +1247,7 @@
           "acceptance": [
             {
               "name": "template tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
             }
           ],
           "generated_by": "engineering-harness-continuation",
@@ -1271,7 +1271,7 @@
           "acceptance": [
             {
               "name": "submission template tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
             }
           ],
           "generated_by": "engineering-harness-continuation",
@@ -1295,7 +1295,7 @@
           "acceptance": [
             {
               "name": "multi-role template tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
             }
           ],
           "generated_by": "engineering-harness-continuation",
@@ -1321,7 +1321,7 @@
           "agent_approval_required": false,
           "file_scope": [
             "docs/**",
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**"
           ],
           "implementation": [],
@@ -1329,7 +1329,7 @@
           "acceptance": [
             {
               "name": "e2e convention tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
             }
           ],
           "generated_by": "engineering-harness-continuation",
@@ -1344,7 +1344,7 @@
           "manual_approval_required": false,
           "agent_approval_required": false,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -1353,7 +1353,7 @@
           "acceptance": [
             {
               "name": "e2e artifact tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
             }
           ],
           "generated_by": "engineering-harness-continuation",
@@ -1378,7 +1378,7 @@
           "manual_approval_required": false,
           "agent_approval_required": false,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -1387,7 +1387,7 @@
           "acceptance": [
             {
               "name": "dashboard data tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
             }
           ],
           "generated_by": "engineering-harness-continuation",
@@ -1402,7 +1402,7 @@
           "manual_approval_required": false,
           "agent_approval_required": false,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "templates/**",
             "tests/**",
             "docs/**"
@@ -1412,7 +1412,7 @@
           "acceptance": [
             {
               "name": "dashboard tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
             }
           ],
           "generated_by": "engineering-harness-continuation",
@@ -1437,7 +1437,7 @@
           "manual_approval_required": false,
           "agent_approval_required": false,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**",
             ".github/**"
@@ -1447,7 +1447,7 @@
           "acceptance": [
             {
               "name": "ci generator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
             }
           ],
           "generated_by": "engineering-harness-continuation",
@@ -1462,7 +1462,7 @@
           "manual_approval_required": false,
           "agent_approval_required": false,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -1471,7 +1471,7 @@
           "acceptance": [
             {
               "name": "pr integration tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
             }
           ],
           "generated_by": "engineering-harness-continuation",
@@ -1496,7 +1496,7 @@
           "manual_approval_required": false,
           "agent_approval_required": false,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -1505,7 +1505,7 @@
           "acceptance": [
             {
               "name": "affected task tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
             }
           ],
           "generated_by": "engineering-harness-continuation",
@@ -1520,7 +1520,7 @@
           "manual_approval_required": false,
           "agent_approval_required": false,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -1529,7 +1529,7 @@
           "acceptance": [
             {
               "name": "cache tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
             }
           ],
           "generated_by": "engineering-harness-continuation",
@@ -1554,7 +1554,7 @@
           "manual_approval_required": false,
           "agent_approval_required": false,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -1563,7 +1563,7 @@
           "acceptance": [
             {
               "name": "migration tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
             }
           ],
           "generated_by": "engineering-harness-continuation",
@@ -1586,7 +1586,7 @@
           "acceptance": [
             {
               "name": "security docs smoke",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
             }
           ],
           "generated_by": "engineering-harness-continuation",
@@ -1611,7 +1611,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -1621,7 +1621,7 @@
               "executor": "codex",
               "timeout_seconds": 1800,
               "sandbox": "workspace-write",
-              "prompt": "Add a deterministic local goal intake contract for new autonomous projects. Define the accepted inputs (project name, profile, high-level goal text, optional blueprint path, constraints, and desired experience kind), the normalized output shape, and validation rules that reject empty goals and unsafe live-service requirements. Add focused tests and docs. Keep changes scoped to src/engineering_harness, tests, and docs; do not require external services or private credentials."
+              "prompt": "Add a deterministic local goal intake contract for new autonomous projects. Define the accepted inputs (project name, profile, high-level goal text, optional blueprint path, constraints, and desired experience kind), the normalized output shape, and validation rules that reject empty goals and unsafe live-service requirements. Add focused tests and docs. Keep changes scoped to src/engineering_orchestrator, tests, and docs; do not require external services or private credentials."
             }
           ],
           "repair": [
@@ -1636,7 +1636,7 @@
           "acceptance": [
             {
               "name": "goal intake tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 600
             }
@@ -1653,7 +1653,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**",
             "README.md"
@@ -1679,7 +1679,7 @@
           "acceptance": [
             {
               "name": "goal planner tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 600
             }
@@ -1706,7 +1706,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -1731,7 +1731,7 @@
           "acceptance": [
             {
               "name": "goal decomposition tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 600
             },
@@ -1764,7 +1764,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -1789,7 +1789,7 @@
           "acceptance": [
             {
               "name": "goal gate planner tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 600
             },
@@ -1842,7 +1842,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -1867,7 +1867,7 @@
           "acceptance": [
             {
               "name": "self-iteration guard tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 600
             },
@@ -1881,7 +1881,7 @@
           "e2e": [
             {
               "name": "self-iteration output guard smoke",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k self_iteration_output_guard",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k self_iteration_output_guard",
               "required": true,
               "timeout_seconds": 600
             },
@@ -1914,7 +1914,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -1939,13 +1939,13 @@
           "acceptance": [
             {
               "name": "self-iteration context pack tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k self_iteration_context_pack",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k self_iteration_context_pack",
               "required": true,
               "timeout_seconds": 600
             },
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 600
             },
@@ -1959,7 +1959,7 @@
           "e2e": [
             {
               "name": "planner receives context pack smoke",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k self_iteration_context_pack_smoke",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k self_iteration_context_pack_smoke",
               "required": true,
               "timeout_seconds": 600
             },
@@ -1992,7 +1992,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -2017,13 +2017,13 @@
           "acceptance": [
             {
               "name": "watchdog tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"drive_watchdog or heartbeat or stale\"",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"drive_watchdog or heartbeat or stale\"",
               "required": true,
               "timeout_seconds": 600
             },
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 600
             },
@@ -2054,7 +2054,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -2079,13 +2079,13 @@
           "acceptance": [
             {
               "name": "checkpoint boundary tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"checkpoint or rolling\"",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"checkpoint or rolling\"",
               "required": true,
               "timeout_seconds": 600
             },
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 600
             },
@@ -2116,7 +2116,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -2141,13 +2141,13 @@
           "acceptance": [
             {
               "name": "drive retrospective tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"retrospective or goal_gap or drive_report\"",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"retrospective or goal_gap or drive_report\"",
               "required": true,
               "timeout_seconds": 600
             },
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 600
             },
@@ -2188,7 +2188,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -2213,13 +2213,13 @@
           "acceptance": [
             {
               "name": "failure isolation tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"failure_isolation or isolated_failure or failed_task\"",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"failure_isolation or isolated_failure or failed_task\"",
               "required": true,
               "timeout_seconds": 600
             },
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 600
             },
@@ -2260,7 +2260,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -2285,13 +2285,13 @@
           "acceptance": [
             {
               "name": "duplicate plan guard tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"duplicate_plan or duplicate_stage or self_iteration_output_guard\"",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"duplicate_plan or duplicate_stage or self_iteration_output_guard\"",
               "required": true,
               "timeout_seconds": 600
             },
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 600
             },
@@ -2305,7 +2305,7 @@
           "e2e": [
             {
               "name": "duplicate plan rejection smoke",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k duplicate_plan_guard",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k duplicate_plan_guard",
               "required": true,
               "timeout_seconds": 600
             },
@@ -2338,7 +2338,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -2363,13 +2363,13 @@
           "acceptance": [
             {
               "name": "approval lease safety tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"approval and (lease or fingerprint or stale or expired)\"",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"approval and (lease or fingerprint or stale or expired)\"",
               "required": true,
               "timeout_seconds": 600
             },
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 600
             },
@@ -2383,7 +2383,7 @@
           "e2e": [
             {
               "name": "stale approval requeue smoke",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k approval_lease_requeues_changed_command",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k approval_lease_requeues_changed_command",
               "required": true,
               "timeout_seconds": 600
             },
@@ -2416,7 +2416,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -2441,13 +2441,13 @@
           "acceptance": [
             {
               "name": "workspace dispatch tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"workspace_dispatch or dispatch_queue or workspace_drive\"",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"workspace_dispatch or dispatch_queue or workspace_drive\"",
               "required": true,
               "timeout_seconds": 600
             },
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 600
             },
@@ -2467,7 +2467,7 @@
             },
             {
               "name": "workspace dispatcher smoke",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k workspace_dispatch_runs_one_project",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k workspace_dispatch_runs_one_project",
               "required": true,
               "timeout_seconds": 600
             }
@@ -2494,7 +2494,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -2519,13 +2519,13 @@
           "acceptance": [
             {
               "name": "workspace dispatch lease tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"workspace_dispatch and (lease or lock or heartbeat or stale)\"",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"workspace_dispatch and (lease or lock or heartbeat or stale)\"",
               "required": true,
               "timeout_seconds": 600
             },
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 600
             },
@@ -2539,7 +2539,7 @@
           "e2e": [
             {
               "name": "fresh workspace lease rejection smoke",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k workspace_dispatch_rejects_fresh_lease",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k workspace_dispatch_rejects_fresh_lease",
               "required": true,
               "timeout_seconds": 600
             },
@@ -2572,7 +2572,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -2597,13 +2597,13 @@
           "acceptance": [
             {
               "name": "executor watchdog tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"executor and (no_progress or timeout or watchdog or silent)\"",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"executor and (no_progress or timeout or watchdog or silent)\"",
               "required": true,
               "timeout_seconds": 900
             },
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 900
             },
@@ -2634,7 +2634,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -2659,13 +2659,13 @@
           "acceptance": [
             {
               "name": "workspace supervisor loop tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"workspace and (supervisor or multi_tick or dispatch_loop or e2e)\"",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"workspace and (supervisor or multi_tick or dispatch_loop or e2e)\"",
               "required": true,
               "timeout_seconds": 900
             },
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 900
             },
@@ -2696,7 +2696,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -2721,13 +2721,13 @@
           "acceptance": [
             {
               "name": "runtime dashboard tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"dashboard and (runtime or watchdog or dispatch or approval or failure)\"",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"dashboard and (runtime or watchdog or dispatch or approval or failure)\"",
               "required": true,
               "timeout_seconds": 900
             },
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 900
             },
@@ -2768,7 +2768,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -2793,13 +2793,13 @@
           "acceptance": [
             {
               "name": "executor capability policy tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"capability and (policy or executor or requested or unsafe)\"",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"capability and (policy or executor or requested or unsafe)\"",
               "required": true,
               "timeout_seconds": 900
             },
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 900
             },
@@ -2813,7 +2813,7 @@
           "e2e": [
             {
               "name": "capability policy manifest smoke",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"capability_policy_manifest\"",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"capability_policy_manifest\"",
               "required": true,
               "timeout_seconds": 900
             },
@@ -2846,7 +2846,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -2871,13 +2871,13 @@
           "acceptance": [
             {
               "name": "workspace fair scheduling tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"workspace and (fair or priority or score or starvation or cooldown)\"",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"workspace and (fair or priority or score or starvation or cooldown)\"",
               "required": true,
               "timeout_seconds": 900
             },
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 900
             },
@@ -2891,7 +2891,7 @@
           "e2e": [
             {
               "name": "fair scheduler starvation smoke",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k workspace_dispatch_fair_scheduler_prioritizes_starved_project",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k workspace_dispatch_fair_scheduler_prioritizes_starved_project",
               "required": true,
               "timeout_seconds": 900
             },
@@ -2924,7 +2924,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -2949,13 +2949,13 @@
           "acceptance": [
             {
               "name": "workspace dispatch backoff tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"workspace and (backoff or nonproductive or dispatch_history or planner_validation)\"",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"workspace and (backoff or nonproductive or dispatch_history or planner_validation)\"",
               "required": true,
               "timeout_seconds": 900
             },
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 900
             },
@@ -2969,7 +2969,7 @@
           "e2e": [
             {
               "name": "backoff selects alternate eligible project",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k workspace_dispatch_backoff_selects_alternate_project",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k workspace_dispatch_backoff_selects_alternate_project",
               "required": true,
               "timeout_seconds": 900
             },
@@ -3002,7 +3002,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -3027,13 +3027,13 @@
           "acceptance": [
             {
               "name": "checkpoint readiness tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"checkpoint_readiness or git_checkpoint or dirty_git\"",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"checkpoint_readiness or git_checkpoint or dirty_git\"",
               "required": true,
               "timeout_seconds": 900
             },
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 900
             },
@@ -3047,7 +3047,7 @@
           "e2e": [
             {
               "name": "user dirty worktree blocks checkpoint readiness",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k checkpoint_readiness_blocks_user_dirty_worktree",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k checkpoint_readiness_blocks_user_dirty_worktree",
               "required": true,
               "timeout_seconds": 900
             },
@@ -3080,7 +3080,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -3105,13 +3105,13 @@
           "acceptance": [
             {
               "name": "stale running recovery tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"stale and (recovery or recover or watchdog or interrupted_drive_cleanup)\"",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"stale and (recovery or recover or watchdog or interrupted_drive_cleanup)\"",
               "required": true,
               "timeout_seconds": 900
             },
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 900
             },
@@ -3125,13 +3125,13 @@
           "e2e": [
             {
               "name": "dead pid stale state recovers before drive",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k stale_running_recovery_allows_next_drive",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k stale_running_recovery_allows_next_drive",
               "required": true,
               "timeout_seconds": 900
             },
             {
               "name": "workspace dispatcher exposes recovery evidence",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k workspace_dispatch_stale_running_recovery_evidence",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k workspace_dispatch_stale_running_recovery_evidence",
               "required": true,
               "timeout_seconds": 900
             }
@@ -3158,7 +3158,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -3183,13 +3183,13 @@
           "acceptance": [
             {
               "name": "self-iteration checkpoint gate tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"self_iteration and (checkpoint or dirty_git or readiness)\"",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"self_iteration and (checkpoint or dirty_git or readiness)\"",
               "required": true,
               "timeout_seconds": 900
             },
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 900
             },
@@ -3203,7 +3203,7 @@
           "e2e": [
             {
               "name": "dirty git blocks self-iteration without roadmap mutation",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k self_iteration_checkpoint_gate_blocks_dirty_git_without_mutation",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k self_iteration_checkpoint_gate_blocks_dirty_git_without_mutation",
               "required": true,
               "timeout_seconds": 900
             },
@@ -3236,7 +3236,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -3261,13 +3261,13 @@
           "acceptance": [
             {
               "name": "goal-gap scorecard tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"goal_gap and (scorecard or context_pack or dashboard or status)\"",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"goal_gap and (scorecard or context_pack or dashboard or status)\"",
               "required": true,
               "timeout_seconds": 900
             },
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 900
             },
@@ -3281,7 +3281,7 @@
           "e2e": [
             {
               "name": "planner context exposes goal-gap scorecard",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k self_iteration_goal_gap_scorecard_in_context_pack",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k self_iteration_goal_gap_scorecard_in_context_pack",
               "required": true,
               "timeout_seconds": 900
             },
@@ -3314,7 +3314,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -3339,13 +3339,13 @@
           "acceptance": [
             {
               "name": "active-drive scorecard tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"goal_gap and (active_drive or checkpoint_pending or stale_running or scorecard)\"",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"goal_gap and (active_drive or checkpoint_pending or stale_running or scorecard)\"",
               "required": true,
               "timeout_seconds": 900
             },
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 900
             },
@@ -3359,7 +3359,7 @@
           "e2e": [
             {
               "name": "active drive false blockers are suppressed",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k goal_gap_scorecard_suppresses_active_drive_false_blockers",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k goal_gap_scorecard_suppresses_active_drive_false_blockers",
               "required": true,
               "timeout_seconds": 900
             },
@@ -3392,7 +3392,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -3417,13 +3417,13 @@
           "acceptance": [
             {
               "name": "full-lifecycle smoke tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"full_lifecycle and smoke\"",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"full_lifecycle and smoke\"",
               "required": true,
               "timeout_seconds": 1200
             },
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 1200
             },
@@ -3437,7 +3437,7 @@
           "e2e": [
             {
               "name": "local full lifecycle unattended smoke passes",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k local_full_lifecycle_unattended_smoke",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k local_full_lifecycle_unattended_smoke",
               "required": true,
               "timeout_seconds": 1200
             },
@@ -3470,7 +3470,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -3495,13 +3495,13 @@
           "acceptance": [
             {
               "name": "interrupted resume replay guard tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"interrupted and (resume or replay or phase)\"",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"interrupted and (resume or replay or phase)\"",
               "required": true,
               "timeout_seconds": 1200
             },
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 1200
             },
@@ -3515,7 +3515,7 @@
           "e2e": [
             {
               "name": "interrupted drive resumes without replay",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k interrupted_drive_resume_replay_guard",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k interrupted_drive_resume_replay_guard",
               "required": true,
               "timeout_seconds": 1200
             },
@@ -3548,7 +3548,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -3573,13 +3573,13 @@
           "acceptance": [
             {
               "name": "daemon supervisor tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"daemon or supervisor_runtime or run_window or restartable_loop\"",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"daemon or supervisor_runtime or run_window or restartable_loop\"",
               "required": true,
               "timeout_seconds": 1500
             },
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 1500
             },
@@ -3593,7 +3593,7 @@
           "e2e": [
             {
               "name": "daemon supervisor local smoke",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k daemon_supervisor_runtime_smoke",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k daemon_supervisor_runtime_smoke",
               "required": true,
               "timeout_seconds": 1500
             },
@@ -3626,7 +3626,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -3651,13 +3651,13 @@
           "acceptance": [
             {
               "name": "automatic checkpoint tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"checkpoint and (automatic or boundary or deferred or clean)\"",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"checkpoint and (automatic or boundary or deferred or clean)\"",
               "required": true,
               "timeout_seconds": 1500
             },
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 1500
             },
@@ -3671,7 +3671,7 @@
           "e2e": [
             {
               "name": "automatic checkpoint local e2e",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k automatic_checkpoint_boundary_e2e",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k automatic_checkpoint_boundary_e2e",
               "required": true,
               "timeout_seconds": 1500
             },
@@ -3704,7 +3704,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -3729,13 +3729,13 @@
           "acceptance": [
             {
               "name": "multi-project scheduler tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"workspace and (scheduler or lease or queue or backoff or priority)\"",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"workspace and (scheduler or lease or queue or backoff or priority)\"",
               "required": true,
               "timeout_seconds": 1500
             },
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 1500
             },
@@ -3749,7 +3749,7 @@
           "e2e": [
             {
               "name": "workspace scheduler e2e",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k multi_project_scheduler_e2e",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k multi_project_scheduler_e2e",
               "required": true,
               "timeout_seconds": 1500
             },
@@ -3782,7 +3782,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -3807,13 +3807,13 @@
           "acceptance": [
             {
               "name": "domain frontend generator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"frontend and (domain or role or dashboard or submission or account)\"",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"frontend and (domain or role or dashboard or submission or account)\"",
               "required": true,
               "timeout_seconds": 1500
             },
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 1500
             },
@@ -3827,7 +3827,7 @@
           "e2e": [
             {
               "name": "domain frontend planning e2e",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k domain_frontend_generator_e2e",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k domain_frontend_generator_e2e",
               "required": true,
               "timeout_seconds": 1500
             },
@@ -3860,7 +3860,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -3885,13 +3885,13 @@
           "acceptance": [
             {
               "name": "browser e2e tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"e2e and (browser or playwright or user_experience or journey)\"",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"e2e and (browser or playwright or user_experience or journey)\"",
               "required": true,
               "timeout_seconds": 1500
             },
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 1500
             },
@@ -3905,7 +3905,7 @@
           "e2e": [
             {
               "name": "browser user journey smoke",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k browser_user_experience_e2e",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k browser_user_experience_e2e",
               "required": true,
               "timeout_seconds": 1500
             },
@@ -3938,7 +3938,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -3963,13 +3963,13 @@
           "acceptance": [
             {
               "name": "safety sandbox tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"policy and (sandbox or secret or network or deploy or audit)\"",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"policy and (sandbox or secret or network or deploy or audit)\"",
               "required": true,
               "timeout_seconds": 1500
             },
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 1500
             },
@@ -3983,7 +3983,7 @@
           "e2e": [
             {
               "name": "unsafe capability blocked e2e",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k unsafe_capability_blocked_e2e",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k unsafe_capability_blocked_e2e",
               "required": true,
               "timeout_seconds": 1500
             },
@@ -4016,7 +4016,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -4041,13 +4041,13 @@
           "acceptance": [
             {
               "name": "operator console tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"observability and (console or timeline or history or operator)\"",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"observability and (console or timeline or history or operator)\"",
               "required": true,
               "timeout_seconds": 1500
             },
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 1500
             },
@@ -4061,7 +4061,7 @@
           "e2e": [
             {
               "name": "operator console generation e2e",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k operator_observability_console_e2e",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k operator_observability_console_e2e",
               "required": true,
               "timeout_seconds": 1500
             },
@@ -4094,7 +4094,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**"
           ],
@@ -4119,19 +4119,19 @@
           "acceptance": [
             {
               "name": "stale running recovery tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"stale and running and recovery\"",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"stale and running and recovery\"",
               "required": true,
               "timeout_seconds": 1500
             },
             {
               "name": "drive control regression tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"drive_control or watchdog or replay_guard\"",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"drive_control or watchdog or replay_guard\"",
               "required": true,
               "timeout_seconds": 1500
             },
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 1500
             },
@@ -4145,7 +4145,7 @@
           "e2e": [
             {
               "name": "stale dead-owner drive preflight e2e",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q -k stale_running_dead_owner_recovery_e2e",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k stale_running_dead_owner_recovery_e2e",
               "required": true,
               "timeout_seconds": 1500
             },
@@ -4178,7 +4178,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**",
             "README.md",
@@ -4206,7 +4206,7 @@
           "acceptance": [
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 1500,
               "spec_refs": [
@@ -4252,7 +4252,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**",
             "README.md",
@@ -4280,7 +4280,7 @@
           "acceptance": [
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 1500,
               "spec_refs": [
@@ -4326,7 +4326,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**",
             "README.md",
@@ -4354,7 +4354,7 @@
           "acceptance": [
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 1500,
               "spec_refs": [
@@ -4400,7 +4400,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**",
             "README.md",
@@ -4428,7 +4428,7 @@
           "acceptance": [
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 1500,
               "spec_refs": [
@@ -4484,7 +4484,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**",
             "README.md",
@@ -4512,7 +4512,7 @@
           "acceptance": [
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 1500,
               "spec_refs": [
@@ -4558,7 +4558,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**",
             "README.md",
@@ -4586,7 +4586,7 @@
           "acceptance": [
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 1500,
               "spec_refs": [
@@ -4632,7 +4632,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**",
             "README.md",
@@ -4660,7 +4660,7 @@
           "acceptance": [
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 1500,
               "spec_refs": [
@@ -4706,7 +4706,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**",
             "README.md",
@@ -4734,7 +4734,7 @@
           "acceptance": [
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 1500,
               "spec_refs": [
@@ -4790,7 +4790,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**",
             "README.md",
@@ -4818,7 +4818,7 @@
           "acceptance": [
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 1500,
               "spec_refs": [
@@ -4864,7 +4864,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**",
             "README.md",
@@ -4892,7 +4892,7 @@
           "acceptance": [
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 1500,
               "spec_refs": [
@@ -4938,7 +4938,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**",
             "README.md",
@@ -4966,7 +4966,7 @@
           "acceptance": [
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 1500,
               "spec_refs": [
@@ -5012,7 +5012,7 @@
           "manual_approval_required": false,
           "agent_approval_required": true,
           "file_scope": [
-            "src/engineering_harness/**",
+            "src/engineering_orchestrator/**",
             "tests/**",
             "docs/**",
             "README.md",
@@ -5040,7 +5040,7 @@
           "acceptance": [
             {
               "name": "full orchestrator tests",
-              "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+              "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
               "required": true,
               "timeout_seconds": 1500,
               "spec_refs": [
@@ -5083,7 +5083,7 @@
   "continuation": {
     "enabled": true,
     "goal": "Long-term unattended reliability target: harden engineering-harness into an autonomous development mothership that can run for long periods under a declared goal, time budget, and safety constraints. It must reliably plan its own work, materialize stages, invoke implementation agents, run acceptance and E2E checks, commit and push through controlled checkpoints, record evidence, detect stuck or stale running state, recover interrupted work safely, isolate failures, avoid duplicate or over-privileged plans, compare current engineering state against the long-term unattended target at the end of each loop, propose the next verifiable stage, and continue.",
-    "blueprint": "docs/autonomous-engineering-harness-plan.md",
+    "blueprint": "docs/autonomous-engineering-orchestrator-plan.md",
     "stages": [
       {
         "id": "schema-validation-foundation",
@@ -5117,7 +5117,7 @@
             "acceptance": [
               {
                 "name": "schema fixture tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
               }
             ]
           },
@@ -5125,7 +5125,7 @@
             "id": "experience-schema-validation",
             "title": "Validate project experience specs and E2E journeys",
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -5149,7 +5149,7 @@
             "acceptance": [
               {
                 "name": "experience validation tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
               }
             ],
             "e2e": [
@@ -5171,7 +5171,7 @@
             "title": "Write JSON run manifests beside Markdown reports",
             "max_task_iterations": 2,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -5180,7 +5180,7 @@
                 "name": "Codex implementation",
                 "executor": "codex",
                 "timeout_seconds": 1800,
-                "prompt": "Implement machine-readable JSON task run manifests beside Markdown task reports. Include project, task, milestone, status, message, started/finished timestamps, command run summaries, safety data, report path, and enough git context to audit the run. Add focused pytest coverage that runs a task and asserts a matching manifest exists and contains the expected fields. Keep changes scoped to src/engineering_harness, tests, and docs."
+                "prompt": "Implement machine-readable JSON task run manifests beside Markdown task reports. Include project, task, milestone, status, message, started/finished timestamps, command run summaries, safety data, report path, and enough git context to audit the run. Add focused pytest coverage that runs a task and asserts a matching manifest exists and contains the expected fields. Keep changes scoped to src/engineering_orchestrator, tests, and docs."
               }
             ],
             "repair": [
@@ -5194,7 +5194,7 @@
             "acceptance": [
               {
                 "name": "manifest tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
               }
             ],
             "e2e": [
@@ -5209,7 +5209,7 @@
             "title": "Index run manifests for dashboards and CI summaries",
             "max_task_iterations": 2,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -5218,7 +5218,7 @@
                 "name": "Codex implementation",
                 "executor": "codex",
                 "timeout_seconds": 1800,
-                "prompt": "Implement a manifest index that lists task run manifests for dashboard and CI summary use. Add a Harness API and CLI/status-facing behavior if appropriate, with tests that create multiple task runs and assert the index can be read deterministically. Keep changes scoped to src/engineering_harness, tests, and docs."
+                "prompt": "Implement a manifest index that lists task run manifests for dashboard and CI summary use. Add a Harness API and CLI/status-facing behavior if appropriate, with tests that create multiple task runs and assert the index can be read deterministically. Keep changes scoped to src/engineering_orchestrator, tests, and docs."
               }
             ],
             "repair": [
@@ -5232,7 +5232,7 @@
             "acceptance": [
               {
                 "name": "manifest index tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
               }
             ],
             "e2e": [
@@ -5254,7 +5254,7 @@
             "title": "Define executor interface and normalized result contract",
             "max_task_iterations": 2,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -5263,7 +5263,7 @@
                 "name": "Codex implementation",
                 "executor": "codex",
                 "timeout_seconds": 1800,
-                "prompt": "Define a small executor contract for the harness that can represent shell, codex, and future adapters without changing task semantics. Preserve current behavior, keep reports/manifests compatible, and add tests for normalized executor metadata and results. Keep changes scoped to src/engineering_harness, tests, and docs."
+                "prompt": "Define a small executor contract for the harness that can represent shell, codex, and future adapters without changing task semantics. Preserve current behavior, keep reports/manifests compatible, and add tests for normalized executor metadata and results. Keep changes scoped to src/engineering_orchestrator, tests, and docs."
               }
             ],
             "repair": [
@@ -5277,7 +5277,7 @@
             "acceptance": [
               {
                 "name": "executor contract tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
               }
             ],
             "e2e": [
@@ -5292,7 +5292,7 @@
             "title": "Refactor shell and codex into executor adapters",
             "max_task_iterations": 2,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**"
             ],
             "implementation": [
@@ -5314,7 +5314,7 @@
             "acceptance": [
               {
                 "name": "executor adapter tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
               }
             ]
           },
@@ -5323,7 +5323,7 @@
             "title": "Document and stub a Dagger executor adapter",
             "max_task_iterations": 2,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -5346,7 +5346,7 @@
             "acceptance": [
               {
                 "name": "dagger adapter smoke tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
               }
             ],
             "e2e": [
@@ -5368,7 +5368,7 @@
             "title": "Derive default frontend experience plans when roadmaps omit experience",
             "max_task_iterations": 2,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -5391,7 +5391,7 @@
             "acceptance": [
               {
                 "name": "default frontend planner tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
               }
             ],
             "e2e": [
@@ -5406,7 +5406,7 @@
             "title": "Generate frontend roadmap tasks from experience plans",
             "max_task_iterations": 2,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**",
               "templates/**",
@@ -5431,7 +5431,7 @@
             "acceptance": [
               {
                 "name": "frontend task generator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
               }
             ],
             "e2e": [
@@ -5453,7 +5453,7 @@
             "title": "Define structured policy input and decision schema",
             "max_task_iterations": 2,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -5462,7 +5462,7 @@
                 "name": "Codex implementation",
                 "executor": "codex",
                 "timeout_seconds": 1800,
-                "prompt": "Define a structured policy input and policy decision schema for the harness. Capture task, command, executor, phase, git/worktree, file_scope, approval flags, live flags, and project context. Preserve current behavior, but route existing command/executor/manual/live/file-scope decisions through the schema where practical. Add tests for allow, deny, warning, and requires-approval style decisions. Keep changes scoped to src/engineering_harness, tests, and docs."
+                "prompt": "Define a structured policy input and policy decision schema for the harness. Capture task, command, executor, phase, git/worktree, file_scope, approval flags, live flags, and project context. Preserve current behavior, but route existing command/executor/manual/live/file-scope decisions through the schema where practical. Add tests for allow, deny, warning, and requires-approval style decisions. Keep changes scoped to src/engineering_orchestrator, tests, and docs."
               }
             ],
             "repair": [
@@ -5476,7 +5476,7 @@
             "acceptance": [
               {
                 "name": "policy schema tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
               }
             ],
             "e2e": [
@@ -5491,7 +5491,7 @@
             "title": "Persist policy decisions in task reports and manifests",
             "max_task_iterations": 2,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -5514,7 +5514,7 @@
             "acceptance": [
               {
                 "name": "policy report tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
               }
             ],
             "e2e": [
@@ -5530,7 +5530,7 @@
             "max_task_iterations": 2,
             "file_scope": [
               "docs/**",
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**"
             ],
             "implementation": [
@@ -5552,7 +5552,7 @@
             "acceptance": [
               {
                 "name": "policy docs and tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
               }
             ],
             "e2e": [
@@ -5574,7 +5574,7 @@
             "title": "Persist phase-level state for implementation, acceptance, repair, and E2E",
             "max_task_iterations": 2,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -5597,7 +5597,7 @@
             "acceptance": [
               {
                 "name": "phase state tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
               }
             ],
             "e2e": [
@@ -5612,7 +5612,7 @@
             "title": "Add pause, resume, cancel, and approval queue commands",
             "max_task_iterations": 2,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -5635,7 +5635,7 @@
             "acceptance": [
               {
                 "name": "durable command tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
               }
             ],
             "e2e": [
@@ -5656,14 +5656,14 @@
             "id": "experience-profile-defaults",
             "title": "Add frontend experience archetypes to profiles",
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
             "acceptance": [
               {
                 "name": "profile experience tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
               }
             ]
           },
@@ -5671,13 +5671,13 @@
             "id": "experience-status-summary",
             "title": "Expose frontend readiness and E2E journeys in status output",
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**"
             ],
             "acceptance": [
               {
                 "name": "status experience tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
               }
             ],
             "e2e": [
@@ -5705,7 +5705,7 @@
             "acceptance": [
               {
                 "name": "template tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
               }
             ]
           },
@@ -5720,7 +5720,7 @@
             "acceptance": [
               {
                 "name": "submission template tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
               }
             ]
           },
@@ -5735,7 +5735,7 @@
             "acceptance": [
               {
                 "name": "multi-role template tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
               }
             ]
           }
@@ -5751,13 +5751,13 @@
             "title": "Define browser, API, CLI, and multi-role E2E conventions",
             "file_scope": [
               "docs/**",
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**"
             ],
             "acceptance": [
               {
                 "name": "e2e convention tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
               }
             ]
           },
@@ -5765,14 +5765,14 @@
             "id": "e2e-artifact-index",
             "title": "Capture screenshots, traces, logs, and accessibility reports as E2E artifacts",
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
             "acceptance": [
               {
                 "name": "e2e artifact tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
               }
             ]
           }
@@ -5787,14 +5787,14 @@
             "id": "dashboard-data-api",
             "title": "Expose dashboard-ready JSON data from manifests and state",
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
             "acceptance": [
               {
                 "name": "dashboard data tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
               }
             ]
           },
@@ -5802,7 +5802,7 @@
             "id": "static-dashboard-viewer",
             "title": "Add a local static dashboard viewer",
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "templates/**",
               "tests/**",
               "docs/**"
@@ -5810,13 +5810,13 @@
             "acceptance": [
               {
                 "name": "dashboard tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
               }
             ],
             "e2e": [
               {
                 "name": "dashboard user path",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
               }
             ]
           }
@@ -5831,7 +5831,7 @@
             "id": "github-actions-generator",
             "title": "Generate GitHub Actions workflows for validation, acceptance, and E2E",
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**",
               ".github/**"
@@ -5839,7 +5839,7 @@
             "acceptance": [
               {
                 "name": "ci generator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
               }
             ]
           },
@@ -5847,14 +5847,14 @@
             "id": "pr-report-integration",
             "title": "Design PR report publishing and CI failure mapping",
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
             "acceptance": [
               {
                 "name": "pr integration tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
               }
             ]
           }
@@ -5869,14 +5869,14 @@
             "id": "affected-task-selection",
             "title": "Select tasks from changed files and file scopes",
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
             "acceptance": [
               {
                 "name": "affected task tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
               }
             ]
           },
@@ -5884,14 +5884,14 @@
             "id": "safe-result-cache",
             "title": "Cache safe acceptance results by inputs and environment",
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
             "acceptance": [
               {
                 "name": "cache tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
               }
             ]
           }
@@ -5906,14 +5906,14 @@
             "id": "schema-migrations",
             "title": "Add schema migration and compatibility tests",
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
             "acceptance": [
               {
                 "name": "migration tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
               }
             ]
           },
@@ -5927,7 +5927,7 @@
             "acceptance": [
               {
                 "name": "security docs smoke",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q"
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q"
               }
             ]
           }
@@ -5946,7 +5946,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -5956,7 +5956,7 @@
                 "executor": "codex",
                 "timeout_seconds": 1800,
                 "sandbox": "workspace-write",
-                "prompt": "Add a deterministic local goal intake contract for new autonomous projects. Define the accepted inputs (project name, profile, high-level goal text, optional blueprint path, constraints, and desired experience kind), the normalized output shape, and validation rules that reject empty goals and unsafe live-service requirements. Add focused tests and docs. Keep changes scoped to src/engineering_harness, tests, and docs; do not require external services or private credentials."
+                "prompt": "Add a deterministic local goal intake contract for new autonomous projects. Define the accepted inputs (project name, profile, high-level goal text, optional blueprint path, constraints, and desired experience kind), the normalized output shape, and validation rules that reject empty goals and unsafe live-service requirements. Add focused tests and docs. Keep changes scoped to src/engineering_orchestrator, tests, and docs; do not require external services or private credentials."
               }
             ],
             "repair": [
@@ -5971,7 +5971,7 @@
             "acceptance": [
               {
                 "name": "goal intake tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 600
               }
@@ -5993,7 +5993,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**",
               "README.md"
@@ -6019,7 +6019,7 @@
             "acceptance": [
               {
                 "name": "goal planner tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 600
               }
@@ -6056,7 +6056,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -6081,7 +6081,7 @@
             "acceptance": [
               {
                 "name": "goal decomposition tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 600
               },
@@ -6130,7 +6130,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -6155,7 +6155,7 @@
             "acceptance": [
               {
                 "name": "goal gate planner tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 600
               },
@@ -6204,7 +6204,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -6229,7 +6229,7 @@
             "acceptance": [
               {
                 "name": "self-iteration guard tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 600
               },
@@ -6243,7 +6243,7 @@
             "e2e": [
               {
                 "name": "self-iteration output guard smoke",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k self_iteration_output_guard",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k self_iteration_output_guard",
                 "required": true,
                 "timeout_seconds": 600
               },
@@ -6272,7 +6272,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -6297,13 +6297,13 @@
             "acceptance": [
               {
                 "name": "self-iteration context pack tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k self_iteration_context_pack",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k self_iteration_context_pack",
                 "required": true,
                 "timeout_seconds": 600
               },
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 600
               },
@@ -6317,7 +6317,7 @@
             "e2e": [
               {
                 "name": "planner receives context pack smoke",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k self_iteration_context_pack_smoke",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k self_iteration_context_pack_smoke",
                 "required": true,
                 "timeout_seconds": 600
               },
@@ -6346,7 +6346,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -6371,13 +6371,13 @@
             "acceptance": [
               {
                 "name": "watchdog tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"drive_watchdog or heartbeat or stale\"",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"drive_watchdog or heartbeat or stale\"",
                 "required": true,
                 "timeout_seconds": 600
               },
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 600
               },
@@ -6405,7 +6405,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -6430,13 +6430,13 @@
             "acceptance": [
               {
                 "name": "checkpoint boundary tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"checkpoint or rolling\"",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"checkpoint or rolling\"",
                 "required": true,
                 "timeout_seconds": 600
               },
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 600
               },
@@ -6464,7 +6464,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -6489,13 +6489,13 @@
             "acceptance": [
               {
                 "name": "drive retrospective tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"retrospective or goal_gap or drive_report\"",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"retrospective or goal_gap or drive_report\"",
                 "required": true,
                 "timeout_seconds": 600
               },
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 600
               },
@@ -6534,7 +6534,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -6559,13 +6559,13 @@
             "acceptance": [
               {
                 "name": "failure isolation tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"failure_isolation or isolated_failure or failed_task\"",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"failure_isolation or isolated_failure or failed_task\"",
                 "required": true,
                 "timeout_seconds": 600
               },
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 600
               },
@@ -6604,7 +6604,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -6629,13 +6629,13 @@
             "acceptance": [
               {
                 "name": "duplicate plan guard tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"duplicate_plan or duplicate_stage or self_iteration_output_guard\"",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"duplicate_plan or duplicate_stage or self_iteration_output_guard\"",
                 "required": true,
                 "timeout_seconds": 600
               },
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 600
               },
@@ -6649,7 +6649,7 @@
             "e2e": [
               {
                 "name": "duplicate plan rejection smoke",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k duplicate_plan_guard",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k duplicate_plan_guard",
                 "required": true,
                 "timeout_seconds": 600
               },
@@ -6680,7 +6680,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -6705,13 +6705,13 @@
             "acceptance": [
               {
                 "name": "approval lease safety tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"approval and (lease or fingerprint or stale or expired)\"",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"approval and (lease or fingerprint or stale or expired)\"",
                 "required": true,
                 "timeout_seconds": 600
               },
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 600
               },
@@ -6725,7 +6725,7 @@
             "e2e": [
               {
                 "name": "stale approval requeue smoke",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k approval_lease_requeues_changed_command",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k approval_lease_requeues_changed_command",
                 "required": true,
                 "timeout_seconds": 600
               },
@@ -6756,7 +6756,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -6781,13 +6781,13 @@
             "acceptance": [
               {
                 "name": "workspace dispatch tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"workspace_dispatch or dispatch_queue or workspace_drive\"",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"workspace_dispatch or dispatch_queue or workspace_drive\"",
                 "required": true,
                 "timeout_seconds": 600
               },
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 600
               },
@@ -6807,7 +6807,7 @@
               },
               {
                 "name": "workspace dispatcher smoke",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k workspace_dispatch_runs_one_project",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k workspace_dispatch_runs_one_project",
                 "required": true,
                 "timeout_seconds": 600
               }
@@ -6832,7 +6832,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -6857,13 +6857,13 @@
             "acceptance": [
               {
                 "name": "workspace dispatch lease tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"workspace_dispatch and (lease or lock or heartbeat or stale)\"",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"workspace_dispatch and (lease or lock or heartbeat or stale)\"",
                 "required": true,
                 "timeout_seconds": 600
               },
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 600
               },
@@ -6877,7 +6877,7 @@
             "e2e": [
               {
                 "name": "fresh workspace lease rejection smoke",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k workspace_dispatch_rejects_fresh_lease",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k workspace_dispatch_rejects_fresh_lease",
                 "required": true,
                 "timeout_seconds": 600
               },
@@ -6908,7 +6908,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -6933,13 +6933,13 @@
             "acceptance": [
               {
                 "name": "executor watchdog tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"executor and (no_progress or timeout or watchdog or silent)\"",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"executor and (no_progress or timeout or watchdog or silent)\"",
                 "required": true,
                 "timeout_seconds": 900
               },
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 900
               },
@@ -6968,7 +6968,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -6993,13 +6993,13 @@
             "acceptance": [
               {
                 "name": "workspace supervisor loop tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"workspace and (supervisor or multi_tick or dispatch_loop or e2e)\"",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"workspace and (supervisor or multi_tick or dispatch_loop or e2e)\"",
                 "required": true,
                 "timeout_seconds": 900
               },
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 900
               },
@@ -7028,7 +7028,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -7053,13 +7053,13 @@
             "acceptance": [
               {
                 "name": "runtime dashboard tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"dashboard and (runtime or watchdog or dispatch or approval or failure)\"",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"dashboard and (runtime or watchdog or dispatch or approval or failure)\"",
                 "required": true,
                 "timeout_seconds": 900
               },
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 900
               },
@@ -7098,7 +7098,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -7123,13 +7123,13 @@
             "acceptance": [
               {
                 "name": "executor capability policy tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"capability and (policy or executor or requested or unsafe)\"",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"capability and (policy or executor or requested or unsafe)\"",
                 "required": true,
                 "timeout_seconds": 900
               },
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 900
               },
@@ -7143,7 +7143,7 @@
             "e2e": [
               {
                 "name": "capability policy manifest smoke",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"capability_policy_manifest\"",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"capability_policy_manifest\"",
                 "required": true,
                 "timeout_seconds": 900
               },
@@ -7174,7 +7174,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -7199,13 +7199,13 @@
             "acceptance": [
               {
                 "name": "workspace fair scheduling tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"workspace and (fair or priority or score or starvation or cooldown)\"",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"workspace and (fair or priority or score or starvation or cooldown)\"",
                 "required": true,
                 "timeout_seconds": 900
               },
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 900
               },
@@ -7219,7 +7219,7 @@
             "e2e": [
               {
                 "name": "fair scheduler starvation smoke",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k workspace_dispatch_fair_scheduler_prioritizes_starved_project",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k workspace_dispatch_fair_scheduler_prioritizes_starved_project",
                 "required": true,
                 "timeout_seconds": 900
               },
@@ -7250,7 +7250,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -7275,13 +7275,13 @@
             "acceptance": [
               {
                 "name": "workspace dispatch backoff tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"workspace and (backoff or nonproductive or dispatch_history or planner_validation)\"",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"workspace and (backoff or nonproductive or dispatch_history or planner_validation)\"",
                 "required": true,
                 "timeout_seconds": 900
               },
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 900
               },
@@ -7295,7 +7295,7 @@
             "e2e": [
               {
                 "name": "backoff selects alternate eligible project",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k workspace_dispatch_backoff_selects_alternate_project",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k workspace_dispatch_backoff_selects_alternate_project",
                 "required": true,
                 "timeout_seconds": 900
               },
@@ -7326,7 +7326,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -7351,13 +7351,13 @@
             "acceptance": [
               {
                 "name": "checkpoint readiness tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"checkpoint_readiness or git_checkpoint or dirty_git\"",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"checkpoint_readiness or git_checkpoint or dirty_git\"",
                 "required": true,
                 "timeout_seconds": 900
               },
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 900
               },
@@ -7371,7 +7371,7 @@
             "e2e": [
               {
                 "name": "user dirty worktree blocks checkpoint readiness",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k checkpoint_readiness_blocks_user_dirty_worktree",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k checkpoint_readiness_blocks_user_dirty_worktree",
                 "required": true,
                 "timeout_seconds": 900
               },
@@ -7402,7 +7402,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -7427,13 +7427,13 @@
             "acceptance": [
               {
                 "name": "stale running recovery tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"stale and (recovery or recover or watchdog or interrupted_drive_cleanup)\"",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"stale and (recovery or recover or watchdog or interrupted_drive_cleanup)\"",
                 "required": true,
                 "timeout_seconds": 900
               },
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 900
               },
@@ -7447,13 +7447,13 @@
             "e2e": [
               {
                 "name": "dead pid stale state recovers before drive",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k stale_running_recovery_allows_next_drive",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k stale_running_recovery_allows_next_drive",
                 "required": true,
                 "timeout_seconds": 900
               },
               {
                 "name": "workspace dispatcher exposes recovery evidence",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k workspace_dispatch_stale_running_recovery_evidence",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k workspace_dispatch_stale_running_recovery_evidence",
                 "required": true,
                 "timeout_seconds": 900
               }
@@ -7478,7 +7478,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -7503,13 +7503,13 @@
             "acceptance": [
               {
                 "name": "self-iteration checkpoint gate tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"self_iteration and (checkpoint or dirty_git or readiness)\"",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"self_iteration and (checkpoint or dirty_git or readiness)\"",
                 "required": true,
                 "timeout_seconds": 900
               },
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 900
               },
@@ -7523,7 +7523,7 @@
             "e2e": [
               {
                 "name": "dirty git blocks self-iteration without roadmap mutation",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k self_iteration_checkpoint_gate_blocks_dirty_git_without_mutation",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k self_iteration_checkpoint_gate_blocks_dirty_git_without_mutation",
                 "required": true,
                 "timeout_seconds": 900
               },
@@ -7554,7 +7554,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -7579,13 +7579,13 @@
             "acceptance": [
               {
                 "name": "goal-gap scorecard tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"goal_gap and (scorecard or context_pack or dashboard or status)\"",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"goal_gap and (scorecard or context_pack or dashboard or status)\"",
                 "required": true,
                 "timeout_seconds": 900
               },
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 900
               },
@@ -7599,7 +7599,7 @@
             "e2e": [
               {
                 "name": "planner context exposes goal-gap scorecard",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k self_iteration_goal_gap_scorecard_in_context_pack",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k self_iteration_goal_gap_scorecard_in_context_pack",
                 "required": true,
                 "timeout_seconds": 900
               },
@@ -7630,7 +7630,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -7655,13 +7655,13 @@
             "acceptance": [
               {
                 "name": "active-drive scorecard tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"goal_gap and (active_drive or checkpoint_pending or stale_running or scorecard)\"",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"goal_gap and (active_drive or checkpoint_pending or stale_running or scorecard)\"",
                 "required": true,
                 "timeout_seconds": 900
               },
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 900
               },
@@ -7675,7 +7675,7 @@
             "e2e": [
               {
                 "name": "active drive false blockers are suppressed",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k goal_gap_scorecard_suppresses_active_drive_false_blockers",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k goal_gap_scorecard_suppresses_active_drive_false_blockers",
                 "required": true,
                 "timeout_seconds": 900
               },
@@ -7706,7 +7706,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -7731,13 +7731,13 @@
             "acceptance": [
               {
                 "name": "full-lifecycle smoke tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"full_lifecycle and smoke\"",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"full_lifecycle and smoke\"",
                 "required": true,
                 "timeout_seconds": 1200
               },
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 1200
               },
@@ -7751,7 +7751,7 @@
             "e2e": [
               {
                 "name": "local full lifecycle unattended smoke passes",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k local_full_lifecycle_unattended_smoke",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k local_full_lifecycle_unattended_smoke",
                 "required": true,
                 "timeout_seconds": 1200
               },
@@ -7782,7 +7782,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -7807,13 +7807,13 @@
             "acceptance": [
               {
                 "name": "interrupted resume replay guard tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"interrupted and (resume or replay or phase)\"",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"interrupted and (resume or replay or phase)\"",
                 "required": true,
                 "timeout_seconds": 1200
               },
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 1200
               },
@@ -7827,7 +7827,7 @@
             "e2e": [
               {
                 "name": "interrupted drive resumes without replay",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k interrupted_drive_resume_replay_guard",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k interrupted_drive_resume_replay_guard",
                 "required": true,
                 "timeout_seconds": 1200
               },
@@ -7858,7 +7858,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -7883,13 +7883,13 @@
             "acceptance": [
               {
                 "name": "daemon supervisor tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"daemon or supervisor_runtime or run_window or restartable_loop\"",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"daemon or supervisor_runtime or run_window or restartable_loop\"",
                 "required": true,
                 "timeout_seconds": 1500
               },
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 1500
               },
@@ -7903,7 +7903,7 @@
             "e2e": [
               {
                 "name": "daemon supervisor local smoke",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k daemon_supervisor_runtime_smoke",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k daemon_supervisor_runtime_smoke",
                 "required": true,
                 "timeout_seconds": 1500
               },
@@ -7934,7 +7934,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -7959,13 +7959,13 @@
             "acceptance": [
               {
                 "name": "automatic checkpoint tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"checkpoint and (automatic or boundary or deferred or clean)\"",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"checkpoint and (automatic or boundary or deferred or clean)\"",
                 "required": true,
                 "timeout_seconds": 1500
               },
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 1500
               },
@@ -7979,7 +7979,7 @@
             "e2e": [
               {
                 "name": "automatic checkpoint local e2e",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k automatic_checkpoint_boundary_e2e",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k automatic_checkpoint_boundary_e2e",
                 "required": true,
                 "timeout_seconds": 1500
               },
@@ -8010,7 +8010,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -8035,13 +8035,13 @@
             "acceptance": [
               {
                 "name": "multi-project scheduler tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"workspace and (scheduler or lease or queue or backoff or priority)\"",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"workspace and (scheduler or lease or queue or backoff or priority)\"",
                 "required": true,
                 "timeout_seconds": 1500
               },
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 1500
               },
@@ -8055,7 +8055,7 @@
             "e2e": [
               {
                 "name": "workspace scheduler e2e",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k multi_project_scheduler_e2e",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k multi_project_scheduler_e2e",
                 "required": true,
                 "timeout_seconds": 1500
               },
@@ -8086,7 +8086,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -8111,13 +8111,13 @@
             "acceptance": [
               {
                 "name": "domain frontend generator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"frontend and (domain or role or dashboard or submission or account)\"",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"frontend and (domain or role or dashboard or submission or account)\"",
                 "required": true,
                 "timeout_seconds": 1500
               },
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 1500
               },
@@ -8131,7 +8131,7 @@
             "e2e": [
               {
                 "name": "domain frontend planning e2e",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k domain_frontend_generator_e2e",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k domain_frontend_generator_e2e",
                 "required": true,
                 "timeout_seconds": 1500
               },
@@ -8162,7 +8162,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -8187,13 +8187,13 @@
             "acceptance": [
               {
                 "name": "browser e2e tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"e2e and (browser or playwright or user_experience or journey)\"",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"e2e and (browser or playwright or user_experience or journey)\"",
                 "required": true,
                 "timeout_seconds": 1500
               },
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 1500
               },
@@ -8207,7 +8207,7 @@
             "e2e": [
               {
                 "name": "browser user journey smoke",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k browser_user_experience_e2e",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k browser_user_experience_e2e",
                 "required": true,
                 "timeout_seconds": 1500
               },
@@ -8238,7 +8238,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -8263,13 +8263,13 @@
             "acceptance": [
               {
                 "name": "safety sandbox tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"policy and (sandbox or secret or network or deploy or audit)\"",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"policy and (sandbox or secret or network or deploy or audit)\"",
                 "required": true,
                 "timeout_seconds": 1500
               },
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 1500
               },
@@ -8283,7 +8283,7 @@
             "e2e": [
               {
                 "name": "unsafe capability blocked e2e",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k unsafe_capability_blocked_e2e",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k unsafe_capability_blocked_e2e",
                 "required": true,
                 "timeout_seconds": 1500
               },
@@ -8314,7 +8314,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -8339,13 +8339,13 @@
             "acceptance": [
               {
                 "name": "operator console tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"observability and (console or timeline or history or operator)\"",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"observability and (console or timeline or history or operator)\"",
                 "required": true,
                 "timeout_seconds": 1500
               },
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 1500
               },
@@ -8359,7 +8359,7 @@
             "e2e": [
               {
                 "name": "operator console generation e2e",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k operator_observability_console_e2e",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k operator_observability_console_e2e",
                 "required": true,
                 "timeout_seconds": 1500
               },
@@ -8390,7 +8390,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**"
             ],
@@ -8415,19 +8415,19 @@
             "acceptance": [
               {
                 "name": "stale running recovery tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"stale and running and recovery\"",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"stale and running and recovery\"",
                 "required": true,
                 "timeout_seconds": 1500
               },
               {
                 "name": "drive control regression tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k \"drive_control or watchdog or replay_guard\"",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k \"drive_control or watchdog or replay_guard\"",
                 "required": true,
                 "timeout_seconds": 1500
               },
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 1500
               },
@@ -8441,7 +8441,7 @@
             "e2e": [
               {
                 "name": "stale dead-owner drive preflight e2e",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q -k stale_running_dead_owner_recovery_e2e",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q -k stale_running_dead_owner_recovery_e2e",
                 "required": true,
                 "timeout_seconds": 1500
               },
@@ -8482,7 +8482,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**",
               "README.md",
@@ -8510,7 +8510,7 @@
             "acceptance": [
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 1500,
                 "spec_refs": [
@@ -8566,7 +8566,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**",
               "README.md",
@@ -8594,7 +8594,7 @@
             "acceptance": [
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 1500,
                 "spec_refs": [
@@ -8650,7 +8650,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**",
               "README.md",
@@ -8678,7 +8678,7 @@
             "acceptance": [
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 1500,
                 "spec_refs": [
@@ -8734,7 +8734,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**",
               "README.md",
@@ -8762,7 +8762,7 @@
             "acceptance": [
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 1500,
                 "spec_refs": [
@@ -8838,7 +8838,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**",
               "README.md",
@@ -8866,7 +8866,7 @@
             "acceptance": [
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 1500,
                 "spec_refs": [
@@ -8922,7 +8922,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**",
               "README.md",
@@ -8950,7 +8950,7 @@
             "acceptance": [
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 1500,
                 "spec_refs": [
@@ -9006,7 +9006,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**",
               "README.md",
@@ -9034,7 +9034,7 @@
             "acceptance": [
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 1500,
                 "spec_refs": [
@@ -9090,7 +9090,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**",
               "README.md",
@@ -9118,7 +9118,7 @@
             "acceptance": [
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 1500,
                 "spec_refs": [
@@ -9194,7 +9194,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**",
               "README.md",
@@ -9222,7 +9222,7 @@
             "acceptance": [
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 1500,
                 "spec_refs": [
@@ -9278,7 +9278,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**",
               "README.md",
@@ -9306,7 +9306,7 @@
             "acceptance": [
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 1500,
                 "spec_refs": [
@@ -9362,7 +9362,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**",
               "README.md",
@@ -9390,7 +9390,7 @@
             "acceptance": [
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 1500,
                 "spec_refs": [
@@ -9446,7 +9446,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**",
               "README.md",
@@ -9474,7 +9474,7 @@
             "acceptance": [
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 1500,
                 "spec_refs": [
@@ -9549,7 +9549,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**",
               "README.md",
@@ -9577,7 +9577,7 @@
             "acceptance": [
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 1500,
                 "spec_refs": [
@@ -9629,7 +9629,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**",
               "README.md",
@@ -9657,7 +9657,7 @@
             "acceptance": [
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 1500,
                 "spec_refs": [
@@ -9709,7 +9709,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**",
               "README.md",
@@ -9737,7 +9737,7 @@
             "acceptance": [
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 1500,
                 "spec_refs": [
@@ -9789,7 +9789,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**",
               "README.md",
@@ -9817,7 +9817,7 @@
             "acceptance": [
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 1500,
                 "spec_refs": [
@@ -9889,7 +9889,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**",
               "README.md",
@@ -9917,7 +9917,7 @@
             "acceptance": [
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 1500,
                 "spec_refs": [
@@ -9973,7 +9973,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**",
               "README.md",
@@ -10001,7 +10001,7 @@
             "acceptance": [
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 1500,
                 "spec_refs": [
@@ -10057,7 +10057,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**",
               "README.md",
@@ -10085,7 +10085,7 @@
             "acceptance": [
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 1500,
                 "spec_refs": [
@@ -10141,7 +10141,7 @@
             "manual_approval_required": false,
             "agent_approval_required": true,
             "file_scope": [
-              "src/engineering_harness/**",
+              "src/engineering_orchestrator/**",
               "tests/**",
               "docs/**",
               "README.md",
@@ -10169,7 +10169,7 @@
             "acceptance": [
               {
                 "name": "full orchestrator tests",
-                "command": "python3 -m pytest tests/test_engineering_harness.py -q",
+                "command": "python3 -m pytest tests/test_engineering_orchestrator.py -q",
                 "required": true,
                 "timeout_seconds": 1500,
                 "spec_refs": [
@@ -10227,7 +10227,7 @@
     "file_scope": [
       ".engineering/roadmap.yaml",
       "docs/**",
-      "src/engineering_harness/**",
+      "src/engineering_orchestrator/**",
       "tests/**"
     ],
     "planner": {

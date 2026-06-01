@@ -2,7 +2,7 @@
 
 Date: 2026-06-01
 
-Status: implementation task package
+Status: stage 2 local migration implemented
 
 Requirement id: `EO-SPEC-001`
 
@@ -79,3 +79,19 @@ The self-hosted task is complete when:
 - The unit test suite passes.
 - Roadmap validation passes.
 - Search results show the new canonical name in README/docs/src/tests while allowing compatibility mentions.
+
+## 6. Stage 2 Local Migration
+
+Stage 2 moves the local implementation package and packaged CLI entry points to the canonical source name while preserving legacy compatibility:
+
+- `src/engineering_orchestrator/` is the canonical implementation package.
+- `src/engineering_harness/` remains as a thin compatibility wrapper package.
+- `engo` and `engh` both resolve to `engineering_orchestrator.cli:main`.
+- New documentation examples should use `engineering_orchestrator`.
+- Existing `engineering_harness` imports, `engh`, `.engineering/state/harness-state.json`, and historical `engineering-harness.*` kind strings remain valid during the compatibility window.
+
+Still out of scope:
+
+- Renaming the GitHub repository and remote URL.
+- Migrating old state paths or historical manifest kind strings.
+- Removing `engh` or compatibility import wrappers.
