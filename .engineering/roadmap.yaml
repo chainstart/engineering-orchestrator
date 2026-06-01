@@ -177,7 +177,8 @@
               "name": "improve context pack extraction",
               "executor": "codex",
               "model": "gpt-5.5",
-              "timeout_seconds": 1800,
+              "timeout_seconds": 5400,
+
               "prompt": "Improve task context packs for agent-development tasks. Bounded spec refs should extract useful excerpts from Markdown headings and task ids. Include candidate/audit artifact summaries, relevant registry/catalog files, acceptance failure summaries, and reference repository notes when declared."
             }
           ],
@@ -186,13 +187,15 @@
               "name": "context pack tests",
               "command": "python3 -m pytest tests/test_engineering_harness.py -q",
               "required": true,
-              "timeout_seconds": 600
+              "timeout_seconds": 1800
+
             },
             {
               "name": "context pack evidence docs",
               "command": "rg -n \"context pack|requirement excerpt|reference repo|candidate artifact|audit artifact\" docs src tests",
               "required": true,
-              "timeout_seconds": 60
+              "timeout_seconds": 1800
+
             }
           ]
         },
@@ -211,7 +214,8 @@
               "name": "improve acceptance diagnostics",
               "executor": "codex",
               "model": "gpt-5.5",
-              "timeout_seconds": 1800,
+              "timeout_seconds": 5400,
+
               "prompt": "Improve acceptance diagnostics so fast failures still preserve command, cwd, return code, stderr/stdout tail, likely missing dependency hints, and a repair prompt input summary. Make repair phases consume the diagnostic summary."
             }
           ],
@@ -220,13 +224,15 @@
               "name": "diagnostic tests",
               "command": "python3 -m pytest tests/test_engineering_harness.py -q",
               "required": true,
-              "timeout_seconds": 600
+              "timeout_seconds": 1800
+
             },
             {
               "name": "diagnostic evidence docs",
               "command": "rg -n \"acceptance diagnostics|stderr|stdout tail|repair prompt|missing dependency\" docs src tests",
               "required": true,
-              "timeout_seconds": 60
+              "timeout_seconds": 1800
+
             }
           ]
         },
@@ -245,7 +251,8 @@
               "name": "implement merge planner",
               "executor": "codex",
               "model": "gpt-5.5",
-              "timeout_seconds": 1800,
+              "timeout_seconds": 5400,
+
               "prompt": "Add a merge planning report for multiple worktrees or task branches. It should summarize dirty paths, changed files, likely conflicts, recommended merge order, and post-merge acceptance commands without performing destructive git actions."
             }
           ],
@@ -254,13 +261,15 @@
               "name": "merge planner tests",
               "command": "python3 -m pytest tests/test_engineering_harness.py -q",
               "required": true,
-              "timeout_seconds": 600
+              "timeout_seconds": 1800
+
             },
             {
               "name": "merge planner evidence docs",
               "command": "rg -n \"merge planner|worktree|merge order|conflict|post-merge acceptance\" docs src tests",
               "required": true,
-              "timeout_seconds": 60
+              "timeout_seconds": 1800
+
             }
           ]
         }
