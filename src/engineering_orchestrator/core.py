@@ -5280,6 +5280,18 @@ class Harness:
             return None
         return payload if isinstance(payload, dict) else None
 
+    def _runtime_parallel_drive_summary(self) -> dict[str, Any]:
+        try:
+            from .parallel_drive import parallel_drive_runtime_summary
+        except Exception:
+            return {
+                "schema_version": 1,
+                "kind": "engineering-harness.parallel-drive-runtime",
+                "status": "unavailable",
+                "active": False,
+            }
+        return parallel_drive_runtime_summary(self.project_root)
+
     def _runtime_daemon_supervisor_reports(self, workspace: Path) -> dict[str, Any]:
         report_dir = workspace / ".engineering" / "reports" / DAEMON_SUPERVISOR_RUNTIME_REPORT_DIRNAME
         paths = sorted(
@@ -6817,6 +6829,11 @@ continuation stage(s) were appended.
             if isinstance(summary.get("daemon_supervisor_runtime"), dict)
             else self._runtime_daemon_supervisor_summary()
         )
+        parallel_drive = (
+            summary.get("parallel_drive_runtime")
+            if isinstance(summary.get("parallel_drive_runtime"), dict)
+            else self._runtime_parallel_drive_summary()
+        )
         latest_reports["workspace_dispatch_reports"] = deepcopy(workspace_dispatch.get("latest_reports", {}))
         latest_reports["daemon_supervisor_reports"] = deepcopy(daemon_supervisor.get("latest_reports", {}))
         current_task = self._runtime_current_task(summary, drive_control)
@@ -6872,6 +6889,7 @@ continuation stage(s) were appended.
             "self_iteration": deepcopy(summary.get("self_iteration", {})),
             "workspace_dispatch": workspace_dispatch,
             "daemon_supervisor_runtime": daemon_supervisor,
+            "parallel_drive": parallel_drive,
             "latest_reports": latest_reports,
             "goal_gap_scorecard": goal_gap_scorecard,
             "goal_gap": self._runtime_goal_gap_payload(summary, latest_reports),
@@ -8678,6 +8696,7 @@ continuation stage(s) were appended.
         next_task = self.next_task()
         checkpoint_readiness = self.checkpoint_readiness(self._checkpoint_readiness_task(next_task, drive_control))
         daemon_supervisor_runtime = self._runtime_daemon_supervisor_summary()
+        parallel_drive_runtime = self._runtime_parallel_drive_summary()
         experience = self.frontend_experience_plan()
         browser_user_experience = self.browser_user_experience_summary()
         spec_coverage = self.spec_coverage_summary()
@@ -8706,6 +8725,7 @@ continuation stage(s) were appended.
             "failure_isolation": failure_isolation,
             "replay_guard": replay_guard,
             "daemon_supervisor_runtime": daemon_supervisor_runtime,
+            "parallel_drive_runtime": parallel_drive_runtime,
         }
         summary["goal_gap_scorecard"] = self.goal_gap_scorecard(status_summary=summary)
         summary["runtime_dashboard"] = self.runtime_dashboard_summary(summary)

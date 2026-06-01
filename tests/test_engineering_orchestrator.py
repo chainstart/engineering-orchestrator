@@ -16,6 +16,7 @@ from engineering_orchestrator.browser_e2e import browser_user_experience_command
 from engineering_orchestrator.goal_intake import GoalIntakeValidationError, normalize_goal_intake, validate_goal_intake
 from engineering_orchestrator.goal_planner import plan_goal_roadmap
 from engineering_orchestrator.core import Harness, discover_projects, init_project, redact_evidence, utc_now
+from engineering_orchestrator.parallel_drive import load_parallel_drive_state, plan_parallel_drive
 from engineering_orchestrator.domain_frontend import (
     DOMAIN_FRONTEND_DECISION_KIND,
     DOMAIN_FRONTEND_GENERATOR_ID,
@@ -364,6 +365,13 @@ def write_workspace_dispatch_lease(
 def run_workspace_drive_json(capsys, workspace: Path, *extra_args: str) -> tuple[int, dict]:
     capsys.readouterr()
     exit_code = cli_main(["workspace-drive", "--workspace", str(workspace), *extra_args, "--json"])
+    payload = json.loads(capsys.readouterr().out)
+    return exit_code, payload
+
+
+def run_parallel_drive_json(capsys, project: Path, *extra_args: str) -> tuple[int, dict]:
+    capsys.readouterr()
+    exit_code = cli_main(["parallel-drive", "--project-root", str(project), *extra_args, "--json"])
     payload = json.loads(capsys.readouterr().out)
     return exit_code, payload
 
@@ -4525,6 +4533,147 @@ def test_merge_plan_reports_dirty_worktree_paths_and_manual_acceptance(tmp_path,
             "command": "python3 -m pytest -q",
         }
     ]
+
+
+def test_parallel_drive_plans_safe_dispatch_waves_and_dependencies(tmp_path):
+    project = tmp_path / "parallel-plan-project"
+    project.mkdir()
+    init_project(project, "python-agent", name="parallel-plan-project")
+    roadmap_path = project / ".engineering/roadmap.yaml"
+    roadmap = json.loads(roadmap_path.read_text(encoding="utf-8"))
+    roadmap["milestones"][0]["tasks"] = [
+        {
+            "id": "task-a",
+            "title": "Task A",
+            "status": "pending",
+            "file_scope": ["src/shared.txt"],
+            "acceptance": [{"name": "a", "command": "python3 -c \"print('a')\""}],
+        },
+        {
+            "id": "task-b",
+            "title": "Task B",
+            "status": "pending",
+            "file_scope": ["src/shared.txt"],
+            "acceptance": [{"name": "b", "command": "python3 -c \"print('b')\""}],
+        },
+        {
+            "id": "task-c",
+            "title": "Task C",
+            "status": "pending",
+            "depends_on": ["task-a"],
+            "file_scope": ["src/c.txt"],
+            "acceptance": [{"name": "c", "command": "python3 -c \"print('c')\""}],
+        },
+    ]
+    roadmap_path.write_text(json.dumps(roadmap), encoding="utf-8")
+    init_git_repo(project)
+
+    plan = plan_parallel_drive(project, max_workers=2, max_tasks=3)
+
+    assert plan["status"] == "planned"
+    assert plan["selected_count"] == 2
+    assert [task["task_id"] for task in plan["selected_tasks"]] == ["task-a", "task-b"]
+    assert plan["dispatch_waves"][0]["tasks"] == ["task-a"]
+    assert plan["dispatch_waves"][1]["tasks"] == ["task-b"]
+    skipped = {task["task_id"]: task for task in plan["skipped_tasks"]}
+    assert skipped["task-c"]["skip_reasons"][0]["code"] == "dependency_not_satisfied"
+
+
+def test_parallel_drive_runs_workers_merges_and_cleans_worktrees(tmp_path, capsys):
+    project = tmp_path / "parallel-drive-project"
+    project.mkdir()
+    init_project(project, "python-agent", name="parallel-drive-project")
+    roadmap_path = project / ".engineering/roadmap.yaml"
+    roadmap = json.loads(roadmap_path.read_text(encoding="utf-8"))
+    roadmap["milestones"][0]["tasks"] = [
+        {
+            "id": "task-a",
+            "title": "Task A",
+            "status": "pending",
+            "file_scope": ["src/a.txt"],
+            "acceptance": [
+                {
+                    "name": "write a",
+                    "command": "python3 -c \"from pathlib import Path; Path('src').mkdir(exist_ok=True); Path('src/a.txt').write_text('a')\"",
+                }
+            ],
+        },
+        {
+            "id": "task-b",
+            "title": "Task B",
+            "status": "pending",
+            "file_scope": ["src/b.txt"],
+            "acceptance": [
+                {
+                    "name": "write b",
+                    "command": "python3 -c \"from pathlib import Path; Path('src').mkdir(exist_ok=True); Path('src/b.txt').write_text('b')\"",
+                }
+            ],
+        },
+    ]
+    roadmap_path.write_text(json.dumps(roadmap), encoding="utf-8")
+    init_git_repo(project)
+
+    exit_code, payload = run_parallel_drive_json(capsys, project, "--max-workers", "2", "--max-tasks", "2")
+
+    assert exit_code == 0
+    assert payload["kind"] == "engineering-harness.parallel-drive-run-manifest"
+    assert payload["status"] == "completed"
+    assert payload["summary"]["merged_count"] == 2
+    assert (project / "src/a.txt").read_text(encoding="utf-8") == "a"
+    assert (project / "src/b.txt").read_text(encoding="utf-8") == "b"
+    for worker in payload["workers"]:
+        assert worker["status"] == "merged"
+        assert worker["merge"]["status"] == "merged"
+        assert worker["cleanup"]["worktree_exists"] is False
+        assert worker["cleanup"]["branch_exists"] is False
+        assert not Path(worker["worktree_path"]).exists()
+        assert (project / worker["manifest"]).exists()
+        manifest = json.loads((project / worker["manifest"]).read_text(encoding="utf-8"))
+        assert manifest["parallel_drive"]["worker_status"] == "merged"
+        assert manifest["parallel_drive"]["merge"]["status"] == "merged"
+    state = harness_state(project)
+    assert state["tasks"]["task-a"]["status"] == "passed"
+    assert state["tasks"]["task-b"]["status"] == "passed"
+    assert load_parallel_drive_state(project)["status"] == "completed"
+    status_payload = Harness(project).status_summary()
+    assert status_payload["runtime_dashboard"]["parallel_drive"]["status"] == "completed"
+
+
+def test_parallel_drive_preserves_failed_worker_branch_and_worktree(tmp_path, capsys):
+    project = tmp_path / "parallel-drive-failure-project"
+    project.mkdir()
+    init_project(project, "python-agent", name="parallel-drive-failure-project")
+    roadmap_path = project / ".engineering/roadmap.yaml"
+    roadmap = json.loads(roadmap_path.read_text(encoding="utf-8"))
+    roadmap["milestones"][0]["tasks"] = [
+        {
+            "id": "task-fails",
+            "title": "Task Fails",
+            "status": "pending",
+            "file_scope": ["src/fail.txt"],
+            "acceptance": [{"name": "fail", "command": "python3 -c \"raise SystemExit(7)\""}],
+        }
+    ]
+    roadmap_path.write_text(json.dumps(roadmap), encoding="utf-8")
+    init_git_repo(project)
+
+    exit_code, payload = run_parallel_drive_json(capsys, project, "--max-workers", "1", "--max-tasks", "1")
+
+    assert exit_code == 1
+    assert payload["status"] == "failed"
+    worker = payload["workers"][0]
+    assert worker["status"] == "failed"
+    assert worker["preservation"]["preserved"] is True
+    assert Path(worker["worktree_path"]).exists()
+    assert (project / worker["manifest"]).exists()
+    branch = subprocess.run(
+        ["git", "rev-parse", "--verify", worker["branch"]],
+        cwd=project,
+        capture_output=True,
+        text=True,
+    )
+    assert branch.returncode == 0
 
 
 def test_policy_decision_schema_records_dirty_worktree_warning(tmp_path):

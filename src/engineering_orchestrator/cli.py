@@ -25,6 +25,7 @@ from .core import (
 from .goal_planner import DEFAULT_GOAL_STAGE_COUNT, materialize_goal_roadmap, plan_goal_roadmap
 from .io import write_json
 from .merge_planner import plan_parallel_merges, write_merge_plan_report
+from .parallel_drive import plan_parallel_drive, run_parallel_drive
 from .profiles import list_profiles
 from .spec_sync import SPEC_TASKS_RELATIVE_PATH, audit_spec_system, record_spec_task_update
 
@@ -335,6 +336,18 @@ def cmd_status(args: argparse.Namespace) -> int:
                     f"{daemon_supervisor.get('status', 'not_found')} "
                     f"stop={stop_reason.get('code', 'none')}"
                 )
+            parallel_drive = (
+                runtime_dashboard.get("parallel_drive")
+                if isinstance(runtime_dashboard.get("parallel_drive"), dict)
+                else {}
+            )
+            if parallel_drive and parallel_drive.get("status") != "not_found":
+                print(
+                    "Parallel drive: "
+                    f"{parallel_drive.get('status', 'unknown')} "
+                    f"merged={parallel_drive.get('tasks_merged', 0)} "
+                    f"preserved={parallel_drive.get('tasks_preserved', 0)}"
+                )
             goal_gap = runtime_dashboard.get("goal_gap") if isinstance(runtime_dashboard.get("goal_gap"), dict) else {}
             actions = goal_gap.get("next_actions") if isinstance(goal_gap.get("next_actions"), list) else []
             if actions and isinstance(actions[0], dict):
@@ -442,6 +455,48 @@ def cmd_merge_plan(args: argparse.Namespace) -> int:
         acceptance = payload.get("post_merge_acceptance", {})
         print(f"Post-merge acceptance commands: {acceptance.get('command_count', 0)}")
     return 1 if payload.get("status") == "failed" else 0
+
+
+def cmd_parallel_drive(args: argparse.Namespace) -> int:
+    root = resolve_project_root(args)
+    if args.plan_only:
+        payload = plan_parallel_drive(
+            root,
+            max_workers=args.max_workers,
+            max_tasks=args.max_tasks,
+            base_ref=args.base,
+            allow_dirty_worktree=args.allow_dirty_worktree,
+        )
+        if args.json:
+            print(json.dumps(payload, indent=2, sort_keys=True))
+        else:
+            print(f"Parallel drive plan: {payload['status']} - {payload['message']}")
+            print(f"Selected tasks: {payload.get('selected_count', 0)}")
+            for task in payload.get("selected_tasks", []):
+                print(f"- {task['task_id']}: {', '.join(task.get('file_scope', []))}")
+        return 0 if payload.get("status") in {"planned", "empty"} else 1
+
+    exit_code, payload = run_parallel_drive(
+        root,
+        max_workers=args.max_workers,
+        max_tasks=args.max_tasks,
+        time_budget_seconds=args.time_budget_seconds,
+        base_ref=args.base,
+        allow_dirty_worktree=args.allow_dirty_worktree,
+        allow_live=args.allow_live,
+        allow_manual=args.allow_manual,
+        allow_agent=args.allow_agent,
+        poll_interval_seconds=args.poll_interval_seconds,
+        resume=args.resume,
+    )
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print(f"Parallel drive: {payload['status']} - {payload['message']}")
+        print(f"Workers: {len(payload.get('workers', []))}")
+        print(f"Report: {payload.get('parallel_drive_report')}")
+        print(f"Report JSON: {payload.get('parallel_drive_report_json')}")
+    return exit_code
 
 
 def cmd_run(args: argparse.Namespace) -> int:
@@ -4370,6 +4425,28 @@ def build_parser() -> argparse.ArgumentParser:
     merge_plan.add_argument("--write", action="store_true", help="Write Markdown and JSON merge planner reports")
     merge_plan.add_argument("--json", action="store_true")
     merge_plan.set_defaults(func=cmd_merge_plan)
+
+    parallel_drive = subparsers.add_parser(
+        "parallel-drive",
+        help="Run a bounded native parallel development drive with isolated worktrees",
+    )
+    parallel_drive.add_argument("--project-root", type=Path, default=None)
+    parallel_drive.add_argument("--workspace", type=Path, default=Path.cwd())
+    parallel_drive.add_argument("--project", default=None)
+    parallel_drive.add_argument("--max-depth", type=int, default=3)
+    parallel_drive.add_argument("--base", default=None, help="Base branch or ref to merge successful task branches into")
+    parallel_drive.add_argument("--max-workers", type=int, default=2)
+    parallel_drive.add_argument("--max-tasks", type=int, default=1)
+    parallel_drive.add_argument("--time-budget-seconds", type=int, default=0)
+    parallel_drive.add_argument("--poll-interval-seconds", type=float, default=0.2)
+    parallel_drive.add_argument("--allow-dirty-worktree", action="store_true")
+    parallel_drive.add_argument("--allow-live", action="store_true")
+    parallel_drive.add_argument("--allow-manual", action="store_true")
+    parallel_drive.add_argument("--allow-agent", action="store_true")
+    parallel_drive.add_argument("--resume", action="store_true")
+    parallel_drive.add_argument("--plan-only", action="store_true")
+    parallel_drive.add_argument("--json", action="store_true")
+    parallel_drive.set_defaults(func=cmd_parallel_drive)
 
     for name, help_text, func in [
         ("status", "Show project or workspace status", cmd_status),
