@@ -178,7 +178,7 @@ budget for cross-cutting implementation work.
 
 Rules:
 
-- Do not rely on the default `900` second timeout for agent implementation commands unless the task is clearly small.
+- Do not rely on the default `1800` second timeout for agent implementation commands unless the task is clearly small.
 - Every `codex`, `openhands`, or other agent executor command should set an explicit `timeout_seconds`.
 - If the author cannot confidently estimate the task size, choose a larger budget instead of risking a premature timeout.
 - Large tasks should still be split when they have independent file scopes, but splitting is not a substitute for giving each slice enough runtime.

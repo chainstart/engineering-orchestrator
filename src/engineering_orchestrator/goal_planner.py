@@ -189,7 +189,7 @@ def _starter_roadmap(
         "version": 1,
         "project": project_name,
         "profile": profile,
-        "default_timeout_seconds": 300,
+        "default_timeout_seconds": 1800,
         "state_path": ".engineering/state/harness-state.json",
         "decision_log_path": ".engineering/state/decision-log.jsonl",
         "report_dir": ".engineering/reports/tasks",

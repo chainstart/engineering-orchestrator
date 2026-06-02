@@ -1210,7 +1210,7 @@ class Harness:
         if self.roadmap_path is None:
             raise FileNotFoundError(f"No engineering roadmap found in {self.project_root}")
         self.roadmap = load_mapping(self.roadmap_path)
-        self.default_timeout = int(self.roadmap.get("default_timeout_seconds", 300))
+        self.default_timeout = int(self.roadmap.get("default_timeout_seconds", 1800))
         self.state_path = self.project_root / str(self.roadmap.get("state_path", ".engineering/state/harness-state.json"))
         self.decision_log_path = self.project_root / str(
             self.roadmap.get("decision_log_path", ".engineering/state/decision-log.jsonl")
