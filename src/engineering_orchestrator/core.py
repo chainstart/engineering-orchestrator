@@ -435,6 +435,54 @@ AGENT_CONTEXT_PACK_SCHEMA_VERSION = 1
 AGENT_CONTEXT_PACK_DIRNAME = "agent-context-packs"
 SUPERVISOR_CONTEXT_PACK_SCHEMA_VERSION = 1
 SUPERVISOR_CONTEXT_PACK_DIRNAME = "supervisor-context-packs"
+SUPERVISOR_GATE_SCHEMA_VERSION = 1
+SUPERVISOR_GATE_KIND = "engineering-harness.supervisor-gate.v1"
+SUPERVISOR_GATE_TYPES = (
+    "failed_task",
+    "blocked_task",
+    "milestone_completion",
+    "deployment_sensitive_task",
+    "quality_gate_completion",
+    "budget_risk_threshold",
+    "operator_request",
+)
+SUPERVISOR_GATE_ALIASES = {
+    "failed": "failed_task",
+    "failure": "failed_task",
+    "task_failed": "failed_task",
+    "task-failed": "failed_task",
+    "failed-task": "failed_task",
+    "blocked": "blocked_task",
+    "task_blocked": "blocked_task",
+    "task-blocked": "blocked_task",
+    "blocked-task": "blocked_task",
+    "milestone": "milestone_completion",
+    "milestone-completion": "milestone_completion",
+    "milestone_complete": "milestone_completion",
+    "milestone-complete": "milestone_completion",
+    "deployment": "deployment_sensitive_task",
+    "deploy": "deployment_sensitive_task",
+    "deployment-sensitive": "deployment_sensitive_task",
+    "deployment-sensitive-task": "deployment_sensitive_task",
+    "deployment_sensitive": "deployment_sensitive_task",
+    "secret-sensitive": "deployment_sensitive_task",
+    "secret_sensitive": "deployment_sensitive_task",
+    "quality": "quality_gate_completion",
+    "quality-gate": "quality_gate_completion",
+    "quality_gate": "quality_gate_completion",
+    "quality-gate-completion": "quality_gate_completion",
+    "budget": "budget_risk_threshold",
+    "risk": "budget_risk_threshold",
+    "budget-risk": "budget_risk_threshold",
+    "budget-risk-threshold": "budget_risk_threshold",
+    "budget_risk": "budget_risk_threshold",
+    "explicit": "operator_request",
+    "operator": "operator_request",
+    "operator-request": "operator_request",
+    "operator_request": "operator_request",
+}
+SUPERVISOR_GATE_DEFAULT_RISK_THRESHOLD = 80
+SUPERVISOR_GATE_AUTO_APPLY_DECISIONS = {"continue", "pause", "retry"}
 ACCEPTANCE_DIAGNOSTICS_SCHEMA_VERSION = 1
 ACCEPTANCE_DIAGNOSTIC_TAIL_CHARS = 4000
 REPAIR_PROMPT_INPUT_SUMMARY_CHARS = 1600
@@ -842,6 +890,56 @@ def capability_core_classes(capabilities: tuple[str, ...] | list[str]) -> list[s
         for class_name in UNSAFE_CAPABILITY_CLASSES
         if isinstance(classes.get(class_name), list) and classes.get(class_name)
     )
+
+
+def normalize_supervisor_gate_type(value: Any) -> str | None:
+    normalized = str(value or "").strip().lower().replace("-", "_")
+    if not normalized:
+        return None
+    if normalized in {"all", "*"}:
+        return "all"
+    if normalized in {"none", "off", "false", "disabled"}:
+        return None
+    if normalized in SUPERVISOR_GATE_TYPES:
+        return normalized
+    return SUPERVISOR_GATE_ALIASES.get(normalized) or SUPERVISOR_GATE_ALIASES.get(normalized.replace("_", "-"))
+
+
+def normalize_supervisor_gate_values(values: Any) -> list[str]:
+    raw_values: list[Any] = []
+    if values is None:
+        return []
+    if isinstance(values, str):
+        raw_values = [values]
+    elif isinstance(values, (list, tuple, set)):
+        raw_values = list(values)
+    else:
+        raw_values = [values]
+    gates: list[str] = []
+    for raw in raw_values:
+        pieces = str(raw or "").replace(",", " ").split()
+        for piece in pieces:
+            gate = normalize_supervisor_gate_type(piece)
+            if gate == "all":
+                return list(SUPERVISOR_GATE_TYPES)
+            if gate and gate not in gates:
+                gates.append(gate)
+    return gates
+
+
+def supervisor_gate_stop_status(gate: dict[str, Any]) -> str | None:
+    if not isinstance(gate, dict):
+        return None
+    if gate.get("decision_status") == "rejected":
+        return "blocked"
+    decision = str(gate.get("decision") or "")
+    if bool(gate.get("requires_human")):
+        return "paused"
+    if gate.get("application_status") == "applied" and decision == "pause":
+        return "paused"
+    if gate.get("application_status") == "skipped" and gate.get("decision_status") == "accepted":
+        return "paused"
+    return None
 
 
 @dataclass(frozen=True)
@@ -4538,6 +4636,489 @@ class Harness:
             "validation": validation,
             "safety_classification": deepcopy(validation.get("safety_classification", {})),
             "context_pack": context_pack_summary,
+        }
+
+    def supervisor_gate_settings(
+        self,
+        *,
+        gate_values: Any = None,
+        decision_path: Path | str | None = None,
+        risk_threshold: int | None = None,
+    ) -> dict[str, Any]:
+        config = self.roadmap.get("supervisor_gates")
+        if config is None:
+            config = self.roadmap.get("supervisor_gate")
+        roadmap_gates = self._supervisor_gate_configured_gates(config)
+        cli_gates = normalize_supervisor_gate_values(gate_values) if gate_values is not None else []
+        gates = cli_gates if gate_values is not None else roadmap_gates
+        configured_decision_path = self._supervisor_gate_config_value(
+            config,
+            "decision_path",
+            "decision_file",
+            "decision",
+        )
+        threshold = risk_threshold
+        if threshold is None:
+            threshold = self._supervisor_gate_config_risk_threshold(config)
+        if threshold is None:
+            threshold = SUPERVISOR_GATE_DEFAULT_RISK_THRESHOLD
+        decision_path_value = str(decision_path or configured_decision_path or "").strip() or None
+        return {
+            "schema_version": SUPERVISOR_GATE_SCHEMA_VERSION,
+            "kind": "engineering-harness.supervisor-gate-settings.v1",
+            "enabled": bool(gates),
+            "gates": gates,
+            "decision_path": decision_path_value,
+            "budget_risk_threshold": max(0, min(100, int(threshold))),
+            "source": "cli" if gate_values is not None or decision_path is not None else "roadmap",
+        }
+
+    def supervisor_gate_enabled(self, settings: dict[str, Any], gate_type: str) -> bool:
+        gate = normalize_supervisor_gate_type(gate_type)
+        gates = settings.get("gates") if isinstance(settings.get("gates"), list) else []
+        return bool(settings.get("enabled")) and gate in gates
+
+    def invoke_supervisor_gate(
+        self,
+        *,
+        gate_type: str,
+        reason: str,
+        settings: dict[str, Any] | None = None,
+        task: HarnessTask | None = None,
+        result: dict[str, Any] | None = None,
+        source: str = "drive",
+        objective: str | None = None,
+        risk_metadata: dict[str, Any] | None = None,
+        apply_decision: bool = True,
+        apply_drive_control: bool = True,
+    ) -> dict[str, Any]:
+        gate = normalize_supervisor_gate_type(gate_type) or str(gate_type or "gate").strip() or "gate"
+        settings_payload = settings if isinstance(settings, dict) else self.supervisor_gate_settings()
+        created_at = utc_now()
+        gate_reason = f"supervisor gate `{gate}`: {reason}"
+        task_payload = self.task_payload(task) if task is not None else None
+        gate_risk_metadata = {
+            "gate_type": gate,
+            "source": source,
+            "reason": reason,
+            "task": task_payload,
+            "result": redact_evidence(result or {}),
+            **(risk_metadata or {}),
+        }
+        context = self.write_supervisor_context_pack(
+            gate_reason=gate_reason,
+            objective=objective,
+            risk_metadata=gate_risk_metadata,
+        )
+        context_path = str(context.get("path") or "")
+        decision_payload, decision_source = self._supervisor_gate_decision_payload(
+            gate_type=gate,
+            reason=reason,
+            context_path=context_path,
+            settings=settings_payload,
+            task=task,
+        )
+        decision_result = self.write_supervisor_decision_evidence(
+            decision_payload,
+            context_pack_path=context_path,
+            gate_reason=gate_reason,
+            source=f"supervisor-gate:{source}",
+        )
+        validation = decision_result.get("validation") if isinstance(decision_result.get("validation"), dict) else {}
+        normalized = (
+            validation.get("normalized_decision")
+            if isinstance(validation.get("normalized_decision"), dict)
+            else {}
+        )
+        safety = (
+            validation.get("safety_classification")
+            if isinstance(validation.get("safety_classification"), dict)
+            else {}
+        )
+        application = self._apply_supervisor_gate_decision(
+            gate_type=gate,
+            decision=normalized,
+            validation=validation,
+            task=task,
+            source=source,
+            apply_decision=apply_decision,
+            apply_drive_control=apply_drive_control,
+        )
+        payload = {
+            "schema_version": SUPERVISOR_GATE_SCHEMA_VERSION,
+            "kind": SUPERVISOR_GATE_KIND,
+            "gate_type": gate,
+            "source": source,
+            "created_at": created_at,
+            "reason": reason,
+            "gate_reason": gate_reason,
+            "status": application["status"],
+            "application_status": application["status"],
+            "applied": bool(application["applied"]),
+            "skipped": not bool(application["applied"]),
+            "application_reason": application["reason"],
+            "context_path": context_path,
+            "context_sha256": context.get("sha256"),
+            "decision_path": decision_result.get("manifest"),
+            "decision_report": decision_result.get("report"),
+            "decision_status": decision_result.get("status"),
+            "decision": decision_result.get("decision"),
+            "requires_human": bool(decision_result.get("requires_human", False)),
+            "safety_classification": deepcopy(safety),
+            "decision_source": decision_source,
+            "task": task_payload,
+            "result_status": result.get("status") if isinstance(result, dict) else None,
+            "action_result": application.get("action_result"),
+            "validation_error_count": int(validation.get("error_count", 0) or 0),
+            "validation_errors": deepcopy(validation.get("errors", [])) if isinstance(validation.get("errors"), list) else [],
+        }
+        append_jsonl(
+            self.decision_log_path,
+            {
+                "at": created_at,
+                "event": "supervisor_gate",
+                "gate_type": gate,
+                "source": source,
+                "status": payload["status"],
+                "applied": payload["applied"],
+                "reason": payload["application_reason"],
+                "context_path": payload["context_path"],
+                "decision_path": payload["decision_path"],
+                "decision": payload["decision"],
+            },
+        )
+        return redact_evidence(payload)
+
+    def _supervisor_gate_configured_gates(self, config: Any) -> list[str]:
+        if config is None:
+            return []
+        if isinstance(config, (str, list, tuple, set)):
+            return normalize_supervisor_gate_values(config)
+        if not isinstance(config, dict):
+            return []
+        enabled_value = config.get("enabled")
+        if enabled_value is False:
+            return []
+        raw_gates = config.get("gates", config.get("enabled_gates", config.get("gate_types")))
+        gates = normalize_supervisor_gate_values(raw_gates) if raw_gates is not None else []
+        for gate in SUPERVISOR_GATE_TYPES:
+            if config.get(gate) is True or config.get(gate.replace("_", "-")) is True:
+                if gate not in gates:
+                    gates.append(gate)
+        if not gates and enabled_value is True:
+            gates = list(SUPERVISOR_GATE_TYPES)
+        return gates
+
+    def _supervisor_gate_config_value(self, config: Any, *keys: str) -> Any:
+        if not isinstance(config, dict):
+            return None
+        for key in keys:
+            if config.get(key) not in (None, ""):
+                return config.get(key)
+        return None
+
+    def _supervisor_gate_config_risk_threshold(self, config: Any) -> int | None:
+        candidates: list[Any] = []
+        if isinstance(config, dict):
+            candidates.extend(
+                [
+                    config.get("budget_risk_threshold"),
+                    config.get("risk_threshold"),
+                    config.get("max_risk_score"),
+                ]
+            )
+            nested = config.get("budget_risk_threshold")
+            if isinstance(nested, dict):
+                candidates.extend([nested.get("risk_threshold"), nested.get("max_risk_score")])
+        for candidate in candidates:
+            try:
+                value = int(candidate)
+            except (TypeError, ValueError):
+                continue
+            return max(0, min(100, value))
+        return None
+
+    def _supervisor_gate_decision_payload(
+        self,
+        *,
+        gate_type: str,
+        reason: str,
+        context_path: str,
+        settings: dict[str, Any],
+        task: HarnessTask | None,
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        decision_path = str(settings.get("decision_path") or "").strip()
+        if decision_path:
+            path = Path(decision_path)
+            if not path.is_absolute():
+                path = self.project_root / path
+            payload = load_mapping(path)
+            if payload.get("kind") == SUPERVISOR_DECISION_VALIDATION_KIND:
+                decision = payload.get("supervisor_decision")
+                if not isinstance(decision, dict):
+                    decision = payload.get("normalized_decision")
+                if isinstance(decision, dict):
+                    payload = decision
+            return deepcopy(payload), {
+                "kind": "configured_decision_path",
+                "path": self._project_relative_path(path),
+            }
+        return self._default_supervisor_gate_decision(
+            gate_type=gate_type,
+            reason=reason,
+            context_path=context_path,
+            task=task,
+        ), {"kind": "orchestrator_default"}
+
+    def _default_supervisor_gate_decision(
+        self,
+        *,
+        gate_type: str,
+        reason: str,
+        context_path: str,
+        task: HarnessTask | None,
+    ) -> dict[str, Any]:
+        next_task = self.next_task()
+        pause_gates = {
+            "failed_task",
+            "blocked_task",
+            "deployment_sensitive_task",
+            "budget_risk_threshold",
+            "operator_request",
+        }
+        action = "pause" if gate_type in pause_gates or next_task is None else "continue"
+        approved_next_tasks = [next_task.id] if action == "continue" and next_task is not None else []
+        blocked_tasks = [task.id] if gate_type in {"failed_task", "blocked_task"} and task is not None else []
+        if action == "continue":
+            decision_reason = "Local supervisor gate evidence supports continuing to the next queued task."
+        else:
+            decision_reason = "Local supervisor gate policy requires pausing before more queue changes."
+        return {
+            "schema_version": SUPERVISOR_DECISION_SCHEMA_VERSION,
+            "kind": SUPERVISOR_DECISION_KIND,
+            "decision": action,
+            "approved_next_tasks": approved_next_tasks,
+            "blocked_tasks": blocked_tasks,
+            "tasks_to_rewrite": [],
+            "requires_human": False,
+            "reason": decision_reason,
+            "evidence": [context_path],
+            "metadata": {
+                "supervisor_gate": {
+                    "schema_version": SUPERVISOR_GATE_SCHEMA_VERSION,
+                    "gate_type": gate_type,
+                    "trigger_reason": reason,
+                    "source": "orchestrator_default",
+                }
+            },
+        }
+
+    def _apply_supervisor_gate_decision(
+        self,
+        *,
+        gate_type: str,
+        decision: dict[str, Any],
+        validation: dict[str, Any],
+        task: HarnessTask | None,
+        source: str,
+        apply_decision: bool,
+        apply_drive_control: bool,
+    ) -> dict[str, Any]:
+        if not validation.get("accepted"):
+            return {
+                "status": "skipped",
+                "applied": False,
+                "reason": "supervisor gate decision was rejected by schema validation",
+                "action_result": {"status": "rejected", "errors": validation.get("errors", [])},
+            }
+        action = str(decision.get("decision") or "")
+        safety = validation.get("safety_classification") if isinstance(validation.get("safety_classification"), dict) else {}
+        if bool(decision.get("requires_human")):
+            return {
+                "status": "skipped",
+                "applied": False,
+                "reason": "supervisor gate decision requires human review",
+                "action_result": {"status": "requires_human", "decision": action},
+            }
+        if not apply_decision:
+            return {
+                "status": "skipped",
+                "applied": False,
+                "reason": "supervisor gate application disabled for this runtime",
+                "action_result": {"status": "application_disabled", "decision": action},
+            }
+        if action not in SUPERVISOR_GATE_AUTO_APPLY_DECISIONS or not safety.get("auto_apply_allowed"):
+            return {
+                "status": "skipped",
+                "applied": False,
+                "reason": f"supervisor gate decision `{action}` is not auto-applicable",
+                "action_result": {"status": "not_auto_applicable", "decision": action, "safety": deepcopy(safety)},
+            }
+        if action == "continue":
+            return {
+                "status": "applied",
+                "applied": True,
+                "reason": "supervisor gate allowed the drive to continue",
+                "action_result": {"status": "continued", "approved_next_tasks": decision.get("approved_next_tasks", [])},
+            }
+        if action == "pause":
+            control = None
+            if apply_drive_control and source == "drive":
+                control = self.set_drive_control(
+                    "pause",
+                    reason=f"supervisor gate `{gate_type}` requested pause",
+                )
+            return {
+                "status": "applied",
+                "applied": True,
+                "reason": "supervisor gate paused further scheduling",
+                "action_result": {"status": "paused", "drive_control": control},
+            }
+        if action == "retry":
+            retry_result = self._apply_supervisor_gate_retry(decision=decision, fallback_task=task)
+            return {
+                "status": "applied",
+                "applied": True,
+                "reason": retry_result.get("message", "supervisor gate retry was applied"),
+                "action_result": retry_result,
+            }
+        return {
+            "status": "skipped",
+            "applied": False,
+            "reason": f"supervisor gate decision `{action}` has no application handler",
+            "action_result": {"status": "unsupported", "decision": action},
+        }
+
+    def _apply_supervisor_gate_retry(
+        self,
+        *,
+        decision: dict[str, Any],
+        fallback_task: HarnessTask | None,
+    ) -> dict[str, Any]:
+        targets = [
+            str(item)
+            for item in decision.get("blocked_tasks", [])
+            if str(item).strip()
+        ]
+        if not targets and fallback_task is not None:
+            targets = [fallback_task.id]
+        state = self.load_state()
+        tasks_state = state.setdefault("tasks", {})
+        updated: list[str] = []
+        now = utc_now()
+        for task_id in targets:
+            task_state = tasks_state.setdefault(task_id, {})
+            if not isinstance(task_state, dict):
+                task_state = {}
+                tasks_state[task_id] = task_state
+            previous_status = str(task_state.get("status", "pending"))
+            if previous_status in COMPLETED_STATUSES:
+                continue
+            task_state["status"] = "pending"
+            task_state["supervisor_retry_requested_at"] = now
+            task_state["supervisor_retry_previous_status"] = previous_status
+            updated.append(task_id)
+        self.save_state(state)
+        return {
+            "status": "retry_applied" if updated else "retry_noop",
+            "message": f"supervisor gate reset {len(updated)} task(s) for retry",
+            "tasks": updated,
+        }
+
+    def _raw_roadmap_task_payload(self, task_id: str) -> dict[str, Any]:
+        for milestone in self.roadmap.get("milestones", []):
+            if not isinstance(milestone, dict):
+                continue
+            for item in milestone.get("tasks", []):
+                if isinstance(item, dict) and str(item.get("id", "")).strip() == task_id:
+                    return item
+        return {}
+
+    def task_declares_deployment_sensitive(self, task: HarnessTask) -> bool:
+        raw = self._raw_roadmap_task_payload(task.id)
+        if not raw:
+            return False
+        truthy_keys = {
+            "deployment_sensitive",
+            "deploy_sensitive",
+            "secret_sensitive",
+            "requires_deployment_gate",
+            "deployment_gate",
+            "secret_gate",
+        }
+        if any(bool(raw.get(key)) for key in truthy_keys):
+            return True
+        gates = normalize_supervisor_gate_values(raw.get("supervisor_gates") or raw.get("supervisor_gate"))
+        if "deployment_sensitive_task" in gates:
+            return True
+        risk = raw.get("risk") if isinstance(raw.get("risk"), dict) else {}
+        risk_values = [
+            raw.get("risk_level"),
+            raw.get("risk_class"),
+            risk.get("level"),
+            risk.get("class"),
+            risk.get("category"),
+            *self._string_items(raw.get("risk_categories")),
+            *self._string_items(risk.get("categories")),
+        ]
+        if any(str(value).strip().lower() in {"deployment", "deploy", "secret", "live", "production"} for value in risk_values):
+            return True
+        for command in (*task.implementation, *task.repair, *task.acceptance, *task.e2e):
+            classes = capability_core_classes(list(command.requested_capabilities))
+            if any(item in {"deployment", "secret", "live_operations"} for item in classes):
+                return True
+        return False
+
+    def task_declares_quality_gate(self, task: HarnessTask) -> bool:
+        raw = self._raw_roadmap_task_payload(task.id)
+        if not raw:
+            return False
+        if any(bool(raw.get(key)) for key in ("quality_gate", "quality_gate_completion", "declared_quality_gate")):
+            return True
+        gates = normalize_supervisor_gate_values(raw.get("supervisor_gates") or raw.get("supervisor_gate"))
+        if "quality_gate_completion" in gates:
+            return True
+        if isinstance(raw.get("quality_gates"), list) and raw.get("quality_gates"):
+            return True
+        for group_name in ("implementation", "repair", "acceptance", "e2e"):
+            for command in raw.get(group_name, []) if isinstance(raw.get(group_name), list) else []:
+                if not isinstance(command, dict):
+                    continue
+                if bool(command.get("quality_gate")) or bool(command.get("quality_gate_completion")):
+                    return True
+                if str(command.get("name") or "").strip().lower().replace("_", "-") == "quality-gate":
+                    return True
+        return False
+
+    def milestone_completed(self, milestone_id: str) -> bool:
+        for milestone in self.status_summary(refresh_approvals=False).get("milestones", []):
+            if not isinstance(milestone, dict) or str(milestone.get("id")) != str(milestone_id):
+                continue
+            total = int(milestone.get("total", 0) or 0)
+            return total > 0 and int(milestone.get("done", 0) or 0) == total
+        return False
+
+    def budget_risk_gate_triggered(
+        self,
+        *,
+        status: str,
+        settings: dict[str, Any],
+        final_status: dict[str, Any] | None = None,
+    ) -> tuple[bool, dict[str, Any]]:
+        summary = final_status if isinstance(final_status, dict) else self.status_summary(refresh_approvals=False)
+        scorecard = summary.get("goal_gap_scorecard") if isinstance(summary.get("goal_gap_scorecard"), dict) else {}
+        score_summary = scorecard.get("summary") if isinstance(scorecard.get("summary"), dict) else {}
+        max_risk = int(score_summary.get("max_risk_score", 0) or 0)
+        threshold = int(settings.get("budget_risk_threshold", SUPERVISOR_GATE_DEFAULT_RISK_THRESHOLD) or 0)
+        budget_status = status in {"budget_exhausted", "timeout"}
+        risk_status = max_risk >= threshold
+        return budget_status or risk_status, {
+            "status": status,
+            "budget_status": budget_status,
+            "risk_status": risk_status,
+            "max_risk_score": max_risk,
+            "threshold": threshold,
+            "goal_gap_summary": deepcopy(score_summary),
         }
 
     def _load_supervisor_context_pack(self, context_pack_path: Path | str | None) -> dict[str, Any] | None:

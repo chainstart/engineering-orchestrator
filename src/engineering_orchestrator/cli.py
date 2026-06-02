@@ -20,6 +20,7 @@ from .core import (
     parse_utc_timestamp,
     project_from_root,
     slug_now,
+    supervisor_gate_stop_status,
     utc_now,
 )
 from .docs_sync import (
@@ -538,6 +539,9 @@ def cmd_parallel_drive(args: argparse.Namespace) -> int:
         allow_agent=args.allow_agent,
         poll_interval_seconds=args.poll_interval_seconds,
         resume=args.resume,
+        supervisor_gate=args.supervisor_gate,
+        supervisor_decision=args.supervisor_decision,
+        supervisor_gate_risk_threshold=args.supervisor_gate_risk_threshold,
     )
     if args.json:
         print(json.dumps(payload, indent=2, sort_keys=True))
@@ -796,6 +800,36 @@ def write_drive_report(harness: Harness, payload: dict) -> str:
             "",
             "```json",
             json.dumps(replay_guard, indent=2, sort_keys=True),
+            "```",
+            "",
+        ]
+    )
+    supervisor_gates = payload.get("supervisor_gates") if isinstance(payload.get("supervisor_gates"), list) else []
+    lines.extend(["## Supervisor Gates", ""])
+    if not supervisor_gates:
+        lines.append("No supervisor gate was invoked for this drive report.")
+    for gate in supervisor_gates:
+        if not isinstance(gate, dict):
+            continue
+        lines.extend(
+            [
+                (
+                    f"- Supervisor gate `{gate.get('gate_type')}`: "
+                    f"`{gate.get('application_status')}` - {gate.get('application_reason')}"
+                ),
+                f"  - Context: `{gate.get('context_path')}`",
+                f"  - Decision: `{gate.get('decision_path')}`",
+                f"  - Decision status: `{gate.get('decision_status')}` action=`{gate.get('decision')}`",
+                f"  - Applied: `{str(bool(gate.get('applied'))).lower()}`",
+            ]
+        )
+    lines.extend(
+        [
+            "",
+            "Machine-readable supervisor gate records:",
+            "",
+            "```json",
+            json.dumps(supervisor_gates, indent=2, sort_keys=True),
             "```",
             "",
         ]
@@ -1440,6 +1474,11 @@ def cmd_approve(args: argparse.Namespace) -> int:
 def run_project_drive(root: Path, args: argparse.Namespace) -> tuple[int, dict]:
     root = root.resolve()
     harness = Harness(root)
+    supervisor_gate_settings = harness.supervisor_gate_settings(
+        gate_values=getattr(args, "supervisor_gate", None),
+        decision_path=getattr(args, "supervisor_decision", None),
+        risk_threshold=getattr(args, "supervisor_gate_risk_threshold", None),
+    )
     started_at = utc_now()
     drive_start_checkpoint_readiness = harness.checkpoint_readiness()
     start = harness.start_drive()
@@ -1455,6 +1494,7 @@ def run_project_drive(root: Path, args: argparse.Namespace) -> tuple[int, dict]:
             "results": [],
             "continuations": [],
             "self_iterations": [],
+            "supervisor_gates": [],
             "checkpoint_readiness": final_status.get("checkpoint_readiness", {}),
             "drive_control": start.get("drive_control"),
             "stale_running_preflight": start.get("stale_running_preflight"),
@@ -1470,9 +1510,12 @@ def run_project_drive(root: Path, args: argparse.Namespace) -> tuple[int, dict]:
     results = []
     continuations = []
     self_iterations = []
+    supervisor_gates = []
+    milestone_gates_recorded: set[str] = set()
     continuation_count = 0
     self_iteration_count = 0
     no_progress_count = 0
+    operator_gate_ran = False
     task_checkpoint_defer: dict | None = None
     status = "completed"
     message = "No pending task."
@@ -1488,6 +1531,24 @@ def run_project_drive(root: Path, args: argparse.Namespace) -> tuple[int, dict]:
             status = "paused"
             message = "Drive paused by control state."
             break
+        if (
+            not operator_gate_ran
+            and harness.supervisor_gate_enabled(supervisor_gate_settings, "operator_request")
+        ):
+            gate = harness.invoke_supervisor_gate(
+                gate_type="operator_request",
+                reason="explicit operator request before drive scheduling",
+                settings=supervisor_gate_settings,
+                source="drive",
+                risk_metadata={"drive_status": status, "result_count": len(results)},
+            )
+            supervisor_gates.append(gate)
+            operator_gate_ran = True
+            stop_status = supervisor_gate_stop_status(gate)
+            if stop_status:
+                status = stop_status
+                message = _supervisor_gate_stop_message(gate)
+                break
         if deadline is not None and time.monotonic() >= deadline:
             status = "timeout"
             message = "Time budget expired."
@@ -1633,6 +1694,23 @@ def run_project_drive(root: Path, args: argparse.Namespace) -> tuple[int, dict]:
             message=f"running task {task.id}",
             task=task,
         )
+        if (
+            harness.supervisor_gate_enabled(supervisor_gate_settings, "deployment_sensitive_task")
+            and harness.task_declares_deployment_sensitive(task)
+        ):
+            gate = harness.invoke_supervisor_gate(
+                gate_type="deployment_sensitive_task",
+                reason=f"task `{task.id}` declares a sensitive deployment or secret gate",
+                settings=supervisor_gate_settings,
+                task=task,
+                source="drive",
+            )
+            supervisor_gates.append(gate)
+            stop_status = supervisor_gate_stop_status(gate)
+            if stop_status:
+                status = stop_status
+                message = _supervisor_gate_stop_message(gate)
+                break
         result = harness.run_task(
             task,
             allow_live=args.allow_live,
@@ -1651,13 +1729,89 @@ def run_project_drive(root: Path, args: argparse.Namespace) -> tuple[int, dict]:
             task=task,
         )
         if result["status"] not in COMPLETED_STATUSES:
+            gate_type = "blocked_task" if result["status"] == "blocked" else "failed_task"
+            if harness.supervisor_gate_enabled(supervisor_gate_settings, gate_type):
+                gate = harness.invoke_supervisor_gate(
+                    gate_type=gate_type,
+                    reason=f"task `{task.id}` finished with `{result['status']}`",
+                    settings=supervisor_gate_settings,
+                    task=task,
+                    result=result,
+                    source="drive",
+                )
+                supervisor_gates.append(gate)
+                if gate.get("applied") and gate.get("decision") == "retry":
+                    continue
+                stop_status = supervisor_gate_stop_status(gate)
+                if stop_status:
+                    status = stop_status
+                    message = _supervisor_gate_stop_message(gate)
+                    break
             status = result["status"]
             message = f"Stopped at task {task.id}: {result['message']}"
             break
+        if (
+            harness.supervisor_gate_enabled(supervisor_gate_settings, "quality_gate_completion")
+            and harness.task_declares_quality_gate(task)
+        ):
+            gate = harness.invoke_supervisor_gate(
+                gate_type="quality_gate_completion",
+                reason=f"task `{task.id}` completed a declared quality-gate",
+                settings=supervisor_gate_settings,
+                task=task,
+                result=result,
+                source="drive",
+            )
+            supervisor_gates.append(gate)
+            stop_status = supervisor_gate_stop_status(gate)
+            if stop_status:
+                status = stop_status
+                message = _supervisor_gate_stop_message(gate)
+                break
+        if (
+            task.milestone_id not in milestone_gates_recorded
+            and harness.supervisor_gate_enabled(supervisor_gate_settings, "milestone_completion")
+            and harness.milestone_completed(task.milestone_id)
+        ):
+            gate = harness.invoke_supervisor_gate(
+                gate_type="milestone_completion",
+                reason=f"milestone `{task.milestone_id}` completed",
+                settings=supervisor_gate_settings,
+                task=task,
+                result=result,
+                source="drive",
+                risk_metadata={"milestone_id": task.milestone_id},
+            )
+            supervisor_gates.append(gate)
+            milestone_gates_recorded.add(task.milestone_id)
+            stop_status = supervisor_gate_stop_status(gate)
+            if stop_status:
+                status = stop_status
+                message = _supervisor_gate_stop_message(gate)
+                break
         if args.stop_after_each:
             status = "paused"
             message = f"Stopped after task {task.id} because --stop-after-each was set."
             break
+
+    if harness.supervisor_gate_enabled(supervisor_gate_settings, "budget_risk_threshold"):
+        triggered, gate_risk_metadata = harness.budget_risk_gate_triggered(
+            status=status,
+            settings=supervisor_gate_settings,
+        )
+        if triggered:
+            gate = harness.invoke_supervisor_gate(
+                gate_type="budget_risk_threshold",
+                reason="drive reached a configured budget or risk threshold",
+                settings=supervisor_gate_settings,
+                source="drive",
+                risk_metadata=gate_risk_metadata,
+            )
+            supervisor_gates.append(gate)
+            stop_status = supervisor_gate_stop_status(gate)
+            if stop_status:
+                status = stop_status
+                message = _supervisor_gate_stop_message(gate)
 
     harness.drive_heartbeat(activity="drive-finishing", message=message, clear_task=True)
     harness.finish_drive(status=status, message=message)
@@ -1672,6 +1826,7 @@ def run_project_drive(root: Path, args: argparse.Namespace) -> tuple[int, dict]:
         "results": results,
         "continuations": continuations,
         "self_iterations": self_iterations,
+        "supervisor_gates": supervisor_gates,
         "checkpoint_requested": checkpoint_requested(args),
         "checkpoint_readiness": final_status.get("checkpoint_readiness", {}),
         "drive_control": final_status.get("drive_control"),
@@ -1710,6 +1865,13 @@ def print_drive_payload(payload: dict, *, json_output: bool) -> None:
     print(f"Next task: {next_task['id'] if next_task else 'none'}")
 
 
+def _supervisor_gate_stop_message(gate: dict) -> str:
+    gate_type = str(gate.get("gate_type") or "supervisor_gate")
+    decision = str(gate.get("decision") or "unknown")
+    reason = str(gate.get("application_reason") or gate.get("reason") or "no reason recorded")
+    return f"Supervisor gate `{gate_type}` stopped scheduling with `{decision}`: {reason}"
+
+
 def cmd_drive(args: argparse.Namespace) -> int:
     root = resolve_project_root(args)
     exit_code, payload = run_project_drive(root, args)
@@ -1741,6 +1903,9 @@ def _workspace_drive_args(args: argparse.Namespace, project_root: Path) -> argpa
         git_remote="origin",
         git_branch=None,
         git_message_template="chore(engineering): complete {task_id}",
+        supervisor_gate=getattr(args, "supervisor_gate", None),
+        supervisor_decision=getattr(args, "supervisor_decision", None),
+        supervisor_gate_risk_threshold=getattr(args, "supervisor_gate_risk_threshold", None),
     )
 
 
@@ -4568,6 +4733,15 @@ def build_parser() -> argparse.ArgumentParser:
     workspace_drive.add_argument("--allow-live", action="store_true")
     workspace_drive.add_argument("--allow-manual", action="store_true")
     workspace_drive.add_argument("--allow-agent", action="store_true")
+    workspace_drive.add_argument(
+        "--supervisor-gate",
+        "--supervisor-gates",
+        action="append",
+        default=None,
+        help="Enable one or more supervisor gate types for selected project drives; use comma-separated values or all",
+    )
+    workspace_drive.add_argument("--supervisor-decision", type=Path, default=None)
+    workspace_drive.add_argument("--supervisor-gate-risk-threshold", type=int, default=None)
     workspace_drive.add_argument("--json", action="store_true")
     workspace_drive.set_defaults(func=cmd_workspace_drive)
 
@@ -4720,6 +4894,15 @@ def build_parser() -> argparse.ArgumentParser:
     parallel_drive.add_argument("--allow-agent", action="store_true")
     parallel_drive.add_argument("--resume", action="store_true")
     parallel_drive.add_argument("--plan-only", action="store_true")
+    parallel_drive.add_argument(
+        "--supervisor-gate",
+        "--supervisor-gates",
+        action="append",
+        default=None,
+        help="Enable one or more supervisor gate types for parallel-drive; use comma-separated values or all",
+    )
+    parallel_drive.add_argument("--supervisor-decision", type=Path, default=None)
+    parallel_drive.add_argument("--supervisor-gate-risk-threshold", type=int, default=None)
     parallel_drive.add_argument("--json", action="store_true")
     parallel_drive.set_defaults(func=cmd_parallel_drive)
 
@@ -4823,6 +5006,15 @@ def build_parser() -> argparse.ArgumentParser:
             command.add_argument("--git-remote", default="origin")
             command.add_argument("--git-branch", default=None)
             command.add_argument("--git-message-template", default="chore(engineering): complete {task_id}")
+            command.add_argument(
+                "--supervisor-gate",
+                "--supervisor-gates",
+                action="append",
+                default=None,
+                help="Enable one or more supervisor gate types for drive; use comma-separated values or all",
+            )
+            command.add_argument("--supervisor-decision", type=Path, default=None)
+            command.add_argument("--supervisor-gate-risk-threshold", type=int, default=None)
         command.set_defaults(func=func)
 
     return parser

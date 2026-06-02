@@ -760,6 +760,129 @@ def test_supervisor_decision_cli_persists_request_human_review_decision(tmp_path
     assert manifest["safety_classification"]["risk_flags"]["manual"] is True
 
 
+def test_supervisor_drive_records_failed_task_gate_in_drive_report(tmp_path: Path, capsys):
+    project = tmp_path / "supervisor-drive-failed-gate"
+    project.mkdir()
+    init_project(project, "python-agent", name="supervisor-drive-failed-gate")
+    roadmap_path = project / ".engineering/roadmap.yaml"
+    roadmap = json.loads(roadmap_path.read_text(encoding="utf-8"))
+    roadmap["milestones"][0]["tasks"][0]["acceptance"][0]["command"] = "python3 -c \"raise SystemExit(7)\""
+    roadmap_path.write_text(json.dumps(roadmap), encoding="utf-8")
+
+    exit_code = cli_main(
+        ["drive", "--project-root", str(project), "--supervisor-gate", "failed-task", "--json"]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    gate = payload["supervisor_gates"][0]
+    report_text = (project / payload["drive_report"]).read_text(encoding="utf-8")
+
+    assert exit_code == 0
+    assert payload["status"] == "paused"
+    assert payload["results"][0]["status"] == "failed"
+    assert gate["kind"] == "engineering-harness.supervisor-gate.v1"
+    assert gate["gate_type"] == "failed_task"
+    assert gate["context_path"]
+    assert gate["decision_path"]
+    assert gate["application_status"] == "applied"
+    assert gate["decision"] == "pause"
+    assert "## Supervisor Gates" in report_text
+    assert "Machine-readable supervisor gate records" in report_text
+
+
+def test_supervisor_drive_deployment_gate_pauses_before_worker_execution(tmp_path: Path, capsys):
+    project = tmp_path / "supervisor-drive-deployment-gate"
+    project.mkdir()
+    init_project(project, "python-agent", name="supervisor-drive-deployment-gate")
+    roadmap_path = project / ".engineering/roadmap.yaml"
+    roadmap = json.loads(roadmap_path.read_text(encoding="utf-8"))
+    roadmap["milestones"][0]["tasks"][0]["deployment_sensitive"] = True
+    roadmap["milestones"][0]["tasks"][0]["acceptance"][0]["command"] = (
+        "python3 -c \"from pathlib import Path; Path('deployment-marker.txt').write_text('ran')\""
+    )
+    roadmap_path.write_text(json.dumps(roadmap), encoding="utf-8")
+
+    exit_code = cli_main(
+        [
+            "drive",
+            "--project-root",
+            str(project),
+            "--supervisor-gate",
+            "deployment-sensitive-task",
+            "--json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    gate = payload["supervisor_gates"][0]
+
+    assert exit_code == 0
+    assert payload["status"] == "paused"
+    assert payload["results"] == []
+    assert not (project / "deployment-marker.txt").exists()
+    assert gate["gate_type"] == "deployment_sensitive_task"
+    assert gate["application_status"] == "applied"
+    assert gate["context_path"]
+    assert gate["decision_path"]
+
+
+def test_supervisor_drive_records_budget_risk_gate_after_task_budget(tmp_path: Path, capsys):
+    project = tmp_path / "supervisor-drive-budget-gate"
+    project.mkdir()
+    init_project(project, "python-agent", name="supervisor-drive-budget-gate")
+    roadmap_path = project / ".engineering/roadmap.yaml"
+    roadmap = json.loads(roadmap_path.read_text(encoding="utf-8"))
+    roadmap["milestones"][0]["tasks"][0]["acceptance"][0]["command"] = "python3 -c \"print('ok')\""
+    roadmap_path.write_text(json.dumps(roadmap), encoding="utf-8")
+
+    exit_code = cli_main(
+        [
+            "drive",
+            "--project-root",
+            str(project),
+            "--max-tasks",
+            "1",
+            "--supervisor-gate",
+            "budget-risk-threshold",
+            "--supervisor-gate-risk-threshold",
+            "100",
+            "--json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    gate = payload["supervisor_gates"][0]
+
+    assert exit_code == 0
+    assert payload["status"] == "paused"
+    assert payload["results"][0]["status"] == "passed"
+    assert gate["gate_type"] == "budget_risk_threshold"
+    assert gate["context_path"]
+    assert gate["decision_path"]
+    assert gate["application_status"] == "applied"
+
+
+def test_supervisor_parallel_drive_records_blocked_gate_report(tmp_path: Path, capsys):
+    project = tmp_path / "supervisor-parallel-blocked-gate"
+    project.mkdir()
+    init_project(project, "python-agent", name="supervisor-parallel-blocked-gate")
+
+    exit_code, payload = run_parallel_drive_json(
+        capsys,
+        project,
+        "--supervisor-gate",
+        "blocked-task",
+    )
+    gate = payload["supervisor_gates"][0]
+    report_text = (project / payload["parallel_drive_report"]).read_text(encoding="utf-8")
+
+    assert exit_code == 1
+    assert payload["status"] == "paused"
+    assert gate["gate_type"] == "blocked_task"
+    assert gate["context_path"]
+    assert gate["decision_path"]
+    assert gate["application_status"] == "applied"
+    assert "parallel-drive" in report_text
+    assert "## Supervisor Gates" in report_text
+
+
 def test_profiles_are_available():
     profile_ids = {item["id"] for item in list_profiles()}
 

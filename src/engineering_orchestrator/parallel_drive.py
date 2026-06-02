@@ -11,7 +11,15 @@ from copy import deepcopy
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from .core import BLOCKED_STATUSES, COMPLETED_STATUSES, Harness, HarnessTask, slug_now, utc_now
+from .core import (
+    BLOCKED_STATUSES,
+    COMPLETED_STATUSES,
+    Harness,
+    HarnessTask,
+    slug_now,
+    supervisor_gate_stop_status,
+    utc_now,
+)
 from .io import load_mapping, write_json
 
 
@@ -188,9 +196,19 @@ def run_parallel_drive(
     allow_agent: bool = False,
     poll_interval_seconds: float = PARALLEL_DRIVE_POLL_SECONDS,
     resume: bool = False,
+    supervisor_gate: Any = None,
+    supervisor_decision: Path | str | None = None,
+    supervisor_gate_risk_threshold: int | None = None,
 ) -> tuple[int, dict[str, Any]]:
     root = project_root.resolve()
     harness = Harness(root)
+    supervisor_gate_settings = harness.supervisor_gate_settings(
+        gate_values=supervisor_gate,
+        decision_path=supervisor_decision,
+        risk_threshold=supervisor_gate_risk_threshold,
+    )
+    supervisor_gates: list[dict[str, Any]] = []
+    milestone_gates_recorded: set[str] = set()
     started_at = utc_now()
     max_workers = _positive_int(max_workers, 1)
     max_tasks = _positive_int(max_tasks, 1)
@@ -222,6 +240,21 @@ def run_parallel_drive(
             plan=plan,
             resume_payload=resume_payload,
         )
+        payload["supervisor_gates"] = supervisor_gates
+        if harness.supervisor_gate_enabled(supervisor_gate_settings, "blocked_task"):
+            gate = harness.invoke_supervisor_gate(
+                gate_type="blocked_task",
+                reason=f"parallel-drive planning blocked: {plan['message']}",
+                settings=supervisor_gate_settings,
+                source="parallel-drive",
+                risk_metadata={"plan_status": plan["status"], "plan_message": plan["message"]},
+                apply_drive_control=False,
+            )
+            supervisor_gates.append(gate)
+            stop_status = supervisor_gate_stop_status(gate)
+            if stop_status:
+                payload["status"] = stop_status
+                payload["message"] = _parallel_supervisor_gate_stop_message(gate)
         _write_parallel_state(root, payload, activity="parallel-drive-blocked")
         payload["parallel_drive_report"] = write_parallel_drive_report(root, payload)
         _write_parallel_state(root, payload, activity="parallel-drive-blocked")
@@ -241,6 +274,7 @@ def run_parallel_drive(
             plan=plan,
             resume_payload=resume_payload,
         )
+        payload["supervisor_gates"] = supervisor_gates
         _write_parallel_state(root, payload, activity="parallel-drive-empty")
         payload["parallel_drive_report"] = write_parallel_drive_report(root, payload)
         _write_parallel_state(root, payload, activity="parallel-drive-empty")
@@ -264,6 +298,21 @@ def run_parallel_drive(
             resume_payload=resume_payload,
         )
         payload["base_checkout"] = switch
+        payload["supervisor_gates"] = supervisor_gates
+        if harness.supervisor_gate_enabled(supervisor_gate_settings, "blocked_task"):
+            gate = harness.invoke_supervisor_gate(
+                gate_type="blocked_task",
+                reason=f"parallel-drive base checkout blocked for `{base}`",
+                settings=supervisor_gate_settings,
+                source="parallel-drive",
+                risk_metadata={"base_checkout": switch},
+                apply_drive_control=False,
+            )
+            supervisor_gates.append(gate)
+            stop_status = supervisor_gate_stop_status(gate)
+            if stop_status:
+                payload["status"] = stop_status
+                payload["message"] = _parallel_supervisor_gate_stop_message(gate)
         _write_parallel_state(root, payload, activity="parallel-drive-base-checkout-failed")
         payload["parallel_drive_report"] = write_parallel_drive_report(root, payload)
         _write_parallel_state(root, payload, activity="parallel-drive-base-checkout-failed")
@@ -280,6 +329,7 @@ def run_parallel_drive(
     status = "completed"
     message = "Parallel drive completed."
     timed_out = False
+    gate_stopped = False
     launched_count = 0
 
     payload = _base_payload(
@@ -296,9 +346,28 @@ def run_parallel_drive(
         resume_payload=resume_payload,
     )
     payload["workers"] = workers
+    payload["supervisor_gates"] = supervisor_gates
     _write_parallel_state(root, payload, activity="parallel-drive-started")
 
     try:
+        if harness.supervisor_gate_enabled(supervisor_gate_settings, "operator_request"):
+            gate = harness.invoke_supervisor_gate(
+                gate_type="operator_request",
+                reason="explicit operator request before parallel-drive scheduling",
+                settings=supervisor_gate_settings,
+                source="parallel-drive",
+                risk_metadata={"planned_tasks": selected_ids},
+                apply_drive_control=False,
+            )
+            supervisor_gates.append(gate)
+            payload["supervisor_gates"] = supervisor_gates
+            stop_status = supervisor_gate_stop_status(gate)
+            if stop_status:
+                status = stop_status
+                message = _parallel_supervisor_gate_stop_message(gate)
+                gate_stopped = True
+                pending_queue.clear()
+                active.clear()
         while pending_queue or active:
             now = time.monotonic()
             if deadline is not None and now >= deadline:
@@ -324,12 +393,34 @@ def run_parallel_drive(
                 if next_index is None:
                     break
                 item = pending_queue.pop(next_index)
+                task = item["task"]
+                if (
+                    harness.supervisor_gate_enabled(supervisor_gate_settings, "deployment_sensitive_task")
+                    and harness.task_declares_deployment_sensitive(task)
+                ):
+                    gate = harness.invoke_supervisor_gate(
+                        gate_type="deployment_sensitive_task",
+                        reason=f"parallel-drive task `{task.id}` declares a sensitive deployment or secret gate",
+                        settings=supervisor_gate_settings,
+                        task=task,
+                        source="parallel-drive",
+                        apply_drive_control=False,
+                    )
+                    supervisor_gates.append(gate)
+                    payload["supervisor_gates"] = supervisor_gates
+                    stop_status = supervisor_gate_stop_status(gate)
+                    if stop_status:
+                        status = stop_status
+                        message = _parallel_supervisor_gate_stop_message(gate)
+                        gate_stopped = True
+                        pending_queue.clear()
+                        break
                 worker = _launch_worker(
                     root,
                     repo_root,
                     run_id=run_id,
                     base_ref=base,
-                    task=item["task"],
+                    task=task,
                     index=launched_count + 1,
                     allow_live=allow_live,
                     allow_manual=allow_manual,
@@ -342,7 +433,7 @@ def run_parallel_drive(
                     active.append(worker)
                 else:
                     worker["preservation"] = _preservation_payload(worker, "worker worktree could not be created")
-                _write_parallel_state(root, payload, activity=f"worker-started:{item['task'].id}")
+                _write_parallel_state(root, payload, activity=f"worker-started:{task.id}")
 
             completed_workers = []
             for worker in active:
@@ -380,6 +471,98 @@ def run_parallel_drive(
                     worker["preservation"] = _preservation_payload(worker, "worker task did not complete successfully")
                 worker["finished_at"] = worker.get("finished_at") or utc_now()
                 _annotate_worker_manifest(root, worker)
+                try:
+                    worker_task = harness.task_by_id(str(worker["task_id"]))
+                except KeyError:
+                    worker_task = None
+                worker_result = {
+                    "status": worker.get("result_status") or worker.get("status"),
+                    "worker_status": worker.get("status"),
+                    "exit_code": worker.get("exit_code"),
+                    "report": worker.get("report"),
+                    "manifest": worker.get("manifest"),
+                    "branch": worker.get("branch"),
+                }
+                if worker_task is not None and str(worker.get("result_status")) not in COMPLETED_STATUSES:
+                    gate_type = "blocked_task" if worker.get("result_status") == "blocked" else "failed_task"
+                    if harness.supervisor_gate_enabled(supervisor_gate_settings, gate_type):
+                        gate = harness.invoke_supervisor_gate(
+                            gate_type=gate_type,
+                            reason=f"parallel-drive task `{worker_task.id}` finished with `{worker.get('result_status')}`",
+                            settings=supervisor_gate_settings,
+                            task=worker_task,
+                            result=worker_result,
+                            source="parallel-drive",
+                            apply_drive_control=False,
+                        )
+                        supervisor_gates.append(gate)
+                        payload["supervisor_gates"] = supervisor_gates
+                        if gate.get("applied") and gate.get("decision") == "retry":
+                            pending_queue.append(
+                                {
+                                    "task": worker_task,
+                                    "task_id": worker_task.id,
+                                    "status": "pending",
+                                    "attempts": 0,
+                                    "max_attempts": worker_task.max_attempts,
+                                    "file_scope": list(worker_task.file_scope),
+                                    "dependencies": _task_dependencies(task_metadata.get(worker_task.id, {})),
+                                    "skip_reasons": [],
+                                }
+                            )
+                        else:
+                            stop_status = supervisor_gate_stop_status(gate)
+                            if stop_status:
+                                status = stop_status
+                                message = _parallel_supervisor_gate_stop_message(gate)
+                                gate_stopped = True
+                                pending_queue.clear()
+                if worker_task is not None and worker.get("status") in {"merged", "cleanup_failed"}:
+                    if (
+                        harness.supervisor_gate_enabled(supervisor_gate_settings, "quality_gate_completion")
+                        and harness.task_declares_quality_gate(worker_task)
+                    ):
+                        gate = harness.invoke_supervisor_gate(
+                            gate_type="quality_gate_completion",
+                            reason=f"parallel-drive task `{worker_task.id}` completed a declared quality-gate",
+                            settings=supervisor_gate_settings,
+                            task=worker_task,
+                            result=worker_result,
+                            source="parallel-drive",
+                            apply_drive_control=False,
+                        )
+                        supervisor_gates.append(gate)
+                        payload["supervisor_gates"] = supervisor_gates
+                        stop_status = supervisor_gate_stop_status(gate)
+                        if stop_status:
+                            status = stop_status
+                            message = _parallel_supervisor_gate_stop_message(gate)
+                            gate_stopped = True
+                            pending_queue.clear()
+                    if (
+                        worker_task.milestone_id not in milestone_gates_recorded
+                        and harness.supervisor_gate_enabled(supervisor_gate_settings, "milestone_completion")
+                        and Harness(root).milestone_completed(worker_task.milestone_id)
+                    ):
+                        gate = harness.invoke_supervisor_gate(
+                            gate_type="milestone_completion",
+                            reason=f"parallel-drive milestone `{worker_task.milestone_id}` completed",
+                            settings=supervisor_gate_settings,
+                            task=worker_task,
+                            result=worker_result,
+                            source="parallel-drive",
+                            risk_metadata={"milestone_id": worker_task.milestone_id},
+                            apply_drive_control=False,
+                        )
+                        supervisor_gates.append(gate)
+                        milestone_gates_recorded.add(worker_task.milestone_id)
+                        payload["supervisor_gates"] = supervisor_gates
+                        stop_status = supervisor_gate_stop_status(gate)
+                        if stop_status:
+                            status = stop_status
+                            message = _parallel_supervisor_gate_stop_message(gate)
+                            gate_stopped = True
+                            pending_queue.clear()
                 _write_parallel_state(root, payload, activity=f"worker-finished:{worker['task_id']}")
 
             if not launched and not completed_workers:
@@ -398,7 +581,9 @@ def run_parallel_drive(
             if str(worker.get("status")) not in {"merged", "cleanup_failed"}
         ]
         cleanup_failures = [worker for worker in workers if str(worker.get("status")) == "cleanup_failed"]
-        if timed_out:
+        if gate_stopped:
+            pass
+        elif timed_out:
             status = "timeout"
         elif failed_workers:
             status = "failed"
@@ -423,12 +608,37 @@ def run_parallel_drive(
             worker.setdefault("status", "interrupted")
             worker.setdefault("preservation", _preservation_payload(worker, "parallel drive interrupted"))
 
+    final_status = Harness(root).status_summary()
+    if harness.supervisor_gate_enabled(supervisor_gate_settings, "budget_risk_threshold"):
+        triggered, gate_risk_metadata = harness.budget_risk_gate_triggered(
+            status=status,
+            settings=supervisor_gate_settings,
+            final_status=final_status,
+        )
+        if triggered:
+            gate = harness.invoke_supervisor_gate(
+                gate_type="budget_risk_threshold",
+                reason="parallel-drive reached a configured budget or risk threshold",
+                settings=supervisor_gate_settings,
+                source="parallel-drive",
+                risk_metadata=gate_risk_metadata,
+                apply_drive_control=False,
+            )
+            supervisor_gates.append(gate)
+            stop_status = supervisor_gate_stop_status(gate)
+            if stop_status:
+                status = stop_status
+                message = _parallel_supervisor_gate_stop_message(gate)
+                gate_stopped = True
+            final_status = Harness(root).status_summary()
+
     payload["status"] = status
     payload["message"] = message
     payload["finished_at"] = utc_now()
     payload["active"] = False
-    payload["final_status"] = Harness(root).status_summary()
+    payload["final_status"] = final_status
     payload["workers"] = [_serializable_worker(worker) for worker in workers]
+    payload["supervisor_gates"] = supervisor_gates
     payload["summary"] = _parallel_summary(payload)
     payload["parallel_drive_report"] = write_parallel_drive_report(root, payload)
     _write_parallel_state(root, payload, activity="parallel-drive-finished")
@@ -464,9 +674,39 @@ def write_parallel_drive_report(project_root: Path, payload: dict[str, Any]) -> 
         f"- Pending tasks: `{payload.get('plan', {}).get('pending_count', 0)}`",
         f"- Checkpoint readiness: `{payload.get('plan', {}).get('checkpoint_readiness', {}).get('reason', 'unknown')}`",
         "",
-        "## Workers",
-        "",
     ]
+    supervisor_gates = payload.get("supervisor_gates") if isinstance(payload.get("supervisor_gates"), list) else []
+    lines.extend(["## Supervisor Gates", ""])
+    if not supervisor_gates:
+        lines.append("No supervisor gate was invoked for this parallel-drive report.")
+    for gate in supervisor_gates:
+        if not isinstance(gate, dict):
+            continue
+        lines.extend(
+            [
+                (
+                    f"- Supervisor gate `{gate.get('gate_type')}`: "
+                    f"`{gate.get('application_status')}` - {gate.get('application_reason')}"
+                ),
+                f"  - Context: `{gate.get('context_path')}`",
+                f"  - Decision: `{gate.get('decision_path')}`",
+                f"  - Decision status: `{gate.get('decision_status')}` action=`{gate.get('decision')}`",
+                f"  - Applied: `{str(bool(gate.get('applied'))).lower()}`",
+            ]
+        )
+    lines.extend(
+        [
+            "",
+            "Machine-readable supervisor gate records:",
+            "",
+            "```json",
+            json.dumps(_json_safe(supervisor_gates), indent=2, sort_keys=True),
+            "```",
+            "",
+            "## Workers",
+            "",
+        ]
+    )
     workers = payload.get("workers") if isinstance(payload.get("workers"), list) else []
     if not workers:
         lines.append("No workers were launched.")
@@ -505,6 +745,13 @@ def write_parallel_drive_report(project_root: Path, payload: dict[str, Any]) -> 
     report_path.write_text("\n".join(lines), encoding="utf-8")
     write_json(json_path, _json_safe(payload))
     return payload["parallel_drive_report"]
+
+
+def _parallel_supervisor_gate_stop_message(gate: dict[str, Any]) -> str:
+    gate_type = str(gate.get("gate_type") or "supervisor_gate")
+    decision = str(gate.get("decision") or "unknown")
+    reason = str(gate.get("application_reason") or gate.get("reason") or "no reason recorded")
+    return f"Supervisor gate `{gate_type}` stopped parallel-drive scheduling with `{decision}`: {reason}"
 
 
 def _base_payload(
