@@ -25,4 +25,5 @@ This document mirrors the target task package state that is also tracked in
 | --- | --- | --- | --- | --- | --- |
 | EH-DOC-SYNC-002 | engineering-orchestrator-target-docs-sync-implementation | task_packages | completed | 2026-06-01T13:18:24Z | targeted docs sync tests passed; roadmap validation passed; docs-sync command evidence found |
 | EO-SUP-002 | supervisor-context-pack | task_packages | completed | 2026-06-02T01:10:32Z | task report: .engineering/reports/tasks/20260602T005739Z-supervisor-context-pack.md; task manifest: .engineering/reports/tasks/20260602T005739Z-supervisor-context-pack.json; tas... |
+| EO-SUP-003 | supervisor-decision-schema | task_packages | completed | 2026-06-02T01:23:13Z | task report: .engineering/reports/tasks/20260602T011352Z-supervisor-decision-schema.md; task manifest: .engineering/reports/tasks/20260602T011352Z-supervisor-decision-schema.jso... |
 <!-- engineering-orchestrator:docs-sync:end -->

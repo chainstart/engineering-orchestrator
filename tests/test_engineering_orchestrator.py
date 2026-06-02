@@ -44,6 +44,7 @@ from engineering_orchestrator.policy_compat import (
     serialize_policy_input_for_opa,
 )
 from engineering_orchestrator.profiles import list_profiles
+from engineering_orchestrator.supervisor_decision import SUPERVISOR_DECISION_KIND
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -628,6 +629,135 @@ def test_supervisor_context_cli_generates_context_pack(tmp_path: Path, capsys):
     assert pack["gate_reason"] == "quality_gate"
     assert pack["summary"]["local_only"] is True
     assert pack["sync_evidence"]["docs_sync"]["manifest_evidence_count"] == 1
+
+
+def test_supervisor_decision_validator_accepts_continue_and_persists_local_evidence(tmp_path: Path):
+    project = tmp_path / "supervisor-decision-continue"
+    project.mkdir()
+    write_supervisor_context_project(project, task_count=2)
+    harness = Harness(project)
+    context = harness.write_supervisor_context_pack(
+        gate_reason="quality_gate_complete",
+        objective="Decide whether the next supervisor task can continue.",
+    )
+    decision = {
+        "kind": SUPERVISOR_DECISION_KIND,
+        "decision": "continue",
+        "approved_next_tasks": ["task-00"],
+        "blocked_tasks": [],
+        "tasks_to_rewrite": [],
+        "requires_human": False,
+        "reason": "Local supervisor context evidence supports continuing to the next queued task.",
+        "evidence": [context["path"]],
+    }
+
+    validation = harness.validate_supervisor_decision(decision, context_pack_path=context["path"])
+    result = harness.write_supervisor_decision_evidence(
+        decision,
+        context_pack_path=context["path"],
+        gate_reason="quality_gate_complete",
+    )
+    manifest = json.loads((project / result["manifest"]).read_text(encoding="utf-8"))
+    report = (project / result["report"]).read_text(encoding="utf-8")
+
+    assert validation["accepted"] is True
+    assert validation["normalized_decision"]["safety_classification"]["auto_apply_allowed"] is True
+    assert result["accepted"] is True
+    assert manifest["kind"] == "engineering-orchestrator.supervisor-decision-validation.v1"
+    assert manifest["decision_kind"] == SUPERVISOR_DECISION_KIND
+    assert manifest["status"] == "accepted"
+    assert manifest["supervisor_decision"]["approved_next_tasks"] == ["task-00"]
+    assert any(item["kind"] == "supervisor_context_pack" for item in manifest["artifacts"])
+    assert "supervisor-decision" in result["manifest"]
+    assert "Supervisor Decision Report" in report
+    assert "continue" in report
+
+
+def test_supervisor_decision_validator_rejects_high_risk_drop_task_without_human(tmp_path: Path):
+    project = tmp_path / "supervisor-decision-reject-drop"
+    project.mkdir()
+    write_supervisor_context_project(project, task_count=2)
+    harness = Harness(project)
+    context = harness.write_supervisor_context_pack(
+        gate_reason="blocked_task",
+        objective="Evaluate blocked task handling.",
+    )
+    decision = {
+        "kind": SUPERVISOR_DECISION_KIND,
+        "decision": "drop_task",
+        "approved_next_tasks": [],
+        "blocked_tasks": ["task-00"],
+        "tasks_to_rewrite": ["task-00"],
+        "requires_human": False,
+        "reason": "Drop a blocked task from the roadmap.",
+        "evidence": [context["path"]],
+    }
+
+    result = harness.write_supervisor_decision_evidence(
+        decision,
+        context_pack_path=context["path"],
+        gate_reason="blocked_task",
+    )
+    manifest = json.loads((project / result["manifest"]).read_text(encoding="utf-8"))
+    error_codes = {item["code"] for item in result["validation"]["errors"]}
+
+    assert result["accepted"] is False
+    assert result["status"] == "rejected"
+    assert "human_required" in error_codes
+    assert result["safety_classification"]["high_risk_action"] is True
+    assert manifest["validation"]["status"] == "rejected"
+    assert manifest["safety_classification"]["decision_effect"] == "reject"
+
+
+def test_supervisor_decision_cli_persists_request_human_review_decision(tmp_path: Path, capsys):
+    project = tmp_path / "supervisor-decision-cli"
+    project.mkdir()
+    write_supervisor_context_project(project, task_count=2)
+    harness = Harness(project)
+    context = harness.write_supervisor_context_pack(
+        gate_reason="operator_requested_review",
+        objective="Ask the operator to review a blocked local gate.",
+    )
+    decision_path = project / "decision.json"
+    decision_path.write_text(
+        json.dumps(
+            {
+                "kind": SUPERVISOR_DECISION_KIND,
+                "decision": "request_human_review",
+                "approved_next_tasks": [],
+                "blocked_tasks": ["task-00"],
+                "tasks_to_rewrite": [],
+                "requires_human": True,
+                "reason": "The local evidence needs operator review before the queue changes.",
+                "evidence": [context["path"]],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = cli_main(
+        [
+            "supervisor-decision",
+            "--project-root",
+            str(project),
+            "--decision",
+            str(decision_path),
+            "--context-pack",
+            context["path"],
+            "--gate-reason",
+            "operator_requested_review",
+            "--json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    manifest = json.loads((project / payload["manifest"]).read_text(encoding="utf-8"))
+
+    assert exit_code == 0
+    assert payload["accepted"] is True
+    assert payload["decision"] == "request_human_review"
+    assert payload["requires_human"] is True
+    assert manifest["supervisor_decision"]["decision"] == "request_human_review"
+    assert manifest["safety_classification"]["risk_flags"]["manual"] is True
 
 
 def test_profiles_are_available():

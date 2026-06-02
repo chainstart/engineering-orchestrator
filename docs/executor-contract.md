@@ -166,6 +166,16 @@ manifests and local JSONL logs, git status and diff summaries, and risk metadata
 approvals, checkpoint readiness, failure isolation, and the goal-gap scorecard. Counts and excerpts
 are bounded by `SUPERVISOR_CONTEXT_PACK_LIMITS`, and the full payload is redacted before persistence.
 
+Supervisor decisions are validated separately as
+`engineering-orchestrator.supervisor-decision.v1` documents. The validator accepts only the bounded
+decision vocabulary: `continue`, `pause`, `retry`, `repair_task_package`, `split_task`,
+`merge_tasks`, `drop_task`, `create_followup_tasks`, `request_human_review`, and
+`enter_deployment_audit`. Each decision must cite local evidence paths and must declare
+`approved_next_tasks`, `blocked_tasks`, `tasks_to_rewrite`, `requires_human`, and a reason. Accepted
+and rejected decisions are persisted under `.engineering/reports/tasks/supervisor-decisions/` as a
+JSON validation manifest plus a Markdown report. This records safety classification and rejection
+reasons without integrating gated drive scheduling yet.
+
 ## Watchdog Results
 
 Built-in subprocess adapters (`shell`, enabled `dagger`, `openhands`, and `codex`) enforce

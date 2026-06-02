@@ -1,7 +1,7 @@
 {
   "kind": "engineering-harness.spec_tasks.v1",
   "project": "engineering-orchestrator",
-  "updated_at": "2026-06-02T01:10:32Z",
+  "updated_at": "2026-06-02T01:23:13Z",
   "source_spec": "docs/engineering-orchestrator-system-spec.md",
   "status_doc": "docs/engineering_orchestrator_implementation_status.md",
   "roadmap_doc": "docs/spec-driven-development-plan.md",
@@ -431,7 +431,7 @@
     {
       "id": "EO-SUP-003",
       "title": "Implement supervisor decision schema and validation",
-      "status": "pending",
+      "status": "completed",
       "requirement_ids": [
         "EH-SPEC-008",
         "EH-SPEC-010",
@@ -439,7 +439,86 @@
         "EH-SPEC-018"
       ],
       "roadmap_task_id": "supervisor-decision-schema",
-      "next_action": "Add supervisor_decision.v1 schema, safety classification, validation, persistence, and rejection paths for unsafe or unsupported actions."
+      "next_action": "Add supervisor_decision.v1 schema, safety classification, validation, persistence, and rejection paths for unsafe or unsupported actions.",
+      "updated_at": "2026-06-02T01:23:13Z",
+      "last_note": "Recorded automatically after a completed orchestrator task.",
+      "last_phase": "run",
+      "evidence": [
+        {
+          "kind": "record",
+          "value": "task report: .engineering/reports/tasks/20260602T011352Z-supervisor-decision-schema.md",
+          "recorded_at": "2026-06-02T01:23:13Z",
+          "actor": "engineering-harness:auto"
+        },
+        {
+          "kind": "record",
+          "value": "task manifest: .engineering/reports/tasks/20260602T011352Z-supervisor-decision-schema.json",
+          "recorded_at": "2026-06-02T01:23:13Z",
+          "actor": "engineering-harness:auto"
+        },
+        {
+          "kind": "record",
+          "value": "task result: All required acceptance commands passed.",
+          "recorded_at": "2026-06-02T01:23:13Z",
+          "actor": "engineering-harness:auto"
+        }
+      ],
+      "documentation_sync": {
+        "status": "applied",
+        "updated_at": "2026-06-02T01:23:13Z",
+        "requested_task_id": "supervisor-decision-schema",
+        "new_status": "completed",
+        "docs_update_log": "docs/docs_update_log.jsonl",
+        "updated_paths": [
+          "docs/engineering_orchestrator_implementation_status.md",
+          "docs/deployment-status.md",
+          "docs/task-packages.md",
+          "docs/spec-traceability.md"
+        ],
+        "manual_review_paths": [
+          "docs/engineering-orchestrator-system-spec.md",
+          "docs/decisions",
+          "docs/spec-driven-development-plan.md"
+        ]
+      },
+      "documentation_evidence": [
+        {
+          "kind": "record",
+          "value": "task report: .engineering/reports/tasks/20260602T011352Z-supervisor-decision-schema.md",
+          "recorded_at": "2026-06-02T01:23:13Z",
+          "actor": "engineering-harness:auto"
+        },
+        {
+          "kind": "record",
+          "value": "task manifest: .engineering/reports/tasks/20260602T011352Z-supervisor-decision-schema.json",
+          "recorded_at": "2026-06-02T01:23:13Z",
+          "actor": "engineering-harness:auto"
+        },
+        {
+          "kind": "record",
+          "value": "task result: All required acceptance commands passed.",
+          "recorded_at": "2026-06-02T01:23:13Z",
+          "actor": "engineering-harness:auto"
+        },
+        {
+          "kind": "record",
+          "value": "implementation implement supervisor decision schema: passed",
+          "recorded_at": "2026-06-02T01:23:13Z",
+          "actor": "engineering-harness:auto"
+        },
+        {
+          "kind": "record",
+          "value": "acceptance-1 supervisor decision tests: passed",
+          "recorded_at": "2026-06-02T01:23:13Z",
+          "actor": "engineering-harness:auto"
+        },
+        {
+          "kind": "record",
+          "value": "acceptance-1 supervisor decision evidence: passed",
+          "recorded_at": "2026-06-02T01:23:13Z",
+          "actor": "engineering-harness:auto"
+        }
+      ]
     },
     {
       "id": "EO-SUP-004",

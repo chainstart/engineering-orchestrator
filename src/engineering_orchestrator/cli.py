@@ -415,6 +415,27 @@ def cmd_supervisor_context(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_supervisor_decision(args: argparse.Namespace) -> int:
+    root = resolve_project_root(args)
+    harness = Harness(root)
+    decision_payload = load_mapping(args.decision)
+    payload = harness.write_supervisor_decision_evidence(
+        decision_payload,
+        context_pack_path=args.context_pack,
+        gate_reason=args.gate_reason,
+        source=args.source,
+    )
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print(f"Supervisor decision: {payload['status']}")
+        print(f"Decision: {payload.get('decision')}")
+        print(f"Requires human: {payload.get('requires_human')}")
+        print(f"Manifest: {payload['manifest']}")
+        print(f"Report: {payload['report']}")
+    return 0 if payload.get("accepted") else 2
+
+
 def cmd_validate(args: argparse.Namespace) -> int:
     root = resolve_project_root(args)
     harness = Harness(root)
@@ -4706,6 +4727,7 @@ def build_parser() -> argparse.ArgumentParser:
         ("status", "Show project or workspace status", cmd_status),
         ("operator-console", "Generate a bounded local operator console summary", cmd_operator_console),
         ("supervisor-context", "Write a bounded local supervisor context pack for a gate reason", cmd_supervisor_context),
+        ("supervisor-decision", "Validate and persist a local supervisor decision artifact", cmd_supervisor_decision),
         ("validate", "Validate the engineering roadmap schema and task commands", cmd_validate),
         ("next", "Show the next selected task", cmd_next),
         ("run", "Run the next or selected task acceptance checks", cmd_run),
@@ -4750,6 +4772,11 @@ def build_parser() -> argparse.ArgumentParser:
                 default=None,
                 help="Bounded risk metadata as key=value; may be repeated",
             )
+        if name == "supervisor-decision":
+            command.add_argument("--decision", type=Path, required=True)
+            command.add_argument("--context-pack", type=Path, default=None)
+            command.add_argument("--gate-reason", default=None)
+            command.add_argument("--source", default="supervisor")
         if name == "advance":
             command.add_argument("--max-new-milestones", type=int, default=1)
             command.add_argument("--reason", default="manual_advance")

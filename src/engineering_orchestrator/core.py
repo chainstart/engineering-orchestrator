@@ -55,6 +55,13 @@ from .spec_backlog import (
     build_spec_backlog_plan,
     materialize_spec_backlog_plan,
 )
+from .supervisor_decision import (
+    SUPERVISOR_DECISION_KIND,
+    SUPERVISOR_DECISION_SCHEMA_VERSION,
+    SUPERVISOR_DECISION_VALIDATION_KIND,
+    supervisor_decision_fingerprint,
+    validate_supervisor_decision as validate_supervisor_decision_payload,
+)
 
 
 COMPLETED_STATUSES = {"completed", "done", "passed", "skipped"}
@@ -4409,6 +4416,219 @@ class Harness:
             "summary": payload.get("summary", {}),
             "limits": dict(SUPERVISOR_CONTEXT_PACK_LIMITS),
         }
+
+    def validate_supervisor_decision(
+        self,
+        decision_payload: dict[str, Any],
+        *,
+        context_pack: dict[str, Any] | None = None,
+        context_pack_path: Path | str | None = None,
+    ) -> dict[str, Any]:
+        loaded_context = context_pack
+        if loaded_context is None and context_pack_path is not None:
+            loaded_context = self._load_supervisor_context_pack(context_pack_path)
+        return validate_supervisor_decision_payload(
+            decision_payload,
+            project_root=self.project_root,
+            known_task_ids={task.id for task in self.iter_tasks()},
+            context_pack=loaded_context,
+        )
+
+    def write_supervisor_decision_evidence(
+        self,
+        decision_payload: dict[str, Any],
+        *,
+        context_pack_path: Path | str | None = None,
+        gate_reason: str | None = None,
+        source: str = "supervisor",
+    ) -> dict[str, Any]:
+        context_pack = self._load_supervisor_context_pack(context_pack_path) if context_pack_path is not None else None
+        validation = self.validate_supervisor_decision(
+            decision_payload,
+            context_pack=context_pack,
+        )
+        normalized_decision = (
+            validation.get("normalized_decision")
+            if isinstance(validation.get("normalized_decision"), dict)
+            else {}
+        )
+        action = str(validation.get("decision") or normalized_decision.get("decision") or "decision")
+        status = "accepted" if validation.get("accepted") else "rejected"
+        fingerprint = supervisor_decision_fingerprint(
+            {
+                "decision": normalized_decision or decision_payload,
+                "validation_status": status,
+                "errors": validation.get("errors", []),
+            }
+        )[:10]
+        decision_dir = self.report_dir / "supervisor-decisions"
+        base_name = (
+            f"{slug_now()}-supervisor-decision-{status}-"
+            f"{self._safe_context_slug(action, fallback='decision')}-{fingerprint}"
+        )
+        report_path = decision_dir / f"{base_name}.md"
+        manifest_path = decision_dir / f"{base_name}.json"
+        report_relative = self._project_relative_path(report_path)
+        manifest_relative = self._project_relative_path(manifest_path)
+        context_pack_summary = self._supervisor_decision_context_pack_summary(context_pack, context_pack_path)
+        created_at = utc_now()
+        manifest = {
+            "schema_version": SUPERVISOR_DECISION_SCHEMA_VERSION,
+            "kind": SUPERVISOR_DECISION_VALIDATION_KIND,
+            "decision_kind": SUPERVISOR_DECISION_KIND,
+            "project": str(self.roadmap.get("project", self.project_root.name)),
+            "project_root": str(self.project_root),
+            "roadmap_path": self._project_relative_path(self.roadmap_path),
+            "created_at": created_at,
+            "source": source,
+            "gate_reason": gate_reason,
+            "status": status,
+            "accepted": bool(validation.get("accepted")),
+            "decision": action,
+            "requires_human": bool(normalized_decision.get("requires_human", False)),
+            "supervisor_decision": normalized_decision,
+            "original_decision": redact_evidence(deepcopy(decision_payload)),
+            "validation": redact_evidence(validation),
+            "safety_classification": deepcopy(validation.get("safety_classification", {})),
+            "context_pack": context_pack_summary,
+            "report_path": report_relative,
+            "manifest_path": manifest_relative,
+            "artifacts": [
+                {"kind": "markdown_report", "path": report_relative},
+                {"kind": "json_manifest", "path": manifest_relative},
+            ],
+        }
+        if context_pack_summary.get("path"):
+            manifest["artifacts"].append(
+                {
+                    "kind": "supervisor_context_pack",
+                    "path": context_pack_summary["path"],
+                    **(
+                        {"sha256": context_pack_summary["sha256"]}
+                        if context_pack_summary.get("sha256")
+                        else {}
+                    ),
+                }
+            )
+        self._write_supervisor_decision_report(report_path, manifest)
+        write_json(manifest_path, redact_evidence(manifest))
+        append_jsonl(
+            self.decision_log_path,
+            {
+                "at": created_at,
+                "event": "supervisor_decision",
+                "status": status,
+                "decision": action,
+                "requires_human": bool(normalized_decision.get("requires_human", False)),
+                "report": report_relative,
+                "manifest": manifest_relative,
+                "context_pack": context_pack_summary.get("path"),
+                "error_count": validation.get("error_count", 0),
+            },
+        )
+        return {
+            "schema_version": SUPERVISOR_DECISION_SCHEMA_VERSION,
+            "kind": SUPERVISOR_DECISION_VALIDATION_KIND,
+            "status": status,
+            "accepted": bool(validation.get("accepted")),
+            "decision": action,
+            "requires_human": bool(normalized_decision.get("requires_human", False)),
+            "report": report_relative,
+            "manifest": manifest_relative,
+            "validation": validation,
+            "safety_classification": deepcopy(validation.get("safety_classification", {})),
+            "context_pack": context_pack_summary,
+        }
+
+    def _load_supervisor_context_pack(self, context_pack_path: Path | str | None) -> dict[str, Any] | None:
+        if context_pack_path is None:
+            return None
+        path = Path(context_pack_path)
+        if not path.is_absolute():
+            path = self.project_root / path
+        return load_mapping(path)
+
+    def _supervisor_decision_context_pack_summary(
+        self,
+        context_pack: dict[str, Any] | None,
+        context_pack_path: Path | str | None,
+    ) -> dict[str, Any]:
+        path_value = str(context_pack_path or "").strip()
+        if not path_value and isinstance(context_pack, dict):
+            path_value = str(context_pack.get("context_path") or context_pack.get("path") or "")
+            artifact = context_pack.get("artifact") if isinstance(context_pack.get("artifact"), dict) else {}
+            path_value = path_value or str(artifact.get("path") or "")
+        summary: dict[str, Any] = {
+            "path": self._project_relative_path(Path(path_value)) if path_value else None,
+            "kind": context_pack.get("kind") if isinstance(context_pack, dict) else None,
+            "local_only": context_pack.get("local_only") if isinstance(context_pack, dict) else None,
+            "gate_reason": context_pack.get("gate_reason") if isinstance(context_pack, dict) else None,
+        }
+        if path_value:
+            path = Path(path_value)
+            if not path.is_absolute():
+                path = self.project_root / path
+            if path.exists() and path.is_file():
+                summary["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+                summary["bytes"] = path.stat().st_size
+        return {key: value for key, value in summary.items() if value is not None}
+
+    def _write_supervisor_decision_report(self, report_path: Path, manifest: dict[str, Any]) -> None:
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        validation = manifest.get("validation") if isinstance(manifest.get("validation"), dict) else {}
+        safety = manifest.get("safety_classification") if isinstance(manifest.get("safety_classification"), dict) else {}
+        decision = manifest.get("supervisor_decision") if isinstance(manifest.get("supervisor_decision"), dict) else {}
+        lines = [
+            "# Supervisor Decision Report",
+            "",
+            f"- Kind: `{SUPERVISOR_DECISION_KIND}`",
+            f"- Status: `{manifest.get('status')}`",
+            f"- Decision: `{manifest.get('decision')}`",
+            f"- Requires human: `{str(bool(manifest.get('requires_human'))).lower()}`",
+            f"- Project: `{manifest.get('project')}`",
+            f"- Gate reason: {redact(str(manifest.get('gate_reason') or 'not provided'))}",
+            f"- Report: `{manifest.get('report_path')}`",
+            f"- Manifest: `{manifest.get('manifest_path')}`",
+            "",
+            "## Safety Classification",
+            "",
+            f"- Risk level: `{safety.get('risk_level')}`",
+            f"- Risk categories: `{json.dumps(safety.get('risk_categories', []), sort_keys=True)}`",
+            f"- Auto-apply allowed: `{str(bool(safety.get('auto_apply_allowed'))).lower()}`",
+            f"- Decision effect: `{safety.get('decision_effect')}`",
+            "",
+        ]
+        errors = validation.get("errors", []) if isinstance(validation.get("errors"), list) else []
+        if errors:
+            lines.extend(["## Rejection Reasons", ""])
+            for item in errors:
+                if isinstance(item, dict):
+                    lines.append(
+                        f"- `{item.get('field')}` `{item.get('code')}`: {redact(str(item.get('message') or ''))}"
+                    )
+            lines.append("")
+        evidence = decision.get("evidence", []) if isinstance(decision.get("evidence"), list) else []
+        lines.extend(
+            [
+                "## Evidence",
+                "",
+                *[f"- `{path}`" for path in evidence],
+                "",
+                "## Decision Payload",
+                "",
+                "```json",
+                json.dumps(redact_evidence(decision), indent=2, sort_keys=True),
+                "```",
+                "",
+                "## Validation",
+                "",
+                "```json",
+                json.dumps(redact_evidence(validation), indent=2, sort_keys=True),
+                "```",
+                "",
+            ]
+        )
+        report_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     def _supervisor_context_current_objective(
         self,
