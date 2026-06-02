@@ -824,6 +824,120 @@ def test_supervisor_drive_deployment_gate_pauses_before_worker_execution(tmp_pat
     assert gate["decision_path"]
 
 
+def test_supervisor_drive_success_quality_gate_continues_with_artifacts(tmp_path: Path, capsys):
+    project = tmp_path / "supervisor-drive-success-quality-gate"
+    project.mkdir()
+    write_supervisor_context_project(project, task_count=2)
+    roadmap_path = project / ".engineering/roadmap.yaml"
+    roadmap = json.loads(roadmap_path.read_text(encoding="utf-8"))
+    roadmap["milestones"][0]["tasks"][0]["quality_gate"] = True
+    roadmap_path.write_text(json.dumps(roadmap), encoding="utf-8")
+
+    exit_code = cli_main(
+        [
+            "drive",
+            "--project-root",
+            str(project),
+            "--max-tasks",
+            "1",
+            "--supervisor-gate",
+            "quality-gate-completion",
+            "--json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    gate = payload["supervisor_gates"][0]
+    mutation_manifest = json.loads((project / gate["mutation_manifest"]).read_text(encoding="utf-8"))
+
+    assert exit_code == 0
+    assert payload["results"][0]["status"] == "passed"
+    assert gate["gate_type"] == "quality_gate_completion"
+    assert gate["decision"] == "continue"
+    assert gate["application_status"] == "applied"
+    assert gate["action_result"]["status"] == "queue_order_applied"
+    assert gate["action_result"]["approved_next_tasks"] == ["task-01"]
+    assert gate["context_path"]
+    assert gate["decision_path"]
+    assert mutation_manifest["mutation"]["applied"] is True
+
+
+def test_supervisor_drive_records_blocked_task_gate_for_policy_block(tmp_path: Path, capsys):
+    project = tmp_path / "supervisor-drive-blocked-gate"
+    project.mkdir()
+    init_project(project, "python-agent", name="supervisor-drive-blocked-gate")
+    roadmap_path = project / ".engineering/roadmap.yaml"
+    roadmap = json.loads(roadmap_path.read_text(encoding="utf-8"))
+    roadmap["milestones"][0]["tasks"][0]["acceptance"][0]["command"] = "python3 -c \"print('blocked')\" --live"
+    roadmap_path.write_text(json.dumps(roadmap), encoding="utf-8")
+
+    exit_code = cli_main(
+        ["drive", "--project-root", str(project), "--supervisor-gate", "blocked-task", "--json"]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    gate = payload["supervisor_gates"][0]
+
+    assert exit_code == 0
+    assert payload["status"] == "paused"
+    assert payload["results"][0]["status"] == "blocked"
+    assert gate["gate_type"] == "blocked_task"
+    assert gate["result_status"] == "blocked"
+    assert gate["decision"] == "pause"
+    assert gate["application_status"] == "applied"
+    assert gate["context_path"]
+    assert gate["decision_path"]
+
+
+def test_supervisor_drive_records_milestone_completion_gate(tmp_path: Path, capsys):
+    project = tmp_path / "supervisor-drive-milestone-gate"
+    project.mkdir()
+    write_supervisor_context_project(project, task_count=2)
+    roadmap_path = project / ".engineering/roadmap.yaml"
+    roadmap = json.loads(roadmap_path.read_text(encoding="utf-8"))
+    first_task, second_task = roadmap["milestones"][0]["tasks"]
+    roadmap["milestones"] = [
+        {
+            "id": "first-milestone",
+            "title": "First milestone",
+            "status": "active",
+            "objective": "Complete the first supervisor milestone.",
+            "tasks": [first_task],
+        },
+        {
+            "id": "second-milestone",
+            "title": "Second milestone",
+            "status": "active",
+            "objective": "Keep a follow-on task queued after milestone completion.",
+            "tasks": [second_task],
+        },
+    ]
+    roadmap_path.write_text(json.dumps(roadmap), encoding="utf-8")
+
+    exit_code = cli_main(
+        [
+            "drive",
+            "--project-root",
+            str(project),
+            "--max-tasks",
+            "1",
+            "--supervisor-gate",
+            "milestone-completion",
+            "--json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    gate = payload["supervisor_gates"][0]
+    context_pack = json.loads((project / gate["context_path"]).read_text(encoding="utf-8"))
+
+    assert exit_code == 0
+    assert payload["results"][0]["task"]["id"] == "task-00"
+    assert payload["results"][0]["status"] == "passed"
+    assert gate["gate_type"] == "milestone_completion"
+    assert gate["decision"] == "continue"
+    assert gate["application_status"] == "applied"
+    assert gate["action_result"]["approved_next_tasks"] == ["task-01"]
+    assert context_pack["risk_metadata"]["provided"]["milestone_id"] == "first-milestone"
+
+
 def test_supervisor_drive_records_budget_risk_gate_after_task_budget(tmp_path: Path, capsys):
     project = tmp_path / "supervisor-drive-budget-gate"
     project.mkdir()
@@ -1020,6 +1134,60 @@ def test_supervisor_unsafe_live_mutation_requires_human_approval(tmp_path: Path)
     assert validation["safety_classification"]["requires_human_by_policy"] is True
     assert validation["safety_classification"]["risk_level"] == "high"
     assert set(validation["safety_classification"]["risk_categories"]) >= {"deployment", "live", "secret"}
+
+
+def test_supervisor_decision_rejects_missing_local_evidence(tmp_path: Path):
+    project = tmp_path / "supervisor-missing-evidence"
+    project.mkdir()
+    write_supervisor_context_project(project, task_count=1)
+    harness = Harness(project)
+    context = harness.write_supervisor_context_pack(
+        gate_reason="operator_request",
+        objective="Evaluate supervisor decision with missing evidence.",
+    )
+    decision = {
+        "kind": SUPERVISOR_DECISION_KIND,
+        "decision": "continue",
+        "approved_next_tasks": ["task-00"],
+        "blocked_tasks": [],
+        "tasks_to_rewrite": [],
+        "requires_human": False,
+        "reason": "Continue even though the supervisor decision cites missing local evidence.",
+        "evidence": [".engineering/reports/tasks/missing-supervisor-evidence.json"],
+    }
+
+    validation = harness.validate_supervisor_decision(decision, context_pack_path=context["path"])
+    error_codes = {item["code"] for item in validation["errors"]}
+
+    assert validation["accepted"] is False
+    assert "missing_evidence_path" in error_codes
+    assert "missing_evidence" in error_codes
+
+
+def test_supervisor_context_pack_bounds_deep_risk_metadata_recursion(tmp_path: Path):
+    project = tmp_path / "supervisor-bounded-recursion"
+    project.mkdir()
+    write_supervisor_context_project(project, task_count=1)
+    nested: dict[str, object] = {"leaf": "supervisor bounded recursion leaf"}
+    for index in range(80):
+        nested = {
+            "level": index,
+            "child": nested,
+            "wide": list(range(20)),
+        }
+
+    summary = Harness(project).write_supervisor_context_pack(
+        gate_reason="bounded recursion operator request",
+        objective="Prove supervisor context pack serialization remains bounded.",
+        risk_metadata={"deep": nested, "wide": list(range(20))},
+    )
+    pack = json.loads((project / summary["path"]).read_text(encoding="utf-8"))
+    provided = pack["risk_metadata"]["provided"]
+    serialized = json.dumps(provided)
+
+    assert len(provided["wide"]) == 8
+    assert '"reason": "max_depth"' in serialized
+    assert "supervisor bounded recursion leaf" not in serialized
 
 
 def test_profiles_are_available():

@@ -4,6 +4,9 @@
 leaving worker task execution unchanged. A supervisor gate builds a local-only supervisor context pack,
 validates a structured `engineering-orchestrator.supervisor-decision.v1` decision, and records the
 context path, decision path, applied or skipped status, and reason in the drive report JSON and Markdown.
+Operator handling for success, failed task, blocked task, milestone completion, deployment gate, task
+reordering, unsafe decision rejection, missing evidence, and bounded recursion is documented in
+`docs/supervisor-operator-runbook.md`.
 
 Enable gates from the CLI:
 

@@ -529,6 +529,7 @@ SUPERVISOR_CONTEXT_PACK_LIMITS = {
     "git_commit_count": 6,
     "risk_count": 12,
     "message_chars": 600,
+    "json_depth": 16,
 }
 OPERATOR_CONSOLE_LIMITS = {
     "recent_task_runs": 8,
@@ -5822,19 +5823,54 @@ class Harness:
         payload["entries_truncated"] = len(entries) > len(included)
         return payload
 
-    def _supervisor_context_bounded_json_value(self, value: Any, *, max_chars: int) -> Any:
+    def _supervisor_context_bounded_json_value(
+        self,
+        value: Any,
+        *,
+        max_chars: int,
+        depth: int = 0,
+        max_depth: int | None = None,
+    ) -> Any:
+        limit = max_depth if max_depth is not None else int(SUPERVISOR_CONTEXT_PACK_LIMITS["json_depth"])
         if isinstance(value, str):
             return self._truncate_text(value, max_chars)
+        if depth >= limit and isinstance(value, (dict, list, tuple)):
+            return {
+                "truncated": True,
+                "reason": "max_depth",
+                "type": type(value).__name__,
+            }
         if isinstance(value, dict):
             return {
-                str(key): self._supervisor_context_bounded_json_value(item, max_chars=max_chars)
+                str(key): self._supervisor_context_bounded_json_value(
+                    item,
+                    max_chars=max_chars,
+                    depth=depth + 1,
+                    max_depth=limit,
+                )
                 for key, item in value.items()
             }
         if isinstance(value, list):
-            limit = 8
-            return [self._supervisor_context_bounded_json_value(item, max_chars=max_chars) for item in value[:limit]]
+            item_limit = 8
+            return [
+                self._supervisor_context_bounded_json_value(
+                    item,
+                    max_chars=max_chars,
+                    depth=depth + 1,
+                    max_depth=limit,
+                )
+                for item in value[:item_limit]
+            ]
         if isinstance(value, tuple):
-            return [self._supervisor_context_bounded_json_value(item, max_chars=max_chars) for item in value[:8]]
+            return [
+                self._supervisor_context_bounded_json_value(
+                    item,
+                    max_chars=max_chars,
+                    depth=depth + 1,
+                    max_depth=limit,
+                )
+                for item in value[:8]
+            ]
         return value
 
     def _supervisor_context_git_context(self) -> dict[str, Any]:

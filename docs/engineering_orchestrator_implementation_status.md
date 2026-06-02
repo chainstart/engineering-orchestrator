@@ -22,18 +22,18 @@ Decision records: `docs/decisions/`
 | `EH-SPEC-004` | `partial` | executor adapters and metadata | hosted/external adapters need more hardening | continue executor work |
 | `EH-SPEC-005` | `partial` | bounded context and runtime support | long-term memory still evolving | integrate memory packs |
 | `EH-SPEC-006` | `completed` | drive controls, stale recovery, daemon supervisor | more production policies possible | keep reliability work ongoing |
-| `EH-SPEC-007` | `partial` | acceptance/e2e evidence and domain templates | per-domain evidence matrix incomplete | expand domain packs |
+| `EH-SPEC-007` | `partial` | acceptance/e2e evidence, domain templates, and supervisor gated-drive tests | per-domain evidence matrix incomplete | expand domain packs |
 | `EH-SPEC-008` | `completed` | manifests, reports, audit trail | dashboard surfacing can improve | keep report schemas stable |
 | `EH-SPEC-009` | `partial` | git checkpoint and push boundaries | CI/PR automation incomplete | add CI adapters |
 | `EH-SPEC-010` | `partial` | command policy, approval gates, redaction | policy engine can become richer | continue policy hardening |
-| `EH-SPEC-011` | `partial` | status JSON and operator console | hosted/dashboard UI pending | keep dashboard contract stable |
+| `EH-SPEC-011` | `partial` | status JSON, operator console, and supervisor gate runbook evidence | hosted/dashboard UI pending | keep dashboard contract stable |
 | `EH-SPEC-012` | `partial` | profiles and domain pack hooks | more domain-specific packs needed | add formal/AI/security packs |
 | `EH-SPEC-013` | `completed` | self-iteration and duplicate-plan detection | higher-level planner quality can improve | continue goal-gap scoring |
 | `EH-SPEC-014` | `partial` | English docs and public positioning | packaging/release polish remains | prepare public release checklist |
 | `EH-SPEC-015` | `completed` | `spec_sync.py`, `engo spec-sync audit/record`, tests | optional deeper markdown status mutation | use JSONL + task ledger as source of truth |
 | `EH-SPEC-016` | `completed` | `docs_sync.py`, `engo docs-sync audit/propose/record`, post-task manifest/report evidence, `tests/test_docs_sync.py` | richer target-specific Markdown transforms remain future work | use docs-sync with declared target documentation roles |
 | `EH-SPEC-017` | `planned` | native parallel orchestration spec and roadmap task package | implementation remains future work | implement native parallel drive |
-| `EH-SPEC-018` | `partial` | supervisor role spec, task package plan, bounded local supervisor context pack, and context tests | decision schema, gated drive integration, safe queue mutation, and broader runbook tests remain future work | implement EO-SUP-003 through EO-SUP-006 |
+| `EH-SPEC-018` | `completed` | supervisor role spec, bounded local context packs, supervisor decision schema, gated drive integration, safe queue mutation, tests, and operator runbook | hosted supervisor dashboard remains future operator polish | keep supervisor artifacts readable by status/report surfaces |
 | `EO-SPEC-001` | `completed` | canonical source package `engineering_orchestrator`, compatibility package `engineering_harness`, `engo` / `engh`, README/spec/tests | GitHub repository and historical schema/state migration remain separate compatibility-window work | keep compatibility tests until a removal plan exists |
 
 ## Maintenance Rules
@@ -64,4 +64,7 @@ Decision records: `docs/decisions/`
 | EO-SUP-005 | supervisor-safe-roadmap-mutation | actual_system_state | completed | 2026-06-02T01:57:05Z | task report: .engineering/reports/tasks/20260602T014223Z-supervisor-safe-roadmap-mutation.md; task manifest: .engineering/reports/tasks/20260602T014223Z-supervisor-safe-roadmap-... |
 | EO-SUP-005 | supervisor-safe-roadmap-mutation | development_progress | completed | 2026-06-02T01:57:05Z | task report: .engineering/reports/tasks/20260602T014223Z-supervisor-safe-roadmap-mutation.md; task manifest: .engineering/reports/tasks/20260602T014223Z-supervisor-safe-roadmap-... |
 | EO-SUP-005 | supervisor-safe-roadmap-mutation | roadmap_status | completed | 2026-06-02T01:57:05Z | task report: .engineering/reports/tasks/20260602T014223Z-supervisor-safe-roadmap-mutation.md; task manifest: .engineering/reports/tasks/20260602T014223Z-supervisor-safe-roadmap-... |
+| EO-SUP-006 | supervisor-tests-and-runbook | actual_system_state | completed | 2026-06-02T02:05:02Z | task report: .engineering/reports/tasks/20260602T015705Z-supervisor-tests-and-runbook.md; task manifest: .engineering/reports/tasks/20260602T015705Z-supervisor-tests-and-runbook... |
+| EO-SUP-006 | supervisor-tests-and-runbook | development_progress | completed | 2026-06-02T02:05:02Z | task report: .engineering/reports/tasks/20260602T015705Z-supervisor-tests-and-runbook.md; task manifest: .engineering/reports/tasks/20260602T015705Z-supervisor-tests-and-runbook... |
+| EO-SUP-006 | supervisor-tests-and-runbook | roadmap_status | completed | 2026-06-02T02:05:02Z | task report: .engineering/reports/tasks/20260602T015705Z-supervisor-tests-and-runbook.md; task manifest: .engineering/reports/tasks/20260602T015705Z-supervisor-tests-and-runbook... |
 <!-- engineering-orchestrator:docs-sync:end -->

@@ -1,7 +1,7 @@
 {
   "kind": "engineering-harness.spec_tasks.v1",
   "project": "engineering-orchestrator",
-  "updated_at": "2026-06-02T01:57:05Z",
+  "updated_at": "2026-06-02T02:05:02Z",
   "source_spec": "docs/engineering-orchestrator-system-spec.md",
   "status_doc": "docs/engineering_orchestrator_implementation_status.md",
   "roadmap_doc": "docs/spec-driven-development-plan.md",
@@ -709,7 +709,7 @@
     {
       "id": "EO-SUP-006",
       "title": "Add supervisor tests and runbook",
-      "status": "pending",
+      "status": "completed",
       "requirement_ids": [
         "EH-SPEC-007",
         "EH-SPEC-008",
@@ -717,7 +717,104 @@
         "EH-SPEC-018"
       ],
       "roadmap_task_id": "supervisor-tests-and-runbook",
-      "next_action": "Add tests and operator runbook for success, failure, blocked task, milestone completion, deployment gate, task reorder, unsafe decision rejection, and bounded recursion."
+      "next_action": "Use the supervisor operator runbook and focused supervisor tests to verify gated drive decisions.",
+      "updated_at": "2026-06-02T02:05:02Z",
+      "last_note": "Recorded automatically after a completed orchestrator task.",
+      "last_phase": "run",
+      "evidence": [
+        {
+          "kind": "record",
+          "value": "implementation add supervisor tests and operator runbook: passed",
+          "recorded_at": "2026-06-02T02:03:22Z",
+          "actor": "codex"
+        },
+        {
+          "kind": "record",
+          "value": "acceptance supervisor full tests: python3 -m pytest tests -q -k 'supervisor' passed",
+          "recorded_at": "2026-06-02T02:03:22Z",
+          "actor": "codex"
+        },
+        {
+          "kind": "record",
+          "value": "acceptance supervisor runbook evidence: rg -n \"Supervisor Codex|supervisor role|supervisor gate|supervisor decision|bounded recursion\" docs src tests .engineering passed",
+          "recorded_at": "2026-06-02T02:03:22Z",
+          "actor": "codex"
+        },
+        {
+          "kind": "record",
+          "value": "task report: .engineering/reports/tasks/20260602T015705Z-supervisor-tests-and-runbook.md",
+          "recorded_at": "2026-06-02T02:05:02Z",
+          "actor": "engineering-harness:auto"
+        },
+        {
+          "kind": "record",
+          "value": "task manifest: .engineering/reports/tasks/20260602T015705Z-supervisor-tests-and-runbook.json",
+          "recorded_at": "2026-06-02T02:05:02Z",
+          "actor": "engineering-harness:auto"
+        },
+        {
+          "kind": "record",
+          "value": "task result: All required acceptance commands passed.",
+          "recorded_at": "2026-06-02T02:05:02Z",
+          "actor": "engineering-harness:auto"
+        }
+      ],
+      "documentation_sync": {
+        "status": "applied",
+        "updated_at": "2026-06-02T02:05:02Z",
+        "requested_task_id": "supervisor-tests-and-runbook",
+        "new_status": "completed",
+        "docs_update_log": "docs/docs_update_log.jsonl",
+        "updated_paths": [
+          "docs/engineering_orchestrator_implementation_status.md",
+          "docs/deployment-status.md",
+          "docs/task-packages.md",
+          "docs/spec-traceability.md"
+        ],
+        "manual_review_paths": [
+          "docs/engineering-orchestrator-system-spec.md",
+          "docs/decisions",
+          "docs/spec-driven-development-plan.md"
+        ]
+      },
+      "documentation_evidence": [
+        {
+          "kind": "record",
+          "value": "task report: .engineering/reports/tasks/20260602T015705Z-supervisor-tests-and-runbook.md",
+          "recorded_at": "2026-06-02T02:05:02Z",
+          "actor": "engineering-harness:auto"
+        },
+        {
+          "kind": "record",
+          "value": "task manifest: .engineering/reports/tasks/20260602T015705Z-supervisor-tests-and-runbook.json",
+          "recorded_at": "2026-06-02T02:05:02Z",
+          "actor": "engineering-harness:auto"
+        },
+        {
+          "kind": "record",
+          "value": "task result: All required acceptance commands passed.",
+          "recorded_at": "2026-06-02T02:05:02Z",
+          "actor": "engineering-harness:auto"
+        },
+        {
+          "kind": "record",
+          "value": "implementation add supervisor tests and runbook: passed",
+          "recorded_at": "2026-06-02T02:05:02Z",
+          "actor": "engineering-harness:auto"
+        },
+        {
+          "kind": "record",
+          "value": "acceptance-1 supervisor full tests: passed",
+          "recorded_at": "2026-06-02T02:05:02Z",
+          "actor": "engineering-harness:auto"
+        },
+        {
+          "kind": "record",
+          "value": "acceptance-1 supervisor runbook evidence: passed",
+          "recorded_at": "2026-06-02T02:05:02Z",
+          "actor": "engineering-harness:auto"
+        }
+      ]
     }
   ]
 }

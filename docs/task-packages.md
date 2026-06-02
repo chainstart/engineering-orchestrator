@@ -13,10 +13,10 @@ This document mirrors the target task package state that is also tracked in
 | `EH-PARALLEL-DRIVE-001` | `engineering-orchestrator-native-parallel-drive` | `planned` | native parallel drive orchestration | future task |
 | `EO-SUP-001` | `supervisor-role-spec` | `completed` | supervisor role, boundaries, trigger conditions, and task package plan | `docs/engineering-orchestrator-system-spec.md`, `docs/spec-driven-development-plan.md` |
 | `EO-SUP-002` | `supervisor-context-pack` | `completed` | bounded local supervisor context pack | `src/engineering_orchestrator/core.py`, `src/engineering_orchestrator/cli.py`, `tests/test_engineering_orchestrator.py`, `docs/executor-contract.md` |
-| `EO-SUP-003` | `supervisor-decision-schema` | `pending` | `supervisor_decision.v1` schema and validation | future task |
-| `EO-SUP-004` | `supervisor-gated-drive-integration` | `pending` | drive / parallel-drive supervisor gate integration | future task |
-| `EO-SUP-005` | `supervisor-safe-roadmap-mutation` | `pending` | safe queue and roadmap mutation proposals | future task |
-| `EO-SUP-006` | `supervisor-tests-and-runbook` | `pending` | tests, reports, and operator runbook | future task |
+| `EO-SUP-003` | `supervisor-decision-schema` | `completed` | `supervisor_decision.v1` schema and validation | `src/engineering_orchestrator/supervisor_decision.py`, `tests/test_engineering_orchestrator.py` |
+| `EO-SUP-004` | `supervisor-gated-drive-integration` | `completed` | drive / parallel-drive supervisor gate integration | `src/engineering_orchestrator/core.py`, `src/engineering_orchestrator/cli.py`, `src/engineering_orchestrator/parallel_drive.py`, `docs/supervisor-gated-drive.md` |
+| `EO-SUP-005` | `supervisor-safe-roadmap-mutation` | `completed` | safe queue and roadmap mutation proposals | `src/engineering_orchestrator/core.py`, `tests/test_engineering_orchestrator.py`, `docs/supervisor-gated-drive.md` |
+| `EO-SUP-006` | `supervisor-tests-and-runbook` | `completed` | tests, reports, and operator runbook | `tests/test_engineering_orchestrator.py`, `docs/supervisor-operator-runbook.md` |
 
 <!-- engineering-orchestrator:docs-sync:start -->
 ## Engineering Orchestrator Documentation Sync
@@ -28,4 +28,5 @@ This document mirrors the target task package state that is also tracked in
 | EO-SUP-003 | supervisor-decision-schema | task_packages | completed | 2026-06-02T01:23:13Z | task report: .engineering/reports/tasks/20260602T011352Z-supervisor-decision-schema.md; task manifest: .engineering/reports/tasks/20260602T011352Z-supervisor-decision-schema.jso... |
 | EO-SUP-004 | supervisor-gated-drive-integration | task_packages | completed | 2026-06-02T01:42:23Z | task report: .engineering/reports/tasks/20260602T012637Z-supervisor-gated-drive-integration.md; task manifest: .engineering/reports/tasks/20260602T012637Z-supervisor-gated-drive... |
 | EO-SUP-005 | supervisor-safe-roadmap-mutation | task_packages | completed | 2026-06-02T01:57:05Z | task report: .engineering/reports/tasks/20260602T014223Z-supervisor-safe-roadmap-mutation.md; task manifest: .engineering/reports/tasks/20260602T014223Z-supervisor-safe-roadmap-... |
+| EO-SUP-006 | supervisor-tests-and-runbook | task_packages | completed | 2026-06-02T02:05:02Z | task report: .engineering/reports/tasks/20260602T015705Z-supervisor-tests-and-runbook.md; task manifest: .engineering/reports/tasks/20260602T015705Z-supervisor-tests-and-runbook... |
 <!-- engineering-orchestrator:docs-sync:end -->
