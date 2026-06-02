@@ -573,6 +573,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         if not args.dry_run:
             result["spec_sync"] = maybe_sync_completed_spec_task(root, task, result, phase="run")
             result["docs_sync"] = maybe_sync_completed_documentation(root, task, result, phase="run")
+            result["roadmap_sync"] = maybe_sync_completed_roadmap(root, task, result, phase="run")
             attach_post_task_sync_evidence(root, result)
             harness.rebuild_manifest_index()
         maybe_checkpoint_task(harness, task, result, args, dry_run=args.dry_run)
@@ -865,6 +866,9 @@ def write_drive_report(harness: Harness, payload: dict) -> str:
             lines.append(f"  - Docs sync: `{docs_sync.get('status')}` - {docs_sync.get('reason', '')}")
             if docs_sync.get("docs_update_log"):
                 lines.append(f"  - Docs update log: `{docs_sync.get('docs_update_log')}`")
+        if isinstance(result.get("roadmap_sync"), dict):
+            roadmap_sync = result["roadmap_sync"]
+            lines.append(f"  - Roadmap sync: `{roadmap_sync.get('status')}` - {roadmap_sync.get('reason', '')}")
     continuations = payload.get("continuations", [])
     lines.extend(["", "## Continuations", ""])
     if not continuations:
@@ -1311,12 +1315,23 @@ def maybe_sync_completed_documentation(root: Path, task, result: dict, *, phase:
         return {"status": "blocked", "reason": "docs_sync_error", "message": str(exc)}
 
 
+def maybe_sync_completed_roadmap(root: Path, task, result: dict, *, phase: str = "task") -> dict:
+    if result.get("status") not in COMPLETED_STATUSES:
+        return {"status": "skipped", "reason": "task_not_completed"}
+    try:
+        from .roadmap_sync import record_roadmap_task_completion
+
+        return record_roadmap_task_completion(root, task_id=task.id, status="completed")
+    except Exception as exc:
+        return {"status": "failed", "reason": "roadmap_sync_error", "message": str(exc), "phase": phase}
+
+
 def attach_post_task_sync_evidence(root: Path, result: dict) -> None:
     manifest_value = str(result.get("manifest") or "")
     report_value = str(result.get("report") or "")
     sync_payload = {
         key: result.get(key)
-        for key in ("spec_sync", "docs_sync")
+        for key in ("spec_sync", "docs_sync", "roadmap_sync")
         if isinstance(result.get(key), dict)
     }
     if not sync_payload:
@@ -1350,12 +1365,15 @@ def append_post_task_sync_report_section(report_path: Path, sync_payload: dict[s
     ]
     spec_sync = sync_payload.get("spec_sync", {})
     docs_sync = sync_payload.get("docs_sync", {})
+    roadmap_sync = sync_payload.get("roadmap_sync", {})
     if isinstance(spec_sync, dict):
         section.append(f"- Spec sync: `{spec_sync.get('status', 'unknown')}` - {spec_sync.get('reason', '')}")
     if isinstance(docs_sync, dict):
         section.append(f"- Docs sync: `{docs_sync.get('status', 'unknown')}` - {docs_sync.get('reason', '')}")
         if docs_sync.get("docs_update_log"):
             section.append(f"- Docs update log: `{docs_sync.get('docs_update_log')}`")
+    if isinstance(roadmap_sync, dict):
+        section.append(f"- Roadmap sync: `{roadmap_sync.get('status', 'unknown')}` - {roadmap_sync.get('reason', '')}")
     section.extend(
         [
             "",
@@ -1719,6 +1737,7 @@ def run_project_drive(root: Path, args: argparse.Namespace) -> tuple[int, dict]:
         )
         result["spec_sync"] = maybe_sync_completed_spec_task(root, task, result, phase="drive")
         result["docs_sync"] = maybe_sync_completed_documentation(root, task, result, phase="drive")
+        result["roadmap_sync"] = maybe_sync_completed_roadmap(root, task, result, phase="drive")
         attach_post_task_sync_evidence(root, result)
         harness.rebuild_manifest_index()
         maybe_checkpoint_task(harness, task, result, args, checkpoint_defer=task_checkpoint_defer)
