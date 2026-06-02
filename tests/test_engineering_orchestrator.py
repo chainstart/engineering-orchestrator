@@ -459,6 +459,177 @@ def roadmap_without_experience(project_name: str, *, profile: str = "python-agen
     }
 
 
+def write_supervisor_context_project(project: Path, *, task_count: int = 15) -> None:
+    init_project(project, "python-agent", name=project.name)
+    docs_dir = project / "docs"
+    docs_dir.mkdir(exist_ok=True)
+    (docs_dir / "spec.md").write_text(
+        "# Local Spec\n\n## EH-SPEC-018: Supervisor Codex Role\n\nBuild supervisor context locally.\n",
+        encoding="utf-8",
+    )
+    (project / "README.md").write_text("initial\n", encoding="utf-8")
+    tasks = []
+    for index in range(task_count):
+        tasks.append(
+            {
+                "id": f"task-{index:02d}",
+                "title": f"Supervisor context task {index:02d}",
+                "status": "pending",
+                "file_scope": ["src/**", "tests/**"],
+                "spec_refs": ["EH-SPEC-018"],
+                "acceptance": [
+                    {
+                        "name": "supervisor context verifies",
+                        "command": "python3 -c \"print('supervisor context')\"",
+                        "spec_refs": ["EH-SPEC-018"],
+                    }
+                ],
+            }
+        )
+    roadmap = {
+        "version": 1,
+        "project": project.name,
+        "profile": "python-agent",
+        "report_dir": ".engineering/reports/tasks",
+        "manifest_index_path": ".engineering/reports/tasks/manifest-index.json",
+        "goal": {"text": "Drain local supervisor gate work."},
+        "spec": {"path": "docs/spec.md", "kind": "markdown"},
+        "milestones": [
+            {
+                "id": "supervisor-context",
+                "title": "Supervisor Context",
+                "objective": "Build bounded supervisor context packs.",
+                "tasks": tasks,
+            }
+        ],
+    }
+    (project / ".engineering/roadmap.yaml").write_text(json.dumps(roadmap, indent=2), encoding="utf-8")
+
+
+def write_supervisor_context_manifest(
+    project: Path,
+    *,
+    name: str,
+    task_id: str,
+    status: str = "failed",
+) -> None:
+    report_dir = project / ".engineering/reports/tasks"
+    report_dir.mkdir(parents=True, exist_ok=True)
+    report_path = report_dir / f"{name}.md"
+    manifest_path = report_dir / f"{name}.json"
+    report_path.write_text(
+        "# Task Report\n\nGate failed with OPENAI_API_KEY=sk-supersecret123456 and docs_sync evidence.\n",
+        encoding="utf-8",
+    )
+    manifest = {
+        "kind": "engineering-harness.task-run-manifest",
+        "project": project.name,
+        "task_id": task_id,
+        "manifest_path": str(manifest_path.relative_to(project)),
+        "report_path": str(report_path.relative_to(project)),
+        "status": status,
+        "message": "failed gate with TOKEN=secret-token-value",
+        "started_at": "2026-06-02T00:00:00Z",
+        "finished_at": "2026-06-02T00:01:00Z",
+        "runs": [
+            {
+                "phase": "acceptance",
+                "name": "supervisor context verifies",
+                "executor": "shell",
+                "status": status,
+                "returncode": 1 if status == "failed" else 0,
+                "spec_refs": ["EH-SPEC-018"],
+                "requested_capabilities": [],
+            }
+        ],
+        "spec_sync": {"status": "applied", "reason": "spec_sync evidence recorded"},
+        "docs_sync": {
+            "status": "applied",
+            "reason": "docs_sync evidence recorded",
+            "docs_update_log": "docs/docs_update_log.jsonl",
+        },
+        "policy_decision_summary": {"total": 0},
+        "safety_audit": {"unsafe_decision_count": 0},
+    }
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
+
+
+def test_supervisor_context_pack_writes_bounded_local_context_artifact(tmp_path: Path):
+    project = tmp_path / "supervisor-context-project"
+    project.mkdir()
+    write_supervisor_context_project(project)
+    write_supervisor_context_manifest(project, name="20260602T000000Z-task-00", task_id="task-00")
+    write_supervisor_context_manifest(project, name="20260602T000100Z-task-01", task_id="task-01", status="completed")
+    (project / "docs/docs_update_log.jsonl").write_text(
+        json.dumps({"kind": "docs_sync", "note": "docs_sync completed with API_KEY=docs-secret"}) + "\n",
+        encoding="utf-8",
+    )
+    (project / "docs/spec_update_log.jsonl").write_text(
+        json.dumps({"kind": "spec_sync", "note": "spec_sync completed with TOKEN=spec-secret"}) + "\n",
+        encoding="utf-8",
+    )
+    init_git_repo(project)
+    (project / "README.md").write_text("initial\nsupervisor context dirty diff\n", encoding="utf-8")
+
+    summary = Harness(project).write_supervisor_context_pack(
+        gate_reason="task_failure: OPENAI_API_KEY=sk-gatesecret123456",
+        objective="Review the current supervisor context gate.",
+        risk_metadata={"api_key": "risk-secret-value", "severity": "high"},
+    )
+    pack_path = project / summary["path"]
+    pack = json.loads(pack_path.read_text(encoding="utf-8"))
+    serialized = json.dumps(pack, sort_keys=True)
+
+    assert pack["kind"] == "engineering-harness.supervisor-context-pack"
+    assert pack["local_only"] is True
+    assert pack["source_scope"] == "local-only"
+    assert pack["artifact"]["path"] == summary["path"]
+    assert len(pack["pending_tasks"]) == pack["limits"]["pending_task_count"]
+    assert pack["roadmap"]["pending_tasks_truncated"] is True
+    assert pack["docs_sync"]["manifest_evidence_count"] == 2
+    assert pack["spec_sync"]["manifest_evidence_count"] == 2
+    assert pack["docs_sync"]["log"]["included_count"] == 1
+    assert pack["spec_sync"]["log"]["included_count"] == 1
+    assert pack["git"]["is_repository"] is True
+    assert pack["git"]["diff_summary"]["file_count"] >= 1
+    assert pack["risk_metadata"]["provided"]["api_key"] == "[REDACTED]"
+    assert "[REDACTED]" in serialized
+    assert "sk-gatesecret123456" not in serialized
+    assert "sk-supersecret123456" not in serialized
+    assert "risk-secret-value" not in serialized
+
+
+def test_supervisor_context_cli_generates_context_pack(tmp_path: Path, capsys):
+    project = tmp_path / "supervisor-context-cli"
+    project.mkdir()
+    write_supervisor_context_project(project, task_count=2)
+    write_supervisor_context_manifest(project, name="20260602T000000Z-task-00", task_id="task-00")
+
+    exit_code = cli_main(
+        [
+            "supervisor-context",
+            "--project-root",
+            str(project),
+            "--gate-reason",
+            "quality_gate",
+            "--objective",
+            "Inspect supervisor context from local evidence.",
+            "--risk-metadata",
+            "severity=medium",
+            "--json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    pack = json.loads((project / payload["path"]).read_text(encoding="utf-8"))
+
+    assert exit_code == 0
+    assert payload["kind"] == "engineering-harness.supervisor-context-pack"
+    assert len(payload["sha256"]) == 64
+    assert pack["gate_reason"] == "quality_gate"
+    assert pack["summary"]["local_only"] is True
+    assert pack["sync_evidence"]["docs_sync"]["manifest_evidence_count"] == 1
+
+
 def test_profiles_are_available():
     profile_ids = {item["id"] for item in list_profiles()}
 

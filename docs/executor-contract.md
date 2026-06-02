@@ -153,6 +153,19 @@ The prompt never embeds the full spec document. Context pack counts and text siz
 sensitive-looking values are redacted before persistence. Task manifests reference the context pack
 from the run-level `context_pack` field and from `artifacts` with kind `agent_context_pack`.
 
+## Supervisor Context Packs
+
+Supervisor context packs are bounded local JSON artifacts written under
+`.engineering/reports/tasks/supervisor-context-packs/` by `engo supervisor-context`. They are
+input evidence only: building a supervisor context pack does not evaluate a supervisor decision,
+retry work, mutate the queue, or advance drive state.
+
+Each pack records the current objective and gate reason, capped roadmap state and pending task
+metadata, recent task manifests and report excerpts, `docs_sync` and `spec_sync` evidence from
+manifests and local JSONL logs, git status and diff summaries, and risk metadata from drive control,
+approvals, checkpoint readiness, failure isolation, and the goal-gap scorecard. Counts and excerpts
+are bounded by `SUPERVISOR_CONTEXT_PACK_LIMITS`, and the full payload is redacted before persistence.
+
 ## Watchdog Results
 
 Built-in subprocess adapters (`shell`, enabled `dagger`, `openhands`, and `codex`) enforce

@@ -392,6 +392,29 @@ def cmd_operator_console(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_supervisor_context(args: argparse.Namespace) -> int:
+    root = resolve_project_root(args)
+    harness = Harness(root)
+    risk_metadata = {}
+    for item in args.risk_metadata or []:
+        key, separator, value = str(item).partition("=")
+        if separator:
+            risk_metadata[key.strip()] = value.strip()
+    payload = harness.write_supervisor_context_pack(
+        gate_reason=args.gate_reason,
+        objective=args.objective,
+        risk_metadata=risk_metadata,
+    )
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print("Supervisor context pack written")
+        print(f"Path: {payload['path']}")
+        print(f"SHA-256: {payload['sha256']}")
+        print(f"Gate reason: {payload.get('gate_reason')}")
+    return 0
+
+
 def cmd_validate(args: argparse.Namespace) -> int:
     root = resolve_project_root(args)
     harness = Harness(root)
@@ -4682,6 +4705,7 @@ def build_parser() -> argparse.ArgumentParser:
     for name, help_text, func in [
         ("status", "Show project or workspace status", cmd_status),
         ("operator-console", "Generate a bounded local operator console summary", cmd_operator_console),
+        ("supervisor-context", "Write a bounded local supervisor context pack for a gate reason", cmd_supervisor_context),
         ("validate", "Validate the engineering roadmap schema and task commands", cmd_validate),
         ("next", "Show the next selected task", cmd_next),
         ("run", "Run the next or selected task acceptance checks", cmd_run),
@@ -4717,6 +4741,15 @@ def build_parser() -> argparse.ArgumentParser:
             command.add_argument("--git-message-template", default="chore(engineering): complete {task_id}")
         if name == "operator-console":
             command.add_argument("--write", action="store_true")
+        if name == "supervisor-context":
+            command.add_argument("--gate-reason", required=True)
+            command.add_argument("--objective", default=None)
+            command.add_argument(
+                "--risk-metadata",
+                action="append",
+                default=None,
+                help="Bounded risk metadata as key=value; may be repeated",
+            )
         if name == "advance":
             command.add_argument("--max-new-milestones", type=int, default=1)
             command.add_argument("--reason", default="manual_advance")

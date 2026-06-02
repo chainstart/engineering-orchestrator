@@ -33,7 +33,7 @@ Decision records: `docs/decisions/`
 | `EH-SPEC-015` | `completed` | `spec_sync.py`, `engo spec-sync audit/record`, tests | optional deeper markdown status mutation | use JSONL + task ledger as source of truth |
 | `EH-SPEC-016` | `completed` | `docs_sync.py`, `engo docs-sync audit/propose/record`, post-task manifest/report evidence, `tests/test_docs_sync.py` | richer target-specific Markdown transforms remain future work | use docs-sync with declared target documentation roles |
 | `EH-SPEC-017` | `planned` | native parallel orchestration spec and roadmap task package | implementation remains future work | implement native parallel drive |
-| `EH-SPEC-018` | `planned` | supervisor role spec and task package plan | context pack, decision schema, gated drive integration, safe queue mutation, and tests remain future work | implement EO-SUP-002 through EO-SUP-006 |
+| `EH-SPEC-018` | `partial` | supervisor role spec, task package plan, bounded local supervisor context pack, and context tests | decision schema, gated drive integration, safe queue mutation, and broader runbook tests remain future work | implement EO-SUP-003 through EO-SUP-006 |
 | `EO-SPEC-001` | `completed` | canonical source package `engineering_orchestrator`, compatibility package `engineering_harness`, `engo` / `engh`, README/spec/tests | GitHub repository and historical schema/state migration remain separate compatibility-window work | keep compatibility tests until a removal plan exists |
 
 ## Maintenance Rules
@@ -52,4 +52,7 @@ Decision records: `docs/decisions/`
 | EH-DOC-SYNC-002 | engineering-orchestrator-target-docs-sync-implementation | actual_system_state | completed | 2026-06-01T13:18:24Z | targeted docs sync tests passed; roadmap validation passed; docs-sync command evidence found |
 | EH-DOC-SYNC-002 | engineering-orchestrator-target-docs-sync-implementation | development_progress | completed | 2026-06-01T13:18:24Z | targeted docs sync tests passed; roadmap validation passed; docs-sync command evidence found |
 | EH-DOC-SYNC-002 | engineering-orchestrator-target-docs-sync-implementation | roadmap_status | completed | 2026-06-01T13:18:24Z | targeted docs sync tests passed; roadmap validation passed; docs-sync command evidence found |
+| EO-SUP-002 | supervisor-context-pack | actual_system_state | completed | 2026-06-02T01:10:32Z | task report: .engineering/reports/tasks/20260602T005739Z-supervisor-context-pack.md; task manifest: .engineering/reports/tasks/20260602T005739Z-supervisor-context-pack.json; tas... |
+| EO-SUP-002 | supervisor-context-pack | development_progress | completed | 2026-06-02T01:10:32Z | task report: .engineering/reports/tasks/20260602T005739Z-supervisor-context-pack.md; task manifest: .engineering/reports/tasks/20260602T005739Z-supervisor-context-pack.json; tas... |
+| EO-SUP-002 | supervisor-context-pack | roadmap_status | completed | 2026-06-02T01:10:32Z | task report: .engineering/reports/tasks/20260602T005739Z-supervisor-context-pack.md; task manifest: .engineering/reports/tasks/20260602T005739Z-supervisor-context-pack.json; tas... |
 <!-- engineering-orchestrator:docs-sync:end -->

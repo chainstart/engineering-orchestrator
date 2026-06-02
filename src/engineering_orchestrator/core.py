@@ -426,6 +426,8 @@ SELF_ITERATION_CONTEXT_LIMITS = {
 }
 AGENT_CONTEXT_PACK_SCHEMA_VERSION = 1
 AGENT_CONTEXT_PACK_DIRNAME = "agent-context-packs"
+SUPERVISOR_CONTEXT_PACK_SCHEMA_VERSION = 1
+SUPERVISOR_CONTEXT_PACK_DIRNAME = "supervisor-context-packs"
 ACCEPTANCE_DIAGNOSTICS_SCHEMA_VERSION = 1
 ACCEPTANCE_DIAGNOSTIC_TAIL_CHARS = 4000
 REPAIR_PROMPT_INPUT_SUMMARY_CHARS = 1600
@@ -452,6 +454,23 @@ AGENT_CONTEXT_PACK_LIMITS = {
     "acceptance_failure_excerpt_chars": 1000,
     "reference_repository_count": 8,
     "reference_repository_note_chars": 700,
+}
+SUPERVISOR_CONTEXT_PACK_LIMITS = {
+    "pending_task_count": 12,
+    "roadmap_command_count": 4,
+    "continuation_stage_count": 8,
+    "recent_manifest_count": 6,
+    "manifest_run_count": 6,
+    "recent_report_count": 8,
+    "report_excerpt_chars": 900,
+    "sync_log_entry_count": 6,
+    "sync_log_entry_chars": 700,
+    "git_status_line_count": 40,
+    "git_diff_file_count": 40,
+    "git_diff_stat_chars": 2000,
+    "git_commit_count": 6,
+    "risk_count": 12,
+    "message_chars": 600,
 }
 OPERATOR_CONSOLE_LIMITS = {
     "recent_task_runs": 8,
@@ -4277,6 +4296,583 @@ class Harness:
             "goal_gap_scorecard": goal_gap_scorecard,
         }
         return self._redact_context_value(payload)
+
+    def supervisor_context_pack(
+        self,
+        *,
+        gate_reason: str,
+        objective: str | None = None,
+        risk_metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        status_summary = self.status_summary(refresh_approvals=False)
+        roadmap_context = self._supervisor_context_roadmap_context(status_summary)
+        manifest_context = self._supervisor_context_manifest_context()
+        report_context = self._supervisor_context_report_context()
+        sync_evidence = self._supervisor_context_sync_evidence(manifest_context)
+        git_context = self._supervisor_context_git_context()
+        risk_context = self._supervisor_context_risk_metadata(
+            status_summary,
+            manifest_context,
+            gate_reason=gate_reason,
+            risk_metadata=risk_metadata,
+        )
+        objective_context = self._supervisor_context_current_objective(objective, status_summary)
+        summary = {
+            "local_only": True,
+            "gate_reason": self._truncate_text(gate_reason, int(SUPERVISOR_CONTEXT_PACK_LIMITS["message_chars"])),
+            "pending_task_count": roadmap_context.get("pending_task_count", 0),
+            "pending_task_included_count": len(roadmap_context.get("pending_tasks", [])),
+            "roadmap_task_count": roadmap_context.get("task_count", 0),
+            "manifest_count": manifest_context.get("index", {}).get("manifest_count", 0),
+            "recent_manifest_count": len(manifest_context.get("recent_task_manifests", [])),
+            "task_report_count": report_context.get("task_reports", {}).get("total_count", 0),
+            "drive_report_count": report_context.get("drive_reports", {}).get("total_count", 0),
+            "docs_sync_manifest_evidence_count": sync_evidence.get("docs_sync", {}).get("manifest_evidence_count", 0),
+            "spec_sync_manifest_evidence_count": sync_evidence.get("spec_sync", {}).get("manifest_evidence_count", 0),
+            "git_is_repository": git_context.get("is_repository", False),
+            "git_status_line_count": len(git_context.get("status_lines", [])),
+            "git_diff_file_count": git_context.get("diff_summary", {}).get("file_count", 0),
+            "risk_item_count": risk_context.get("included_count", 0),
+        }
+        payload = {
+            "schema_version": SUPERVISOR_CONTEXT_PACK_SCHEMA_VERSION,
+            "kind": "engineering-harness.supervisor-context-pack",
+            "created_at": utc_now(),
+            "local_only": True,
+            "source_scope": "local-only",
+            "project": {
+                "name": str(self.roadmap.get("project", self.project_root.name)),
+                "root": str(self.project_root),
+                "profile": self.roadmap.get("profile"),
+                "roadmap_path": self._project_relative_path(self.roadmap_path),
+            },
+            "current_objective": objective_context,
+            "gate_reason": gate_reason,
+            "failure_or_gate_reason": {
+                "gate_reason": gate_reason,
+                "message": self._truncate_text(
+                    str(gate_reason or "supervisor context requested"),
+                    int(SUPERVISOR_CONTEXT_PACK_LIMITS["message_chars"]),
+                ),
+            },
+            "summary": summary,
+            "roadmap": roadmap_context,
+            "pending_tasks": roadmap_context.get("pending_tasks", []),
+            "manifests": manifest_context,
+            "reports": report_context,
+            "sync_evidence": sync_evidence,
+            "docs_sync": sync_evidence.get("docs_sync", {}),
+            "spec_sync": sync_evidence.get("spec_sync", {}),
+            "git": git_context,
+            "risk_metadata": risk_context,
+            "limits": dict(SUPERVISOR_CONTEXT_PACK_LIMITS),
+        }
+        return self._redact_context_value(payload)
+
+    def write_supervisor_context_pack(
+        self,
+        *,
+        gate_reason: str,
+        objective: str | None = None,
+        risk_metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        context_dir = self.report_dir / SUPERVISOR_CONTEXT_PACK_DIRNAME
+        fingerprint = hashlib.sha256(
+            f"{gate_reason}\0{objective or ''}\0{time.time_ns()}".encode("utf-8")
+        ).hexdigest()[:10]
+        context_path = context_dir / (
+            f"{slug_now()}-supervisor-context-"
+            f"{self._safe_context_slug(redact(gate_reason or 'gate'), fallback='gate')}-{fingerprint}.json"
+        )
+        payload = self.supervisor_context_pack(
+            gate_reason=gate_reason,
+            objective=objective,
+            risk_metadata=risk_metadata,
+        )
+        relative_path = self._project_relative_path(context_path)
+        payload["artifact"] = {
+            "path": relative_path,
+            "directory": self._project_relative_path(context_dir),
+            "local_only": True,
+        }
+        payload["context_path"] = relative_path
+        payload = self._redact_context_value(payload)
+        write_json(context_path, payload)
+        encoded = context_path.read_bytes()
+        return {
+            "schema_version": SUPERVISOR_CONTEXT_PACK_SCHEMA_VERSION,
+            "kind": "engineering-harness.supervisor-context-pack",
+            "path": relative_path,
+            "sha256": hashlib.sha256(encoded).hexdigest(),
+            "gate_reason": payload.get("gate_reason"),
+            "created_at": payload.get("created_at"),
+            "summary": payload.get("summary", {}),
+            "limits": dict(SUPERVISOR_CONTEXT_PACK_LIMITS),
+        }
+
+    def _supervisor_context_current_objective(
+        self,
+        objective: str | None,
+        status_summary: dict[str, Any],
+    ) -> dict[str, Any]:
+        explicit = str(objective or "").strip()
+        source = "argument" if explicit else "roadmap"
+        text = explicit or self._roadmap_goal_text()
+        next_task = status_summary.get("next_task") if isinstance(status_summary.get("next_task"), dict) else None
+        drive_control = (
+            status_summary.get("drive_control") if isinstance(status_summary.get("drive_control"), dict) else {}
+        )
+        current_task = (
+            drive_control.get("current_task") if isinstance(drive_control.get("current_task"), dict) else None
+        )
+        return {
+            "source": source,
+            "text": self._truncate_text(text, int(SUPERVISOR_CONTEXT_PACK_LIMITS["message_chars"])),
+            "next_task": (
+                {
+                    "id": next_task.get("id"),
+                    "title": next_task.get("title"),
+                    "milestone_id": next_task.get("milestone_id"),
+                }
+                if next_task
+                else None
+            ),
+            "current_drive_task": deepcopy(current_task) if current_task else None,
+        }
+
+    def _supervisor_context_roadmap_context(self, status_summary: dict[str, Any]) -> dict[str, Any]:
+        milestones = self.roadmap.get("milestones", [])
+        if not isinstance(milestones, list):
+            milestones = []
+        state = self.load_state()
+        task_states = state.get("tasks", {}) if isinstance(state.get("tasks"), dict) else {}
+        tasks = list(self.iter_tasks())
+        task_status_counts: dict[str, int] = {}
+        pending_tasks: list[dict[str, Any]] = []
+        task_limit = int(SUPERVISOR_CONTEXT_PACK_LIMITS["pending_task_count"])
+        pending_task_count = 0
+        for task in tasks:
+            task_state = task_states.get(task.id, {}) if isinstance(task_states.get(task.id), dict) else {}
+            status = str(task_state.get("status", task.status))
+            task_status_counts[status] = task_status_counts.get(status, 0) + 1
+            if status in COMPLETED_STATUSES:
+                continue
+            pending_task_count += 1
+            if len(pending_tasks) < task_limit:
+                pending_tasks.append(self._agent_context_pack_task_outline(task, status=status))
+
+        goal = self.roadmap.get("goal") if isinstance(self.roadmap.get("goal"), dict) else {}
+        generated_from = self.roadmap.get("generated_from") if isinstance(self.roadmap.get("generated_from"), dict) else {}
+        continuation = status_summary.get("continuation") if isinstance(status_summary.get("continuation"), dict) else {}
+        continuation_config = self.roadmap.get("continuation") if isinstance(self.roadmap.get("continuation"), dict) else {}
+        continuation_stages = continuation_config.get("stages", []) if isinstance(continuation_config, dict) else []
+        if not isinstance(continuation_stages, list):
+            continuation_stages = []
+        materialized_stage_ids = {
+            str(milestone.get("id", "")).strip()
+            for milestone in milestones
+            if isinstance(milestone, dict)
+        }
+        pending_stages = [
+            stage
+            for stage in continuation_stages
+            if isinstance(stage, dict) and str(stage.get("id", "")).strip() not in materialized_stage_ids
+        ]
+        stage_limit = int(SUPERVISOR_CONTEXT_PACK_LIMITS["continuation_stage_count"])
+        return {
+            "path": self._project_relative_path(self.roadmap_path),
+            "project": str(self.roadmap.get("project", self.project_root.name)),
+            "profile": self.roadmap.get("profile"),
+            "generated_by": self.roadmap.get("generated_by"),
+            "goal": {
+                "text": self._truncate_text(
+                    str(goal.get("text") or generated_from.get("goal") or self._roadmap_goal_text()),
+                    int(SUPERVISOR_CONTEXT_PACK_LIMITS["message_chars"]),
+                ),
+                "blueprint": goal.get("blueprint") or generated_from.get("blueprint_path"),
+                "constraints": self._string_items(goal.get("constraints")) if isinstance(goal, dict) else [],
+            },
+            "milestone_count": len(milestones),
+            "milestones": deepcopy(status_summary.get("milestones", [])),
+            "task_count": len(tasks),
+            "task_status_counts": dict(sorted(task_status_counts.items())),
+            "next_task": deepcopy(status_summary.get("next_task")),
+            "pending_task_count": pending_task_count,
+            "pending_tasks": pending_tasks,
+            "pending_tasks_truncated": pending_task_count > len(pending_tasks),
+            "continuation": {
+                **continuation,
+                "stages": [self._self_iteration_stage_summary(stage) for stage in pending_stages[:stage_limit]],
+                "stage_count_truncated": len(pending_stages) > stage_limit,
+            },
+            "self_iteration": deepcopy(status_summary.get("self_iteration", {})),
+        }
+
+    def _supervisor_context_manifest_context(self) -> dict[str, Any]:
+        index = self._build_manifest_index()
+        recent_limit = int(SUPERVISOR_CONTEXT_PACK_LIMITS["recent_manifest_count"])
+        run_limit = int(SUPERVISOR_CONTEXT_PACK_LIMITS["manifest_run_count"])
+        recent_entries = list(reversed(index.get("manifests", [])))[:recent_limit]
+        recent_manifests = []
+        for entry in recent_entries:
+            manifest_path = self.project_root / str(entry.get("manifest_path", ""))
+            try:
+                manifest = load_mapping(manifest_path)
+            except Exception as exc:
+                recent_manifests.append(
+                    {
+                        **entry,
+                        "load_error": self._truncate_text(
+                            str(exc),
+                            int(SUPERVISOR_CONTEXT_PACK_LIMITS["message_chars"]),
+                        ),
+                    }
+                )
+                continue
+            recent_manifests.append(
+                self._supervisor_context_manifest_summary(entry, manifest, manifest_run_count=run_limit)
+            )
+        return {
+            "index": {
+                "path": index.get("manifest_index_path"),
+                "manifest_count": index.get("manifest_count", 0),
+                "latest_manifest": index.get("latest_manifest"),
+                "latest_by_task": index.get("latest_by_task", {}),
+                "status_counts": index.get("status_counts", {}),
+                "policy_decision_summary": index.get("policy_decision_summary", {}),
+                "safety_audit": index.get("safety_audit", {}),
+                "failure_isolation": index.get("failure_isolation", {}),
+            },
+            "recent_task_manifests": recent_manifests,
+            "recent_task_manifests_truncated": len(index.get("manifests", [])) > len(recent_manifests),
+        }
+
+    def _supervisor_context_manifest_summary(
+        self,
+        entry: dict[str, Any],
+        manifest: dict[str, Any],
+        *,
+        manifest_run_count: int,
+    ) -> dict[str, Any]:
+        runs = manifest.get("runs", []) if isinstance(manifest.get("runs"), list) else []
+        git = manifest.get("git", {}) if isinstance(manifest.get("git"), dict) else {}
+        payload: dict[str, Any] = {
+            "manifest_path": entry.get("manifest_path") or manifest.get("manifest_path"),
+            "report_path": entry.get("report_path") or manifest.get("report_path"),
+            "task_id": entry.get("task_id") or manifest.get("task_id"),
+            "task_title": entry.get("task_title"),
+            "milestone_id": entry.get("milestone_id") or manifest.get("milestone_id"),
+            "status": entry.get("status") or manifest.get("status"),
+            "message": self._truncate_text(
+                str(manifest.get("message", "")),
+                int(SUPERVISOR_CONTEXT_PACK_LIMITS["message_chars"]),
+            ),
+            "started_at": manifest.get("started_at"),
+            "finished_at": manifest.get("finished_at"),
+            "attempt": manifest.get("attempt"),
+            "run_count": len(runs),
+            "policy_decision_summary": manifest.get("policy_decision_summary", {}),
+            "safety_audit": manifest.get("safety_audit", {}),
+            "runs": [
+                {
+                    "phase": str(run.get("phase", "")),
+                    "name": str(run.get("name", "")),
+                    "executor": str(run.get("executor", "")),
+                    "status": str(run.get("status", "")),
+                    "returncode": run.get("returncode"),
+                    "spec_refs": run.get("spec_refs") if isinstance(run.get("spec_refs"), list) else [],
+                    "requested_capabilities": run.get("requested_capabilities")
+                    if isinstance(run.get("requested_capabilities"), list)
+                    else [],
+                    "user_experience_gate": deepcopy(run.get("user_experience_gate"))
+                    if isinstance(run.get("user_experience_gate"), dict)
+                    else {},
+                }
+                for run in runs[:manifest_run_count]
+                if isinstance(run, dict)
+            ],
+            "run_count_truncated": len(runs) > manifest_run_count,
+            "git": {
+                "is_repository": bool(git.get("is_repository", False)),
+                "branch": git.get("branch"),
+                "head": git.get("head"),
+                "short_head": git.get("short_head"),
+            },
+        }
+        if isinstance(manifest.get("spec_sync"), dict):
+            payload["spec_sync"] = deepcopy(manifest["spec_sync"])
+        if isinstance(manifest.get("docs_sync"), dict):
+            payload["docs_sync"] = deepcopy(manifest["docs_sync"])
+        if isinstance(manifest.get("target_sync"), dict):
+            payload["target_sync"] = deepcopy(manifest["target_sync"])
+        if isinstance(manifest.get("failure_isolation"), dict):
+            payload["failure_isolation"] = self._compact_failure_isolation(manifest["failure_isolation"])
+        return payload
+
+    def _supervisor_context_report_context(self) -> dict[str, Any]:
+        return {
+            "task_reports": self._supervisor_context_recent_reports(self.report_dir.glob("*.md")),
+            "drive_reports": self._supervisor_context_recent_reports((self.report_dir / "drives").glob("*.md")),
+            "assessment_reports": self._supervisor_context_recent_reports(
+                (self.report_dir / "assessments").glob("*.md")
+            ),
+        }
+
+    def _supervisor_context_recent_reports(self, paths: Any) -> dict[str, Any]:
+        report_paths = sorted(
+            [path for path in paths if isinstance(path, Path) and path.is_file()],
+            key=self._project_relative_path,
+        )
+        recent = list(reversed(report_paths))[: int(SUPERVISOR_CONTEXT_PACK_LIMITS["recent_report_count"])]
+        return {
+            "total_count": len(report_paths),
+            "included_count": len(recent),
+            "files": [self._supervisor_context_report_file_summary(path) for path in recent],
+        }
+
+    def _supervisor_context_report_file_summary(self, path: Path) -> dict[str, Any]:
+        payload = self._text_excerpt_payload(path, int(SUPERVISOR_CONTEXT_PACK_LIMITS["report_excerpt_chars"]))
+        return {
+            "path": self._project_relative_path(path),
+            "bytes": payload.get("bytes"),
+            "title": self._markdown_title(path),
+            "excerpt": payload.get("excerpt", ""),
+            "excerpt_truncated": payload.get("excerpt_truncated", False),
+        }
+
+    def _supervisor_context_sync_evidence(self, manifest_context: dict[str, Any]) -> dict[str, Any]:
+        recent_manifests = (
+            manifest_context.get("recent_task_manifests", [])
+            if isinstance(manifest_context.get("recent_task_manifests"), list)
+            else []
+        )
+
+        def manifest_sync_items(key: str) -> list[dict[str, Any]]:
+            items: list[dict[str, Any]] = []
+            for manifest in recent_manifests:
+                if not isinstance(manifest, dict) or not isinstance(manifest.get(key), dict):
+                    continue
+                items.append(
+                    {
+                        "task_id": manifest.get("task_id"),
+                        "manifest_path": manifest.get("manifest_path"),
+                        "report_path": manifest.get("report_path"),
+                        key: deepcopy(manifest[key]),
+                    }
+                )
+            return items
+
+        docs_items = manifest_sync_items("docs_sync")
+        spec_items = manifest_sync_items("spec_sync")
+        return {
+            "docs_sync": {
+                "manifest_evidence_count": len(docs_items),
+                "manifest_evidence": docs_items,
+                "log": self._supervisor_context_jsonl_log("docs/docs_update_log.jsonl"),
+            },
+            "spec_sync": {
+                "manifest_evidence_count": len(spec_items),
+                "manifest_evidence": spec_items,
+                "log": self._supervisor_context_jsonl_log("docs/spec_update_log.jsonl"),
+                "spec_tasks_path": ".engineering/spec_tasks.yaml"
+                if (self.project_root / ".engineering/spec_tasks.yaml").exists()
+                else None,
+            },
+        }
+
+    def _supervisor_context_jsonl_log(self, relative_path: str) -> dict[str, Any]:
+        path = self.project_root / relative_path
+        payload: dict[str, Any] = {
+            "path": relative_path,
+            "exists": path.exists() and path.is_file(),
+            "total_count": 0,
+            "included_count": 0,
+            "entries": [],
+        }
+        if not payload["exists"]:
+            return payload
+        entries: list[dict[str, Any]] = []
+        try:
+            for line_number, line in enumerate(path.read_text(encoding="utf-8", errors="ignore").splitlines(), start=1):
+                if not line.strip():
+                    continue
+                payload["total_count"] += 1
+                try:
+                    entry = json.loads(line)
+                except json.JSONDecodeError:
+                    entry = {
+                        "line": line_number,
+                        "parse_error": "invalid_json",
+                        "excerpt": self._truncate_text(
+                            line,
+                            int(SUPERVISOR_CONTEXT_PACK_LIMITS["sync_log_entry_chars"]),
+                        ),
+                    }
+                entries.append(
+                    self._supervisor_context_bounded_json_value(
+                        entry,
+                        max_chars=int(SUPERVISOR_CONTEXT_PACK_LIMITS["sync_log_entry_chars"]),
+                    )
+                )
+        except OSError as exc:
+            payload["read_error"] = self._truncate_text(str(exc), int(SUPERVISOR_CONTEXT_PACK_LIMITS["message_chars"]))
+            return payload
+        limit = int(SUPERVISOR_CONTEXT_PACK_LIMITS["sync_log_entry_count"])
+        included = entries[-limit:] if limit > 0 else []
+        payload["included_count"] = len(included)
+        payload["entries"] = included
+        payload["entries_truncated"] = len(entries) > len(included)
+        return payload
+
+    def _supervisor_context_bounded_json_value(self, value: Any, *, max_chars: int) -> Any:
+        if isinstance(value, str):
+            return self._truncate_text(value, max_chars)
+        if isinstance(value, dict):
+            return {
+                str(key): self._supervisor_context_bounded_json_value(item, max_chars=max_chars)
+                for key, item in value.items()
+            }
+        if isinstance(value, list):
+            limit = 8
+            return [self._supervisor_context_bounded_json_value(item, max_chars=max_chars) for item in value[:limit]]
+        if isinstance(value, tuple):
+            return [self._supervisor_context_bounded_json_value(item, max_chars=max_chars) for item in value[:8]]
+        return value
+
+    def _supervisor_context_git_context(self) -> dict[str, Any]:
+        context = self._self_iteration_git_context(
+            git_commit_count=int(SUPERVISOR_CONTEXT_PACK_LIMITS["git_commit_count"])
+        )
+        status_lines = context.get("status_lines", []) if isinstance(context.get("status_lines"), list) else []
+        status_limit = int(SUPERVISOR_CONTEXT_PACK_LIMITS["git_status_line_count"])
+        context["status_lines"] = status_lines[:status_limit]
+        context["status_lines_truncated"] = len(status_lines) > status_limit
+        if not context.get("is_repository"):
+            context["diff_summary"] = {"file_count": 0, "files": []}
+            return context
+        unstaged_files = self._supervisor_context_git_diff_files(["diff", "--name-status"])
+        staged_files = self._supervisor_context_git_diff_files(["diff", "--cached", "--name-status"])
+        diff_files = unstaged_files["files"] + staged_files["files"]
+        file_limit = int(SUPERVISOR_CONTEXT_PACK_LIMITS["git_diff_file_count"])
+        context["diff_summary"] = {
+            "file_count": len(diff_files),
+            "files": diff_files[:file_limit],
+            "files_truncated": len(diff_files) > file_limit,
+            "unstaged": {
+                "file_count": unstaged_files["file_count"],
+                "stat": self._supervisor_context_git_command_excerpt(["diff", "--stat"]),
+            },
+            "staged": {
+                "file_count": staged_files["file_count"],
+                "stat": self._supervisor_context_git_command_excerpt(["diff", "--cached", "--stat"]),
+            },
+        }
+        return context
+
+    def _supervisor_context_git_diff_files(self, args: list[str]) -> dict[str, Any]:
+        result = self._git(args)
+        entries: list[dict[str, Any]] = []
+        for line in result.get("stdout", "").splitlines():
+            if not line.strip():
+                continue
+            status, _, path = line.partition("\t")
+            entries.append(
+                {
+                    "status": status.strip(),
+                    "path": path.strip() or line.strip(),
+                }
+            )
+        return {
+            "returncode": result.get("returncode"),
+            "file_count": len(entries),
+            "files": entries,
+            "stderr": self._truncate_text(
+                str(result.get("stderr", "")),
+                int(SUPERVISOR_CONTEXT_PACK_LIMITS["message_chars"]),
+            ),
+        }
+
+    def _supervisor_context_git_command_excerpt(self, args: list[str]) -> dict[str, Any]:
+        result = self._git(args)
+        return {
+            "returncode": result.get("returncode"),
+            "stdout": self._truncate_text(
+                str(result.get("stdout", "")),
+                int(SUPERVISOR_CONTEXT_PACK_LIMITS["git_diff_stat_chars"]),
+            ),
+            "stderr": self._truncate_text(
+                str(result.get("stderr", "")),
+                int(SUPERVISOR_CONTEXT_PACK_LIMITS["message_chars"]),
+            ),
+        }
+
+    def _supervisor_context_risk_metadata(
+        self,
+        status_summary: dict[str, Any],
+        manifest_context: dict[str, Any],
+        *,
+        gate_reason: str,
+        risk_metadata: dict[str, Any] | None,
+    ) -> dict[str, Any]:
+        goal_gap = (
+            status_summary.get("goal_gap_scorecard")
+            if isinstance(status_summary.get("goal_gap_scorecard"), dict)
+            else {}
+        )
+        categories = goal_gap.get("categories", []) if isinstance(goal_gap.get("categories"), list) else []
+        risk_limit = int(SUPERVISOR_CONTEXT_PACK_LIMITS["risk_count"])
+        drive_control = (
+            status_summary.get("drive_control") if isinstance(status_summary.get("drive_control"), dict) else {}
+        )
+        approval_queue = status_summary.get("approval_queue") if isinstance(status_summary.get("approval_queue"), dict) else {}
+        failure_isolation = (
+            status_summary.get("failure_isolation") if isinstance(status_summary.get("failure_isolation"), dict) else {}
+        )
+        checkpoint_readiness = (
+            status_summary.get("checkpoint_readiness")
+            if isinstance(status_summary.get("checkpoint_readiness"), dict)
+            else {}
+        )
+        manifest_index = manifest_context.get("index") if isinstance(manifest_context.get("index"), dict) else {}
+        return {
+            "gate_reason": self._truncate_text(gate_reason, int(SUPERVISOR_CONTEXT_PACK_LIMITS["message_chars"])),
+            "provided": self._supervisor_context_bounded_json_value(
+                risk_metadata or {},
+                max_chars=int(SUPERVISOR_CONTEXT_PACK_LIMITS["message_chars"]),
+            ),
+            "goal_gap_summary": deepcopy(goal_gap.get("summary", {})) if isinstance(goal_gap.get("summary"), dict) else {},
+            "included_count": min(len(categories), risk_limit),
+            "truncated": len(categories) > risk_limit,
+            "categories": deepcopy(categories[:risk_limit]),
+            "drive_control": {
+                "status": drive_control.get("status"),
+                "active": bool(drive_control.get("active", False)),
+                "current_activity": drive_control.get("current_activity"),
+                "stale": bool(drive_control.get("stale", False)),
+                "stale_reason": drive_control.get("stale_reason"),
+            },
+            "approval_queue": {
+                "pending_count": approval_queue.get("pending_count", 0),
+                "stale_count": approval_queue.get("stale_count", 0),
+            },
+            "failure_isolation": {
+                "unresolved_count": failure_isolation.get("unresolved_count", 0),
+                "has_unresolved": bool(failure_isolation.get("has_unresolved", False)),
+                "latest_isolated_failures": failure_isolation.get("latest_isolated_failures", [])[:risk_limit]
+                if isinstance(failure_isolation.get("latest_isolated_failures"), list)
+                else [],
+            },
+            "checkpoint_readiness": {
+                "ready": checkpoint_readiness.get("ready"),
+                "blocking": checkpoint_readiness.get("blocking"),
+                "reason": checkpoint_readiness.get("reason"),
+                "blocking_paths": checkpoint_readiness.get("blocking_paths", [])[:risk_limit]
+                if isinstance(checkpoint_readiness.get("blocking_paths"), list)
+                else [],
+            },
+            "manifest_safety_audit": deepcopy(manifest_index.get("safety_audit", {})),
+            "manifest_failure_isolation": deepcopy(manifest_index.get("failure_isolation", {})),
+        }
 
     def _self_iteration_roadmap_context(self) -> dict[str, Any]:
         milestones = self.roadmap.get("milestones", [])
