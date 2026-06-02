@@ -883,6 +883,145 @@ def test_supervisor_parallel_drive_records_blocked_gate_report(tmp_path: Path, c
     assert "## Supervisor Gates" in report_text
 
 
+def test_supervisor_continue_mutation_applies_approved_next_task_queue_order(tmp_path: Path, capsys):
+    project = tmp_path / "supervisor-continue-queue-mutation"
+    project.mkdir()
+    write_supervisor_context_project(project, task_count=3)
+    decision_path = project / "supervisor-continue.json"
+    decision_path.write_text(
+        json.dumps(
+            {
+                "kind": SUPERVISOR_DECISION_KIND,
+                "decision": "continue",
+                "approved_next_tasks": ["task-02", "task-01"],
+                "blocked_tasks": [],
+                "tasks_to_rewrite": [],
+                "requires_human": False,
+                "reason": "Local supervisor mutation should prioritize the approved next task queue order.",
+                "evidence": [".engineering/roadmap.yaml"],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = cli_main(
+        [
+            "drive",
+            "--project-root",
+            str(project),
+            "--supervisor-gate",
+            "operator-request",
+            "--supervisor-decision",
+            str(decision_path),
+            "--max-tasks",
+            "1",
+            "--json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    gate = payload["supervisor_gates"][0]
+    state = harness_state(project)
+    mutation_manifest = json.loads((project / gate["mutation_manifest"]).read_text(encoding="utf-8"))
+    mutation_report = (project / gate["mutation_report"]).read_text(encoding="utf-8")
+
+    assert exit_code == 0
+    assert payload["results"][0]["task"]["id"] == "task-02"
+    assert gate["application_status"] == "applied"
+    assert gate["action_result"]["status"] == "queue_order_applied"
+    assert gate["action_result"]["approved_next_tasks"] == ["task-02", "task-01"]
+    assert state["supervisor_queue"]["approved_next_tasks"] == ["task-02", "task-01"]
+    assert mutation_manifest["kind"] == "engineering-orchestrator.supervisor-mutation.v1"
+    assert mutation_manifest["mutation"]["applied"] is True
+    assert mutation_manifest["mutation"]["action_result"]["approved_next_tasks"] == ["task-02", "task-01"]
+    assert "Supervisor Mutation Report" in mutation_report
+    assert "approved_next_tasks" in mutation_report
+
+
+def test_supervisor_drop_task_approval_mutation_is_recorded_but_not_auto_applied(tmp_path: Path, capsys):
+    project = tmp_path / "supervisor-drop-task-approval-mutation"
+    project.mkdir()
+    write_supervisor_context_project(project, task_count=2)
+    roadmap_path = project / ".engineering/roadmap.yaml"
+    roadmap_before = roadmap_path.read_text(encoding="utf-8")
+    decision_path = project / "supervisor-drop-task.json"
+    decision_path.write_text(
+        json.dumps(
+            {
+                "kind": SUPERVISOR_DECISION_KIND,
+                "decision": "drop_task",
+                "approved_next_tasks": [],
+                "blocked_tasks": ["task-00"],
+                "tasks_to_rewrite": ["task-00"],
+                "requires_human": True,
+                "reason": "Drop task-00 from the roadmap after explicit human review.",
+                "evidence": [".engineering/roadmap.yaml"],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = cli_main(
+        [
+            "drive",
+            "--project-root",
+            str(project),
+            "--supervisor-gate",
+            "operator-request",
+            "--supervisor-decision",
+            str(decision_path),
+            "--max-tasks",
+            "1",
+            "--json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    gate = payload["supervisor_gates"][0]
+    mutation_manifest = json.loads((project / gate["mutation_manifest"]).read_text(encoding="utf-8"))
+
+    assert exit_code == 0
+    assert payload["status"] == "paused"
+    assert payload["results"] == []
+    assert roadmap_path.read_text(encoding="utf-8") == roadmap_before
+    assert gate["decision_status"] == "accepted"
+    assert gate["decision"] == "drop_task"
+    assert gate["requires_human"] is True
+    assert gate["application_status"] == "skipped"
+    assert gate["mutation_status"] == "requires_human"
+    assert mutation_manifest["mutation"]["applied"] is False
+    assert mutation_manifest["mutation"]["effect"] == "requires_human"
+    assert mutation_manifest["supervisor_decision"]["tasks_to_rewrite"] == ["task-00"]
+
+
+def test_supervisor_unsafe_live_mutation_requires_human_approval(tmp_path: Path):
+    project = tmp_path / "supervisor-unsafe-live-approval"
+    project.mkdir()
+    write_supervisor_context_project(project, task_count=1)
+    harness = Harness(project)
+    context = harness.write_supervisor_context_pack(
+        gate_reason="operator_request",
+        objective="Evaluate unsafe supervisor production request.",
+    )
+    decision = {
+        "kind": SUPERVISOR_DECISION_KIND,
+        "decision": "continue",
+        "approved_next_tasks": ["task-00"],
+        "blocked_tasks": [],
+        "tasks_to_rewrite": [],
+        "requires_human": False,
+        "reason": "Deploy to production and rotate a secret token before continuing.",
+        "evidence": [context["path"]],
+    }
+
+    validation = harness.validate_supervisor_decision(decision, context_pack_path=context["path"])
+    error_codes = {item["code"] for item in validation["errors"]}
+
+    assert validation["accepted"] is False
+    assert "human_required" in error_codes
+    assert validation["safety_classification"]["requires_human_by_policy"] is True
+    assert validation["safety_classification"]["risk_level"] == "high"
+    assert set(validation["safety_classification"]["risk_categories"]) >= {"deployment", "live", "secret"}
+
+
 def test_profiles_are_available():
     profile_ids = {item["id"] for item in list_profiles()}
 

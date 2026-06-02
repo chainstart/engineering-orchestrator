@@ -207,7 +207,7 @@ def _validate_supervisor_decision(
         errors.append(
             _issue("followup_tasks", "missing_followup_tasks", "create_followup_tasks requires followup_tasks")
         )
-    if action in SUPERVISOR_DECISION_HUMAN_REQUIRED_ACTIONS and not requires_human:
+    if (action in SUPERVISOR_DECISION_HUMAN_REQUIRED_ACTIONS or safety.get("requires_human_by_policy")) and not requires_human:
         errors.append(
             _issue("requires_human", "human_required", f"{action} requires requires_human=true")
         )
@@ -249,10 +249,25 @@ def classify_supervisor_decision(
     high_risk = action in SUPERVISOR_DECISION_HIGH_RISK_ACTIONS
     roadmap_rewrite = action in SUPERVISOR_DECISION_ROADMAP_REWRITE_ACTIONS
     agent_risk = action in {"retry", "repair_task_package"}
-    deployment_risk = action == "enter_deployment_audit"
-    manual_risk = bool(requires_human or action == "request_human_review")
     reason = str(payload.get("reason") or "")
     safety_payload = payload.get("safety_classification") if isinstance(payload.get("safety_classification"), dict) else {}
+    architecture_risk = bool(safety_payload.get("architecture_risk")) or bool(
+        re.search(r"\b(architecture|architectural|goal change|change the goal|scope change)\b", reason, re.IGNORECASE)
+    )
+    destructive_git_risk = bool(safety_payload.get("destructive_git_risk")) or bool(
+        re.search(r"\b(git reset|reset --hard|git clean|force[- ]?push|push --force|checkout --)\b", reason, re.IGNORECASE)
+    )
+    broad_roadmap_rewrite = bool(safety_payload.get("broad_roadmap_rewrite")) or bool(
+        re.search(
+            r"\b(broad roadmap rewrite|rewrite the roadmap|replace the roadmap|delete milestone|drop milestone)\b",
+            reason,
+            re.IGNORECASE,
+        )
+    )
+    deployment_risk = action == "enter_deployment_audit" or bool(safety_payload.get("deployment_risk")) or bool(
+        re.search(r"\b(deploy|deployment|release to production)\b", reason, re.IGNORECASE)
+    )
+    manual_risk = bool(requires_human or action == "request_human_review")
     secret_risk = bool(safety_payload.get("secret_risk")) or bool(
         re.search(r"\b(secret|credential|token|api[-_ ]?key)\b", reason, re.IGNORECASE)
     )
@@ -270,9 +285,28 @@ def classify_supervisor_decision(
         "secret": secret_risk,
         "network": network_risk,
         "filesystem": roadmap_rewrite,
+        "architecture": architecture_risk,
+        "destructive_git": destructive_git_risk,
+        "roadmap": broad_roadmap_rewrite,
     }
     risk_categories = sorted(name for name, enabled in risk_flags.items() if enabled)
-    risk_level = "high" if high_risk or deployment_risk or secret_risk or live_risk else "medium" if roadmap_rewrite else "low"
+    requires_human_by_policy = bool(
+        action in SUPERVISOR_DECISION_HUMAN_REQUIRED_ACTIONS
+        or high_risk
+        or deployment_risk
+        or secret_risk
+        or live_risk
+        or architecture_risk
+        or destructive_git_risk
+        or broad_roadmap_rewrite
+    )
+    risk_level = (
+        "high"
+        if requires_human_by_policy
+        else "medium"
+        if roadmap_rewrite
+        else "low"
+    )
     auto_apply_allowed = action in {"continue", "pause", "retry"} and not requires_human and risk_level == "low"
     return {
         "schema_version": SUPERVISOR_DECISION_SCHEMA_VERSION,
@@ -281,7 +315,7 @@ def classify_supervisor_decision(
         "unsupported_action": unsupported,
         "high_risk_action": high_risk,
         "requires_human": bool(requires_human),
-        "requires_human_by_policy": action in SUPERVISOR_DECISION_HUMAN_REQUIRED_ACTIONS,
+        "requires_human_by_policy": requires_human_by_policy,
         "risk_level": risk_level,
         "risk_categories": risk_categories,
         "risk_flags": risk_flags,

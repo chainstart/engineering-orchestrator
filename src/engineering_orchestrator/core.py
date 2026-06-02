@@ -437,6 +437,9 @@ SUPERVISOR_CONTEXT_PACK_SCHEMA_VERSION = 1
 SUPERVISOR_CONTEXT_PACK_DIRNAME = "supervisor-context-packs"
 SUPERVISOR_GATE_SCHEMA_VERSION = 1
 SUPERVISOR_GATE_KIND = "engineering-harness.supervisor-gate.v1"
+SUPERVISOR_MUTATION_SCHEMA_VERSION = 1
+SUPERVISOR_MUTATION_KIND = "engineering-orchestrator.supervisor-mutation.v1"
+SUPERVISOR_MUTATION_DIRNAME = "supervisor-mutations"
 SUPERVISOR_GATE_TYPES = (
     "failed_task",
     "blocked_task",
@@ -4744,6 +4747,16 @@ class Harness:
             apply_decision=apply_decision,
             apply_drive_control=apply_drive_control,
         )
+        mutation_evidence = self.write_supervisor_mutation_evidence(
+            gate_type=gate,
+            source=source,
+            decision=normalized,
+            validation=validation,
+            application=application,
+            context_path=context_path,
+            decision_path=decision_result.get("manifest"),
+            decision_report=decision_result.get("report"),
+        )
         payload = {
             "schema_version": SUPERVISOR_GATE_SCHEMA_VERSION,
             "kind": SUPERVISOR_GATE_KIND,
@@ -4769,6 +4782,10 @@ class Harness:
             "task": task_payload,
             "result_status": result.get("status") if isinstance(result, dict) else None,
             "action_result": application.get("action_result"),
+            "mutation_status": mutation_evidence.get("status"),
+            "mutation_effect": mutation_evidence.get("effect"),
+            "mutation_manifest": mutation_evidence.get("manifest"),
+            "mutation_report": mutation_evidence.get("report"),
             "validation_error_count": int(validation.get("error_count", 0) or 0),
             "validation_errors": deepcopy(validation.get("errors", [])) if isinstance(validation.get("errors"), list) else [],
         }
@@ -4955,11 +4972,16 @@ class Harness:
                 "action_result": {"status": "not_auto_applicable", "decision": action, "safety": deepcopy(safety)},
             }
         if action == "continue":
+            continue_result = self._apply_supervisor_gate_continue(
+                gate_type=gate_type,
+                decision=decision,
+                source=source,
+            )
             return {
                 "status": "applied",
                 "applied": True,
-                "reason": "supervisor gate allowed the drive to continue",
-                "action_result": {"status": "continued", "approved_next_tasks": decision.get("approved_next_tasks", [])},
+                "reason": continue_result.get("message", "supervisor gate allowed the drive to continue"),
+                "action_result": continue_result,
             }
         if action == "pause":
             control = None
@@ -4987,6 +5009,72 @@ class Harness:
             "applied": False,
             "reason": f"supervisor gate decision `{action}` has no application handler",
             "action_result": {"status": "unsupported", "decision": action},
+        }
+
+    def _apply_supervisor_gate_continue(
+        self,
+        *,
+        gate_type: str,
+        decision: dict[str, Any],
+        source: str,
+    ) -> dict[str, Any]:
+        approved_next_tasks = [
+            str(item).strip()
+            for item in decision.get("approved_next_tasks", [])
+            if str(item).strip()
+        ]
+        if not approved_next_tasks:
+            return {
+                "status": "continued",
+                "message": "supervisor gate allowed the drive to continue without a queue order mutation",
+                "approved_next_tasks": [],
+            }
+        state = self.load_state()
+        queue = state.setdefault("supervisor_queue", {})
+        if not isinstance(queue, dict):
+            queue = {}
+            state["supervisor_queue"] = queue
+        previous_order = [
+            str(item)
+            for item in queue.get("approved_next_tasks", [])
+            if str(item).strip()
+        ] if isinstance(queue.get("approved_next_tasks"), list) else []
+        now = utc_now()
+        history = queue.setdefault("history", [])
+        if not isinstance(history, list):
+            history = []
+            queue["history"] = history
+        history.append(
+            {
+                "recorded_at": now,
+                "gate_type": gate_type,
+                "source": source,
+                "decision": "continue",
+                "previous_approved_next_tasks": previous_order,
+                "approved_next_tasks": approved_next_tasks,
+                "reason": decision.get("reason"),
+            }
+        )
+        del history[:-25]
+        queue.update(
+            {
+                "schema_version": SUPERVISOR_MUTATION_SCHEMA_VERSION,
+                "kind": "engineering-orchestrator.supervisor-queue.v1",
+                "updated_at": now,
+                "gate_type": gate_type,
+                "source": source,
+                "decision": "continue",
+                "approved_next_tasks": approved_next_tasks,
+                "reason": decision.get("reason"),
+            }
+        )
+        self.save_state(state)
+        return {
+            "status": "queue_order_applied",
+            "message": f"supervisor gate applied approved_next_tasks order for {len(approved_next_tasks)} task(s)",
+            "approved_next_tasks": approved_next_tasks,
+            "previous_approved_next_tasks": previous_order,
+            "state_path": self._project_relative_path(self.state_path),
         }
 
     def _apply_supervisor_gate_retry(
@@ -5024,6 +5112,215 @@ class Harness:
             "message": f"supervisor gate reset {len(updated)} task(s) for retry",
             "tasks": updated,
         }
+
+    def write_supervisor_mutation_evidence(
+        self,
+        *,
+        gate_type: str,
+        source: str,
+        decision: dict[str, Any],
+        validation: dict[str, Any],
+        application: dict[str, Any],
+        context_path: str | None = None,
+        decision_path: str | None = None,
+        decision_report: str | None = None,
+    ) -> dict[str, Any]:
+        action = str(decision.get("decision") or validation.get("decision") or "decision")
+        action_result = (
+            application.get("action_result")
+            if isinstance(application.get("action_result"), dict)
+            else {}
+        )
+        status = self._supervisor_mutation_status(application=application, validation=validation)
+        effect = self._supervisor_mutation_effect(
+            status=status,
+            application=application,
+            validation=validation,
+            decision=decision,
+        )
+        fingerprint = supervisor_decision_fingerprint(
+            {
+                "gate_type": gate_type,
+                "source": source,
+                "decision": decision,
+                "validation_status": validation.get("status"),
+                "application": application,
+            }
+        )[:10]
+        mutation_dir = self.report_dir / SUPERVISOR_MUTATION_DIRNAME
+        base_name = (
+            f"{slug_now()}-supervisor-mutation-{status}-"
+            f"{self._safe_context_slug(action, fallback='decision')}-{fingerprint}"
+        )
+        report_path = mutation_dir / f"{base_name}.md"
+        manifest_path = mutation_dir / f"{base_name}.json"
+        report_relative = self._project_relative_path(report_path)
+        manifest_relative = self._project_relative_path(manifest_path)
+        created_at = utc_now()
+        mutation = {
+            "schema_version": SUPERVISOR_MUTATION_SCHEMA_VERSION,
+            "kind": SUPERVISOR_MUTATION_KIND,
+            "status": status,
+            "effect": effect,
+            "applied": bool(application.get("applied")),
+            "decision": action,
+            "gate_type": gate_type,
+            "source": source,
+            "reason": application.get("reason"),
+            "action_result": deepcopy(action_result),
+        }
+        manifest = {
+            "schema_version": SUPERVISOR_MUTATION_SCHEMA_VERSION,
+            "kind": SUPERVISOR_MUTATION_KIND,
+            "project": str(self.roadmap.get("project", self.project_root.name)),
+            "project_root": str(self.project_root),
+            "roadmap_path": self._project_relative_path(self.roadmap_path),
+            "created_at": created_at,
+            "gate_type": gate_type,
+            "source": source,
+            "status": status,
+            "effect": effect,
+            "requires_human": bool(decision.get("requires_human")),
+            "decision": action,
+            "supervisor_decision": deepcopy(decision),
+            "validation": deepcopy(validation),
+            "safety_classification": deepcopy(validation.get("safety_classification", {}))
+            if isinstance(validation.get("safety_classification"), dict)
+            else {},
+            "application": deepcopy(application),
+            "mutation": mutation,
+            "context_path": context_path,
+            "decision_path": decision_path,
+            "decision_report": decision_report,
+            "report_path": report_relative,
+            "manifest_path": manifest_relative,
+            "artifacts": [
+                {"kind": "markdown_report", "path": report_relative},
+                {"kind": "json_manifest", "path": manifest_relative},
+            ],
+        }
+        if context_path:
+            manifest["artifacts"].append({"kind": "supervisor_context_pack", "path": context_path})
+        if decision_path:
+            manifest["artifacts"].append({"kind": "supervisor_decision_manifest", "path": decision_path})
+        if decision_report:
+            manifest["artifacts"].append({"kind": "supervisor_decision_report", "path": decision_report})
+        self._write_supervisor_mutation_report(report_path, manifest)
+        write_json(manifest_path, redact_evidence(manifest))
+        append_jsonl(
+            self.decision_log_path,
+            {
+                "at": created_at,
+                "event": "supervisor_mutation",
+                "gate_type": gate_type,
+                "source": source,
+                "status": status,
+                "effect": effect,
+                "applied": bool(application.get("applied")),
+                "decision": action,
+                "requires_human": bool(decision.get("requires_human")),
+                "report": report_relative,
+                "manifest": manifest_relative,
+                "decision_path": decision_path,
+            },
+        )
+        return {
+            "schema_version": SUPERVISOR_MUTATION_SCHEMA_VERSION,
+            "kind": SUPERVISOR_MUTATION_KIND,
+            "status": status,
+            "effect": effect,
+            "applied": bool(application.get("applied")),
+            "decision": action,
+            "report": report_relative,
+            "manifest": manifest_relative,
+        }
+
+    def _supervisor_mutation_status(
+        self,
+        *,
+        application: dict[str, Any],
+        validation: dict[str, Any],
+    ) -> str:
+        if not validation.get("accepted"):
+            return "rejected"
+        action_result = application.get("action_result") if isinstance(application.get("action_result"), dict) else {}
+        if action_result.get("status") == "requires_human":
+            return "requires_human"
+        if application.get("applied"):
+            return "applied"
+        return "skipped"
+
+    def _supervisor_mutation_effect(
+        self,
+        *,
+        status: str,
+        application: dict[str, Any],
+        validation: dict[str, Any],
+        decision: dict[str, Any],
+    ) -> str:
+        if status == "applied":
+            return "applied"
+        if status == "requires_human" or decision.get("requires_human"):
+            return "requires_human"
+        if not validation.get("accepted"):
+            return "rejected"
+        action_result = application.get("action_result") if isinstance(application.get("action_result"), dict) else {}
+        if action_result.get("status") == "not_auto_applicable":
+            return "requires_human"
+        return "skipped"
+
+    def _write_supervisor_mutation_report(self, report_path: Path, manifest: dict[str, Any]) -> None:
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        mutation = manifest.get("mutation") if isinstance(manifest.get("mutation"), dict) else {}
+        decision = manifest.get("supervisor_decision") if isinstance(manifest.get("supervisor_decision"), dict) else {}
+        validation = manifest.get("validation") if isinstance(manifest.get("validation"), dict) else {}
+        safety = manifest.get("safety_classification") if isinstance(manifest.get("safety_classification"), dict) else {}
+        errors = validation.get("errors") if isinstance(validation.get("errors"), list) else []
+        lines = [
+            "# Supervisor Mutation Report",
+            "",
+            f"- Kind: `{SUPERVISOR_MUTATION_KIND}`",
+            f"- Status: `{manifest.get('status')}`",
+            f"- Effect: `{manifest.get('effect')}`",
+            f"- Decision: `{manifest.get('decision')}`",
+            f"- Gate type: `{manifest.get('gate_type')}`",
+            f"- Requires human: `{str(bool(manifest.get('requires_human'))).lower()}`",
+            f"- Applied: `{str(bool(mutation.get('applied'))).lower()}`",
+            f"- Reason: {redact(str(mutation.get('reason') or ''))}",
+            "",
+            "## Supervisor Mutation",
+            "",
+            "```json",
+            json.dumps(redact_evidence(mutation), indent=2, sort_keys=True),
+            "```",
+            "",
+            "## Safety",
+            "",
+            f"- Risk level: `{safety.get('risk_level')}`",
+            f"- Risk categories: `{json.dumps(safety.get('risk_categories', []), sort_keys=True)}`",
+            f"- Auto-apply allowed: `{str(bool(safety.get('auto_apply_allowed'))).lower()}`",
+            f"- Decision effect: `{safety.get('decision_effect')}`",
+            "",
+        ]
+        if errors:
+            lines.extend(["## Rejected Mutation Reasons", ""])
+            for item in errors:
+                if isinstance(item, dict):
+                    lines.append(
+                        f"- `{item.get('field')}` `{item.get('code')}`: {redact(str(item.get('message') or ''))}"
+                    )
+            lines.append("")
+        lines.extend(
+            [
+                "## Decision",
+                "",
+                "```json",
+                json.dumps(redact_evidence(decision), indent=2, sort_keys=True),
+                "```",
+                "",
+            ]
+        )
+        report_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     def _raw_roadmap_task_payload(self, task_id: str) -> dict[str, Any]:
         for milestone in self.roadmap.get("milestones", []):
@@ -7962,6 +8259,39 @@ continuation stage(s) were appended.
                 )
         return tasks
 
+    def supervisor_queue_order(self, state: dict[str, Any] | None = None) -> list[str]:
+        state_payload = state if isinstance(state, dict) else self.load_state()
+        queue = state_payload.get("supervisor_queue")
+        if not isinstance(queue, dict):
+            return []
+        candidates = queue.get("approved_next_tasks")
+        if not isinstance(candidates, list):
+            candidates = queue.get("task_order")
+        if not isinstance(candidates, list):
+            return []
+        ordered: list[str] = []
+        seen: set[str] = set()
+        known = {task.id for task in self.iter_tasks()}
+        for item in candidates:
+            task_id = str(item).strip()
+            if not task_id or task_id in seen or task_id not in known:
+                continue
+            seen.add(task_id)
+            ordered.append(task_id)
+        return ordered
+
+    def iter_tasks_for_queue(self, state: dict[str, Any] | None = None) -> list[HarnessTask]:
+        tasks = self.iter_tasks()
+        order = self.supervisor_queue_order(state)
+        if not order:
+            return tasks
+        order_index = {task_id: index for index, task_id in enumerate(order)}
+        original_index = {task.id: index for index, task in enumerate(tasks)}
+        return sorted(
+            tasks,
+            key=lambda task: (order_index.get(task.id, len(order_index)), original_index.get(task.id, 0)),
+        )
+
     def _parse_task_commands(self, items: list[dict[str, Any]] | None, *, default_name: str) -> list[AcceptanceCommand]:
         commands = []
         for item in items or []:
@@ -8011,7 +8341,7 @@ continuation stage(s) were appended.
     def next_task(self) -> HarnessTask | None:
         state = self.load_state()
         state_tasks = state.get("tasks", {})
-        for task in self.iter_tasks():
+        for task in self.iter_tasks_for_queue(state):
             task_state = state_tasks.get(task.id, {})
             status = str(task_state.get("status", task.status))
             attempts = int(task_state.get("attempts", 0))

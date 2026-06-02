@@ -833,7 +833,7 @@ def _pending_task_candidates(
 ) -> list[dict[str, Any]]:
     state_tasks = state.get("tasks") if isinstance(state.get("tasks"), dict) else {}
     pending: list[dict[str, Any]] = []
-    for task in harness.iter_tasks():
+    for task in harness.iter_tasks_for_queue(state):
         task_state = state_tasks.get(task.id) if isinstance(state_tasks.get(task.id), dict) else {}
         status = str(task_state.get("status", task.status))
         attempts = int(task_state.get("attempts", 0) or 0)

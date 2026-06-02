@@ -1,7 +1,7 @@
 {
   "kind": "engineering-harness.spec_tasks.v1",
   "project": "engineering-orchestrator",
-  "updated_at": "2026-06-02T01:42:23Z",
+  "updated_at": "2026-06-02T01:57:05Z",
   "source_spec": "docs/engineering-orchestrator-system-spec.md",
   "status_doc": "docs/engineering_orchestrator_implementation_status.md",
   "roadmap_doc": "docs/spec-driven-development-plan.md",
@@ -616,7 +616,7 @@
     {
       "id": "EO-SUP-005",
       "title": "Implement safe supervisor roadmap and queue mutation",
-      "status": "pending",
+      "status": "completed",
       "requirement_ids": [
         "EH-SPEC-002",
         "EH-SPEC-008",
@@ -625,7 +625,86 @@
         "EH-SPEC-018"
       ],
       "roadmap_task_id": "supervisor-safe-roadmap-mutation",
-      "next_action": "Allow low-risk queue changes from validated supervisor decisions while requiring explicit approval for deletion, architecture changes, deployment, secrets, or live production actions."
+      "next_action": "Allow low-risk queue changes from validated supervisor decisions while requiring explicit approval for deletion, architecture changes, deployment, secrets, or live production actions.",
+      "updated_at": "2026-06-02T01:57:05Z",
+      "last_note": "Recorded automatically after a completed orchestrator task.",
+      "last_phase": "run",
+      "evidence": [
+        {
+          "kind": "record",
+          "value": "task report: .engineering/reports/tasks/20260602T014223Z-supervisor-safe-roadmap-mutation.md",
+          "recorded_at": "2026-06-02T01:57:05Z",
+          "actor": "engineering-harness:auto"
+        },
+        {
+          "kind": "record",
+          "value": "task manifest: .engineering/reports/tasks/20260602T014223Z-supervisor-safe-roadmap-mutation.json",
+          "recorded_at": "2026-06-02T01:57:05Z",
+          "actor": "engineering-harness:auto"
+        },
+        {
+          "kind": "record",
+          "value": "task result: All required acceptance commands passed.",
+          "recorded_at": "2026-06-02T01:57:05Z",
+          "actor": "engineering-harness:auto"
+        }
+      ],
+      "documentation_sync": {
+        "status": "applied",
+        "updated_at": "2026-06-02T01:57:05Z",
+        "requested_task_id": "supervisor-safe-roadmap-mutation",
+        "new_status": "completed",
+        "docs_update_log": "docs/docs_update_log.jsonl",
+        "updated_paths": [
+          "docs/engineering_orchestrator_implementation_status.md",
+          "docs/deployment-status.md",
+          "docs/task-packages.md",
+          "docs/spec-traceability.md"
+        ],
+        "manual_review_paths": [
+          "docs/engineering-orchestrator-system-spec.md",
+          "docs/decisions",
+          "docs/spec-driven-development-plan.md"
+        ]
+      },
+      "documentation_evidence": [
+        {
+          "kind": "record",
+          "value": "task report: .engineering/reports/tasks/20260602T014223Z-supervisor-safe-roadmap-mutation.md",
+          "recorded_at": "2026-06-02T01:57:05Z",
+          "actor": "engineering-harness:auto"
+        },
+        {
+          "kind": "record",
+          "value": "task manifest: .engineering/reports/tasks/20260602T014223Z-supervisor-safe-roadmap-mutation.json",
+          "recorded_at": "2026-06-02T01:57:05Z",
+          "actor": "engineering-harness:auto"
+        },
+        {
+          "kind": "record",
+          "value": "task result: All required acceptance commands passed.",
+          "recorded_at": "2026-06-02T01:57:05Z",
+          "actor": "engineering-harness:auto"
+        },
+        {
+          "kind": "record",
+          "value": "implementation implement safe supervisor roadmap mutation: passed",
+          "recorded_at": "2026-06-02T01:57:05Z",
+          "actor": "engineering-harness:auto"
+        },
+        {
+          "kind": "record",
+          "value": "acceptance-1 supervisor roadmap mutation tests: passed",
+          "recorded_at": "2026-06-02T01:57:05Z",
+          "actor": "engineering-harness:auto"
+        },
+        {
+          "kind": "record",
+          "value": "acceptance-1 supervisor mutation evidence: passed",
+          "recorded_at": "2026-06-02T01:57:05Z",
+          "actor": "engineering-harness:auto"
+        }
+      ]
     },
     {
       "id": "EO-SUP-006",

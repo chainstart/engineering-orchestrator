@@ -173,8 +173,12 @@ decision vocabulary: `continue`, `pause`, `retry`, `repair_task_package`, `split
 `enter_deployment_audit`. Each decision must cite local evidence paths and must declare
 `approved_next_tasks`, `blocked_tasks`, `tasks_to_rewrite`, `requires_human`, and a reason. Accepted
 and rejected decisions are persisted under `.engineering/reports/tasks/supervisor-decisions/` as a
-JSON validation manifest plus a Markdown report. This records safety classification and rejection
-reasons without integrating gated drive scheduling yet.
+JSON validation manifest plus a Markdown report. Gated drive also writes a supervisor mutation manifest
+and report under `.engineering/reports/tasks/supervisor-mutations/` for the applied or skipped outcome.
+Low-risk `continue`, `pause`, and `retry` decisions may be auto-applied; `continue` uses
+`approved_next_tasks` only as a safe supervisor queue order. High-risk outcomes such as `drop_task`,
+unsafe supervisor roadmap rewrites, deployment, secret, live production, destructive git, or
+architecture-goal changes remain `requires_human` and are not auto-applied.
 
 ## Watchdog Results
 

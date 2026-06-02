@@ -39,7 +39,18 @@ task, quality-gate completion, budget/risk threshold, and explicit operator requ
 and quality gates are detected from task metadata such as `deployment_sensitive`, `secret_sensitive`,
 `quality_gate`, `quality_gates`, or task-level `supervisor_gates`.
 
-The orchestrator auto-applies only low-risk `continue`, `pause`, and `retry` decisions. High-risk or
-human-required decisions are persisted and skipped until an operator handles them. Supervisor decisions
-cannot include commands, patches, or implementation edits; worker executors remain the only code-editing
-path.
+The orchestrator auto-applies only low-risk `continue`, `pause`, and `retry` decisions. A low-risk
+`continue` decision can set `approved_next_tasks`; drive and parallel-drive then prefer that durable
+supervisor queue order while preserving task status, attempt, dependency, dirty-worktree, and file-scope
+guards. The roadmap file is not rewritten for this safe queue mutation.
+
+Every gate writes a supervisor mutation JSON manifest and Markdown report under
+`.engineering/reports/tasks/supervisor-mutations/`. These artifacts record whether the mutation was
+applied, skipped, rejected by validation, or held as `requires_human`, and they link back to the
+context pack and supervisor decision evidence.
+
+High-risk or human-required decisions are persisted and skipped until an operator handles them. This
+includes `drop_task`, deployment actions, secret handling, live production mutation, destructive git,
+broad roadmap rewrites, architecture goal changes, and any other unsafe supervisor request. Supervisor
+decisions cannot include commands, patches, or implementation edits; worker executors remain the only
+code-editing path.
