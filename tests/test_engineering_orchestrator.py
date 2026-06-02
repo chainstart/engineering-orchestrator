@@ -16,7 +16,11 @@ from engineering_orchestrator.browser_e2e import browser_user_experience_command
 from engineering_orchestrator.goal_intake import GoalIntakeValidationError, normalize_goal_intake, validate_goal_intake
 from engineering_orchestrator.goal_planner import plan_goal_roadmap
 from engineering_orchestrator.core import Harness, discover_projects, init_project, redact_evidence, utc_now
-from engineering_orchestrator.parallel_drive import load_parallel_drive_state, plan_parallel_drive
+from engineering_orchestrator.parallel_drive import (
+    _checkpoint_worker_branch,
+    load_parallel_drive_state,
+    plan_parallel_drive,
+)
 from engineering_orchestrator.domain_frontend import (
     DOMAIN_FRONTEND_DECISION_KIND,
     DOMAIN_FRONTEND_GENERATOR_ID,
@@ -169,6 +173,51 @@ def init_git_repo(project: Path, message: str = "initial") -> None:
     subprocess.run(["git", "config", "user.name", "Harness Test"], cwd=project, check=True)
     subprocess.run(["git", "add", "-A"], cwd=project, check=True)
     subprocess.run(["git", "commit", "-m", message], cwd=project, check=True, capture_output=True, text=True)
+
+
+def test_parallel_worker_checkpoint_rejects_noop_branch(tmp_path: Path):
+    project = tmp_path / "repo"
+    project.mkdir()
+    (project / "README.md").write_text("base\n", encoding="utf-8")
+    init_git_repo(project)
+    subprocess.run(["git", "branch", "worker/noop"], cwd=project, check=True)
+    worktree = tmp_path / "noop-worker"
+    subprocess.run(["git", "worktree", "add", str(worktree), "worker/noop"], cwd=project, check=True)
+
+    checkpoint = _checkpoint_worker_branch(
+        project,
+        {"worktree_path": str(worktree), "branch": "worker/noop", "task_id": "noop-task"},
+    )
+
+    assert checkpoint["status"] == "failed"
+    assert checkpoint["ahead_count"] == 0
+    assert "no commits ahead" in checkpoint["message"]
+
+
+def test_parallel_worker_checkpoint_commits_dirty_worktree(tmp_path: Path):
+    project = tmp_path / "repo"
+    project.mkdir()
+    (project / "README.md").write_text("base\n", encoding="utf-8")
+    init_git_repo(project)
+    subprocess.run(["git", "branch", "worker/dirty"], cwd=project, check=True)
+    worktree = tmp_path / "dirty-worker"
+    subprocess.run(["git", "worktree", "add", str(worktree), "worker/dirty"], cwd=project, check=True)
+    (worktree / "feature.txt").write_text("worker output\n", encoding="utf-8")
+
+    checkpoint = _checkpoint_worker_branch(
+        project,
+        {"worktree_path": str(worktree), "branch": "worker/dirty", "task_id": "dirty-task"},
+    )
+
+    assert checkpoint["status"] == "checkpointed"
+    assert checkpoint["ahead_count"] == 1
+    assert subprocess.run(
+        ["git", "status", "--porcelain", "--untracked-files=all"],
+        cwd=worktree,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout == ""
 
 
 def init_workspace_project(workspace: Path, dirname: str, *, name: str | None = None, marker: str | None = None) -> Path:

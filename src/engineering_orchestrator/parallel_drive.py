@@ -1181,11 +1181,20 @@ def _merge_successful_worker(
 ) -> dict[str, Any]:
     branch = str(worker["branch"])
     task_id = str(worker["task_id"])
+    checkpoint = _checkpoint_worker_branch(repo_root, worker)
+    if checkpoint.get("status") not in {"ready", "checkpointed"}:
+        return {
+            "status": "failed",
+            "message": checkpoint.get("message") or "worker branch has no mergeable checkpoint",
+            "branch": branch,
+            "checkpoint": checkpoint,
+        }
     merge_result = _git(repo_root, ["merge", "--no-ff", "--no-commit", branch])
     merge_payload: dict[str, Any] = {
         "status": "merge_started" if merge_result["returncode"] == 0 else "failed",
         "message": "branch merged into index for validation" if merge_result["returncode"] == 0 else "git merge failed",
         "branch": branch,
+        "checkpoint": checkpoint,
         "merge_result": merge_result,
     }
     if merge_result["returncode"] != 0:
@@ -1208,11 +1217,15 @@ def _merge_successful_worker(
     staged_changed = _git(repo_root, ["diff", "--cached", "--quiet"])
     worktree_changed = _git(repo_root, ["diff", "--quiet"])
     if staged_changed["returncode"] == 0 and worktree_changed["returncode"] == 0:
+        abort = _git(repo_root, ["merge", "--abort"])
         merge_payload.update(
             {
-                "status": "merged",
-                "message": "branch was already represented on base after validation",
+                "status": "failed",
+                "message": (
+                    "worker branch produced no merge changes after validation; refusing to mark task merged"
+                ),
                 "commit": _rev_parse(repo_root, "HEAD"),
+                "abort": abort,
             }
         )
         return merge_payload
@@ -1237,6 +1250,98 @@ def _merge_successful_worker(
         }
     )
     return merge_payload
+
+
+def _checkpoint_worker_branch(repo_root: Path, worker: dict[str, Any]) -> dict[str, Any]:
+    worktree = Path(str(worker.get("worktree_path") or ""))
+    branch = str(worker.get("branch") or "")
+    task_id = str(worker.get("task_id") or "unknown-task")
+    if not worktree.exists():
+        return {
+            "status": "failed",
+            "message": f"worker worktree does not exist: {worktree}",
+            "worktree_path": str(worktree),
+            "branch": branch,
+        }
+
+    status_result = _git(worktree, ["status", "--porcelain", "--untracked-files=all"])
+    if status_result["returncode"] != 0:
+        return {
+            "status": "failed",
+            "message": "could not inspect worker worktree status",
+            "worktree_path": str(worktree),
+            "branch": branch,
+            "status_result": status_result,
+        }
+    dirty_lines = [line for line in status_result["stdout"].splitlines() if line.strip()]
+    if dirty_lines:
+        add_result = _git(worktree, ["add", "--all"])
+        if add_result["returncode"] != 0:
+            return {
+                "status": "failed",
+                "message": "could not stage worker changes before merge",
+                "worktree_path": str(worktree),
+                "branch": branch,
+                "dirty_paths": dirty_lines,
+                "add_result": add_result,
+            }
+        commit_result = _git(worktree, ["commit", "-m", f"chore(engineering): complete {task_id}"])
+        if commit_result["returncode"] != 0:
+            return {
+                "status": "failed",
+                "message": "could not checkpoint worker changes before merge",
+                "worktree_path": str(worktree),
+                "branch": branch,
+                "dirty_paths": dirty_lines,
+                "commit_result": commit_result,
+                "status_after": _git(worktree, ["status", "--porcelain", "--untracked-files=all"]),
+            }
+        return {
+            "status": "checkpointed",
+            "message": "worker dirty changes committed before merge",
+            "worktree_path": str(worktree),
+            "branch": branch,
+            "dirty_paths": dirty_lines,
+            "commit_result": commit_result,
+            "commit": _rev_parse(repo_root, branch),
+            "ahead_count": _branch_ahead_count(repo_root, branch),
+        }
+
+    ahead_count = _branch_ahead_count(repo_root, branch)
+    if ahead_count <= 0:
+        return {
+            "status": "failed",
+            "message": (
+                "worker branch has no commits ahead of current base and no dirty changes; "
+                "refusing to treat executor success as a merged implementation"
+            ),
+            "worktree_path": str(worktree),
+            "branch": branch,
+            "dirty_paths": [],
+            "ahead_count": ahead_count,
+            "base_commit": _rev_parse(repo_root, "HEAD"),
+            "branch_commit": _rev_parse(repo_root, branch),
+        }
+    return {
+        "status": "ready",
+        "message": "worker branch has committed changes ready to merge",
+        "worktree_path": str(worktree),
+        "branch": branch,
+        "dirty_paths": [],
+        "ahead_count": ahead_count,
+        "base_commit": _rev_parse(repo_root, "HEAD"),
+        "branch_commit": _rev_parse(repo_root, branch),
+    }
+
+
+def _branch_ahead_count(repo_root: Path, branch: str) -> int:
+    result = _git(repo_root, ["rev-list", "--count", f"HEAD..{branch}"])
+    if result["returncode"] != 0:
+        return 0
+    try:
+        return int(result["stdout"].strip() or "0")
+    except ValueError:
+        return 0
 
 
 def _validate_merge(
