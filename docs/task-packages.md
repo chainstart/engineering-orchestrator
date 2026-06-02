@@ -170,6 +170,34 @@ supervisor_policy:
 Sensitive tasks should prefer small sequential execution over broad parallel
 execution unless the merge and rollback boundaries are explicit.
 
+### Time Budget Requirements
+
+Task authors must set realistic execution time budgets. The orchestrator default
+timeout is only a safety fallback for small tasks; it is not an appropriate
+budget for cross-cutting implementation work.
+
+Rules:
+
+- Do not rely on the default `900` second timeout for agent implementation commands unless the task is clearly small.
+- Every `codex`, `openhands`, or other agent executor command should set an explicit `timeout_seconds`.
+- If the author cannot confidently estimate the task size, choose a larger budget instead of risking a premature timeout.
+- Large tasks should still be split when they have independent file scopes, but splitting is not a substitute for giving each slice enough runtime.
+- The drive-level `time_budget_seconds` should be larger than the largest worker timeout plus acceptance, merge, retry, and supervisor overhead.
+
+Recommended minimums:
+
+| Task type | Suggested implementation timeout |
+| --- | ---: |
+| Docs-only or ledger-only update | `1800` seconds |
+| Small focused code change | `3600` seconds |
+| Cross-cutting backend / frontend / tests task | `7200` seconds |
+| Production runtime, storage, deployment, or broad refactor task | `10800` seconds |
+| Unknown or hard-to-estimate agent task | at least `7200` seconds |
+
+If a task times out after producing useful changes, treat the timeout as a task
+package sizing problem first: inspect the worktree diff, salvage or commit useful
+work, then either raise the timeout or split the task before retrying.
+
 ### Status Synchronization
 
 After a successful non-dry-run task, Engineering Orchestrator records completion
