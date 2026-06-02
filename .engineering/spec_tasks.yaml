@@ -109,6 +109,11 @@
       "id": "EH-SPEC-017",
       "title": "Native parallel development orchestration",
       "status": "planned"
+    },
+    {
+      "id": "EH-SPEC-018",
+      "title": "Supervisor Codex role and gated drive decisions",
+      "status": "planned"
     }
   ],
   "tasks": [
@@ -298,6 +303,105 @@
           "actor": "engineering-harness"
         }
       ]
+    },
+    {
+      "id": "EO-SUP-001",
+      "title": "Specify supervisor Codex role and gated-drive boundaries",
+      "status": "completed",
+      "requirement_ids": [
+        "EH-SPEC-003",
+        "EH-SPEC-005",
+        "EH-SPEC-006",
+        "EH-SPEC-008",
+        "EH-SPEC-010",
+        "EH-SPEC-011",
+        "EH-SPEC-013",
+        "EH-SPEC-017",
+        "EH-SPEC-018"
+      ],
+      "roadmap_task_id": "supervisor-role-spec",
+      "evidence": [
+        {
+          "kind": "doc",
+          "path": "docs/engineering-orchestrator-system-spec.md"
+        },
+        {
+          "kind": "doc",
+          "path": "docs/spec-driven-development-plan.md"
+        },
+        {
+          "kind": "doc",
+          "path": "docs/task-packages.md"
+        }
+      ],
+      "next_action": "Use EO-SUP-002 through EO-SUP-006 to implement supervisor context packs, decisions, gated drive integration, safe roadmap mutation, and tests."
+    },
+    {
+      "id": "EO-SUP-002",
+      "title": "Implement supervisor context pack",
+      "status": "pending",
+      "requirement_ids": [
+        "EH-SPEC-005",
+        "EH-SPEC-006",
+        "EH-SPEC-008",
+        "EH-SPEC-018"
+      ],
+      "roadmap_task_id": "supervisor-context-pack",
+      "next_action": "Build bounded local supervisor context from roadmap state, manifests, reports, git summaries, docs/spec sync results, pending task metadata, and gate reason."
+    },
+    {
+      "id": "EO-SUP-003",
+      "title": "Implement supervisor decision schema and validation",
+      "status": "pending",
+      "requirement_ids": [
+        "EH-SPEC-008",
+        "EH-SPEC-010",
+        "EH-SPEC-011",
+        "EH-SPEC-018"
+      ],
+      "roadmap_task_id": "supervisor-decision-schema",
+      "next_action": "Add supervisor_decision.v1 schema, safety classification, validation, persistence, and rejection paths for unsafe or unsupported actions."
+    },
+    {
+      "id": "EO-SUP-004",
+      "title": "Integrate supervisor gates into drive and parallel-drive",
+      "status": "pending",
+      "requirement_ids": [
+        "EH-SPEC-003",
+        "EH-SPEC-006",
+        "EH-SPEC-011",
+        "EH-SPEC-017",
+        "EH-SPEC-018"
+      ],
+      "roadmap_task_id": "supervisor-gated-drive-integration",
+      "next_action": "Invoke supervisor decisions after configured gates such as failed task, blocked task, milestone completion, deployment-sensitive gate, or explicit operator request."
+    },
+    {
+      "id": "EO-SUP-005",
+      "title": "Implement safe supervisor roadmap and queue mutation",
+      "status": "pending",
+      "requirement_ids": [
+        "EH-SPEC-002",
+        "EH-SPEC-008",
+        "EH-SPEC-010",
+        "EH-SPEC-013",
+        "EH-SPEC-018"
+      ],
+      "roadmap_task_id": "supervisor-safe-roadmap-mutation",
+      "next_action": "Allow low-risk queue changes from validated supervisor decisions while requiring explicit approval for deletion, architecture changes, deployment, secrets, or live production actions."
+    },
+    {
+      "id": "EO-SUP-006",
+      "title": "Add supervisor tests and runbook",
+      "status": "pending",
+      "requirement_ids": [
+        "EH-SPEC-007",
+        "EH-SPEC-008",
+        "EH-SPEC-011",
+        "EH-SPEC-018"
+      ],
+      "roadmap_task_id": "supervisor-tests-and-runbook",
+      "next_action": "Add tests and operator runbook for success, failure, blocked task, milestone completion, deployment gate, task reorder, unsafe decision rejection, and bounded recursion."
     }
   ]
 }

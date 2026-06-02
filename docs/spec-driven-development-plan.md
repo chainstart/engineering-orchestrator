@@ -247,6 +247,47 @@ Acceptance:
 - The orchestrator refuses to mark architecture or deployment status complete unless the task evidence
   explicitly supports that status.
 
+## Stage 9: Supervisor Codex Role And Gated Drive Decisions
+
+Requirement refs:
+
+- `EH-SPEC-003`
+- `EH-SPEC-005`
+- `EH-SPEC-006`
+- `EH-SPEC-008`
+- `EH-SPEC-010`
+- `EH-SPEC-011`
+- `EH-SPEC-013`
+- `EH-SPEC-017`
+- `EH-SPEC-018`
+
+Goal:
+
+Add a bounded supervisor coding-agent role that evaluates completed or failed work, decides whether the
+next task package remains valid, and proposes safe queue changes at configured gates. This replaces
+external watcher/handoff scripts for ordinary orchestration supervision while keeping concrete code
+edits inside worker tasks.
+
+Tasks:
+
+1. Define the supervisor role, trigger conditions, safety boundaries, and decision vocabulary.
+2. Build a supervisor context pack from manifests, reports, roadmap state, git summaries, sync evidence,
+   pending task metadata, and gate reason.
+3. Add a `supervisor_decision.v1` schema with deterministic validation and safety classification.
+4. Integrate supervisor gates into `drive` and `parallel-drive`.
+5. Add safe roadmap / queue mutation support for low-risk decisions and explicit approval requirements
+   for high-risk changes.
+6. Add tests and runbook coverage for failure, milestone completion, deployment gate, and task reordering
+   scenarios.
+
+Acceptance:
+
+- Worker executors still own implementation; supervisor executors do not directly edit business code.
+- Supervisor decisions are persisted as auditable artifacts.
+- Invalid or unsafe decisions are rejected before mutating the queue.
+- Gated drives can continue, pause, retry, request human review, or enter deployment audit based on
+  structured local evidence.
+
 ## Current Implementation Target
 
 Stages 1 and 2 establish traceability and the canonical spec index. Stage 3 starts with the local
@@ -261,4 +302,6 @@ Stage 7 adds target-project spec synchronization so Engineering Orchestrator can
 repository's own dynamic spec ledger after task or stage completion. Stage 8 extends that idea from a
 machine ledger to the target repository's documentation hierarchy: architecture blueprints remain the
 total goal, roadmaps remain implementation plans, specs remain sub-plans and requirement sources, and
-task packages / engineering roadmaps remain the smallest executable work units.
+task packages / engineering roadmaps remain the smallest executable work units. Stage 9 adds a
+supervisor coding-agent role inside the orchestrator control plane so long sequences can be evaluated at
+gates and safely re-planned without relying on a transient chat session or an external watcher.

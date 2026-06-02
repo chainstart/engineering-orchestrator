@@ -286,6 +286,35 @@ Acceptance evidence:
 - Blocked or failed tasks do not block unrelated queued tasks, but their branches, reports, and state are retained for review.
 - A parallel run is resumable from durable state and can continue dispatching the next backlog task when a worker completes.
 
+### EH-SPEC-018: Supervisor Codex Role And Gated Drive Decisions
+
+The orchestrator must support a supervisor coding-agent role that evaluates task results and planning
+gates without doing concrete implementation work. Worker coding-agent processes edit files, run
+commands, and satisfy task packages. The supervisor coding-agent reads bounded orchestration context,
+task manifests, reports, roadmap state, docs-sync/spec-sync evidence, git summaries, and pending task
+metadata, then returns a structured decision that the orchestrator core validates before changing the
+queue.
+
+The supervisor role exists to make long task sequences adaptive without relying on a transient chat
+session, an external watcher, or unbounded self-iteration. It should be invoked only at configured gates:
+task failure or blocked state, milestone completion, deployment or secret-sensitive gates, completion of
+a declared quality gate, roadmap/spec inconsistency, budget/risk thresholds, or explicit operator
+request.
+
+Acceptance evidence:
+
+- The orchestrator can build a bounded supervisor context pack from local evidence only.
+- A supervisor decision schema validates actions such as `continue`, `pause`, `retry`, `repair_task_package`,
+  `split_task`, `merge_tasks`, `drop_task`, `create_followup_tasks`, `request_human_review`, and
+  `enter_deployment_audit`.
+- Drive and parallel-drive can invoke the supervisor at declared gates and record the decision in
+  manifests or drive reports.
+- Low-risk queue decisions can be applied automatically; high-risk changes such as deleting tasks,
+  changing architecture goals, deployment actions, secret handling, or live production mutations require
+  explicit approval.
+- Supervisor processes cannot directly edit project business code, cannot mark failed tests as passed,
+  and cannot recursively call themselves without bounded iteration limits.
+
 ## Nonfunctional Requirements
 
 - **Local-first**: workflows must be runnable on a developer machine before they are delegated to
@@ -403,3 +432,37 @@ engo docs-sync record --project-root /path/to/target \
 Documentation synchronization only writes bounded managed evidence blocks and machine-readable update
 logs automatically. Architecture blueprints, canonical specs, roadmap intent, and decision records are
 reported as manual-review targets unless the implementation task explicitly calls for those changes.
+
+## Supervisor Role Contract
+
+The supervisor is not a worker executor. It is a planning and governance role inside the orchestrator
+control plane.
+
+Supervisor input:
+
+- active objective and roadmap summary;
+- recently completed, failed, blocked, or merged task reports;
+- bounded git status and diff summary;
+- manifest index and relevant task manifests;
+- docs-sync and spec-sync results;
+- pending tasks, dependencies, file scopes, and risk metadata;
+- configured gate reason, for example milestone completion or deployment audit.
+
+Supervisor output must be a structured `engineering-orchestrator.supervisor-decision.v1` document:
+
+```json
+{
+  "kind": "engineering-orchestrator.supervisor-decision.v1",
+  "decision": "continue",
+  "approved_next_tasks": ["example-next-task"],
+  "blocked_tasks": [],
+  "tasks_to_rewrite": [],
+  "requires_human": false,
+  "reason": "Local evidence supports continuing to the next queued task.",
+  "evidence": [".engineering/reports/tasks/example.json"]
+}
+```
+
+The orchestrator core owns validation and application. The supervisor may propose roadmap changes, but
+the core must reject invalid schema, unsafe actions, missing evidence, unapproved high-risk changes, and
+unbounded recursion.

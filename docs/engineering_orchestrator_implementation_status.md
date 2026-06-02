@@ -32,6 +32,8 @@ Decision records: `docs/decisions/`
 | `EH-SPEC-014` | `partial` | English docs and public positioning | packaging/release polish remains | prepare public release checklist |
 | `EH-SPEC-015` | `completed` | `spec_sync.py`, `engo spec-sync audit/record`, tests | optional deeper markdown status mutation | use JSONL + task ledger as source of truth |
 | `EH-SPEC-016` | `completed` | `docs_sync.py`, `engo docs-sync audit/propose/record`, post-task manifest/report evidence, `tests/test_docs_sync.py` | richer target-specific Markdown transforms remain future work | use docs-sync with declared target documentation roles |
+| `EH-SPEC-017` | `planned` | native parallel orchestration spec and roadmap task package | implementation remains future work | implement native parallel drive |
+| `EH-SPEC-018` | `planned` | supervisor role spec and task package plan | context pack, decision schema, gated drive integration, safe queue mutation, and tests remain future work | implement EO-SUP-002 through EO-SUP-006 |
 | `EO-SPEC-001` | `completed` | canonical source package `engineering_orchestrator`, compatibility package `engineering_harness`, `engo` / `engh`, README/spec/tests | GitHub repository and historical schema/state migration remain separate compatibility-window work | keep compatibility tests until a removal plan exists |
 
 ## Maintenance Rules

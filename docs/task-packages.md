@@ -11,6 +11,12 @@ This document mirrors the target task package state that is also tracked in
 | `EH-DOC-SYNC-001` | `documentation role contract` | `completed` | target documentation role contract | `docs/engineering-orchestrator-system-spec.md`, decision record |
 | `EH-DOC-SYNC-002` | `engineering-orchestrator-target-docs-sync-implementation` | `completed` | docs-sync audit, propose, record, and post-task evidence | targeted docs-sync tests, roadmap validation, command evidence |
 | `EH-PARALLEL-DRIVE-001` | `engineering-orchestrator-native-parallel-drive` | `planned` | native parallel drive orchestration | future task |
+| `EO-SUP-001` | `supervisor-role-spec` | `completed` | supervisor role, boundaries, trigger conditions, and task package plan | `docs/engineering-orchestrator-system-spec.md`, `docs/spec-driven-development-plan.md` |
+| `EO-SUP-002` | `supervisor-context-pack` | `pending` | bounded supervisor context pack | future task |
+| `EO-SUP-003` | `supervisor-decision-schema` | `pending` | `supervisor_decision.v1` schema and validation | future task |
+| `EO-SUP-004` | `supervisor-gated-drive-integration` | `pending` | drive / parallel-drive supervisor gate integration | future task |
+| `EO-SUP-005` | `supervisor-safe-roadmap-mutation` | `pending` | safe queue and roadmap mutation proposals | future task |
+| `EO-SUP-006` | `supervisor-tests-and-runbook` | `pending` | tests, reports, and operator runbook | future task |
 
 <!-- engineering-orchestrator:docs-sync:start -->
 ## Engineering Orchestrator Documentation Sync

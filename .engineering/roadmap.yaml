@@ -487,6 +487,296 @@
       ]
     },
     {
+      "id": "supervisor-codex-gated-drive",
+      "title": "Supervisor Codex Gated Drive",
+      "status": "planned",
+      "objective": "Add a supervisor coding-agent role that evaluates worker results and gated orchestration decisions without doing implementation work.",
+      "tasks": [
+        {
+          "id": "supervisor-role-spec",
+          "title": "Specify supervisor role boundaries",
+          "status": "completed",
+          "max_attempts": 1,
+          "spec_refs": [
+            "EH-SPEC-018"
+          ],
+          "file_scope": [
+            "docs/**",
+            ".engineering/**"
+          ],
+          "acceptance": [
+            {
+              "name": "supervisor role spec evidence",
+              "command": "rg -n \"EH-SPEC-018|Supervisor Codex|supervisor-decision|supervisor context|supervisor gate\" docs .engineering",
+              "required": true,
+              "timeout_seconds": 60,
+              "spec_refs": [
+                "EH-SPEC-018"
+              ]
+            }
+          ],
+          "completion_note": "Supervisor role, context, decision vocabulary, safety boundaries, and implementation task packages were specified manually."
+        },
+        {
+          "id": "supervisor-context-pack",
+          "title": "Build bounded supervisor context packs",
+          "status": "pending",
+          "max_attempts": 2,
+          "max_task_iterations": 2,
+          "spec_refs": [
+            "EH-SPEC-005",
+            "EH-SPEC-006",
+            "EH-SPEC-008",
+            "EH-SPEC-018"
+          ],
+          "file_scope": [
+            "src/engineering_orchestrator/**",
+            "tests/**",
+            "docs/**",
+            ".engineering/**"
+          ],
+          "implementation": [
+            {
+              "name": "implement supervisor context pack",
+              "executor": "codex",
+              "model": "gpt-5.5",
+              "timeout_seconds": 3600,
+              "spec_refs": [
+                "EH-SPEC-018"
+              ],
+              "prompt": "Implement supervisor-context-pack only. Read EH-SPEC-018 in docs/engineering-orchestrator-system-spec.md. Add a bounded local supervisor context pack builder that summarizes current objective, roadmap state, pending tasks, latest manifests/reports, docs-sync/spec-sync evidence, git status/diff summary, failure or gate reason, and risk metadata. Cap counts and text sizes, redact secrets, persist the context pack as an auditable artifact, and keep it local-only. Do not implement supervisor decisions or drive integration in this task."
+            }
+          ],
+          "acceptance": [
+            {
+              "name": "supervisor context tests",
+              "command": "python3 -m pytest tests -q -k 'supervisor and context'",
+              "required": true,
+              "timeout_seconds": 900,
+              "spec_refs": [
+                "EH-SPEC-018"
+              ]
+            },
+            {
+              "name": "supervisor context evidence",
+              "command": "rg -n \"supervisor context|supervisor_context|gate reason|docs_sync|spec_sync\" src tests docs .engineering",
+              "required": true,
+              "timeout_seconds": 60,
+              "spec_refs": [
+                "EH-SPEC-018"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "supervisor-decision-schema",
+          "title": "Add supervisor decision schema and validation",
+          "status": "pending",
+          "max_attempts": 2,
+          "max_task_iterations": 2,
+          "spec_refs": [
+            "EH-SPEC-008",
+            "EH-SPEC-010",
+            "EH-SPEC-011",
+            "EH-SPEC-018"
+          ],
+          "file_scope": [
+            "src/engineering_orchestrator/**",
+            "tests/**",
+            "docs/**",
+            ".engineering/**"
+          ],
+          "implementation": [
+            {
+              "name": "implement supervisor decision schema",
+              "executor": "codex",
+              "model": "gpt-5.5",
+              "timeout_seconds": 3600,
+              "spec_refs": [
+                "EH-SPEC-018"
+              ],
+              "prompt": "Implement supervisor-decision-schema only. Add a structured engineering-orchestrator.supervisor-decision.v1 model and validator for decisions continue, pause, retry, repair_task_package, split_task, merge_tasks, drop_task, create_followup_tasks, request_human_review, and enter_deployment_audit. Validate evidence, approved_next_tasks, blocked_tasks, tasks_to_rewrite, requires_human, safety classification, and unsupported/high-risk actions. Persist accepted or rejected decisions in reports/manifests as local evidence. Do not integrate drive scheduling yet."
+            }
+          ],
+          "acceptance": [
+            {
+              "name": "supervisor decision tests",
+              "command": "python3 -m pytest tests -q -k 'supervisor and decision'",
+              "required": true,
+              "timeout_seconds": 900,
+              "spec_refs": [
+                "EH-SPEC-018"
+              ]
+            },
+            {
+              "name": "supervisor decision evidence",
+              "command": "rg -n \"supervisor-decision|supervisor_decision|request_human_review|enter_deployment_audit|create_followup_tasks\" src tests docs .engineering",
+              "required": true,
+              "timeout_seconds": 60,
+              "spec_refs": [
+                "EH-SPEC-018"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "supervisor-gated-drive-integration",
+          "title": "Integrate supervisor gates into drive and parallel-drive",
+          "status": "pending",
+          "max_attempts": 2,
+          "max_task_iterations": 2,
+          "spec_refs": [
+            "EH-SPEC-003",
+            "EH-SPEC-006",
+            "EH-SPEC-011",
+            "EH-SPEC-017",
+            "EH-SPEC-018"
+          ],
+          "file_scope": [
+            "src/engineering_orchestrator/**",
+            "tests/**",
+            "docs/**",
+            ".engineering/**"
+          ],
+          "implementation": [
+            {
+              "name": "integrate supervisor gates",
+              "executor": "codex",
+              "model": "gpt-5.5",
+              "timeout_seconds": 4200,
+              "spec_refs": [
+                "EH-SPEC-018"
+              ],
+              "prompt": "Implement supervisor-gated-drive-integration only. Add explicit supervisor gate support to drive and parallel-drive using existing context pack and decision schema. Gates should be configurable for failed task, blocked task, milestone completion, declared deployment-sensitive task, quality-gate completion, budget/risk threshold, and explicit operator request. A gate records context path, decision path, applied/skipped status, and reason in drive reports. Keep worker execution unchanged and do not let supervisor edit business code."
+            }
+          ],
+          "acceptance": [
+            {
+              "name": "supervisor gated drive tests",
+              "command": "python3 -m pytest tests -q -k 'supervisor and (drive or parallel or gate)'",
+              "required": true,
+              "timeout_seconds": 1200,
+              "spec_refs": [
+                "EH-SPEC-018"
+              ]
+            },
+            {
+              "name": "supervisor gate evidence",
+              "command": "rg -n \"supervisor gate|supervisor_gate|parallel-drive|drive report|quality-gate\" src tests docs .engineering",
+              "required": true,
+              "timeout_seconds": 60,
+              "spec_refs": [
+                "EH-SPEC-018"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "supervisor-safe-roadmap-mutation",
+          "title": "Apply safe supervisor queue and roadmap mutations",
+          "status": "pending",
+          "max_attempts": 2,
+          "max_task_iterations": 2,
+          "spec_refs": [
+            "EH-SPEC-002",
+            "EH-SPEC-008",
+            "EH-SPEC-010",
+            "EH-SPEC-013",
+            "EH-SPEC-018"
+          ],
+          "file_scope": [
+            "src/engineering_orchestrator/**",
+            "tests/**",
+            "docs/**",
+            ".engineering/**"
+          ],
+          "implementation": [
+            {
+              "name": "implement safe supervisor roadmap mutation",
+              "executor": "codex",
+              "model": "gpt-5.5",
+              "timeout_seconds": 4200,
+              "spec_refs": [
+                "EH-SPEC-018"
+              ],
+              "prompt": "Implement supervisor-safe-roadmap-mutation only. Let validated supervisor decisions propose or apply low-risk queue changes such as continue, pause, retry, and approved next task order. High-risk actions such as drop_task, architecture goal changes, deployment actions, secret handling, live production mutation, destructive git, and broad roadmap rewrites must require explicit approval and must not be auto-applied. Record applied and rejected mutations in manifests/reports. Preserve existing validation and dirty-worktree protections."
+            }
+          ],
+          "acceptance": [
+            {
+              "name": "supervisor roadmap mutation tests",
+              "command": "python3 -m pytest tests -q -k 'supervisor and (mutation or roadmap or queue or approval)'",
+              "required": true,
+              "timeout_seconds": 1200,
+              "spec_refs": [
+                "EH-SPEC-018"
+              ]
+            },
+            {
+              "name": "supervisor mutation evidence",
+              "command": "rg -n \"supervisor mutation|requires_human|drop_task|approved_next_tasks|unsafe supervisor\" src tests docs .engineering",
+              "required": true,
+              "timeout_seconds": 60,
+              "spec_refs": [
+                "EH-SPEC-018"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "supervisor-tests-and-runbook",
+          "title": "Add supervisor tests and operator runbook",
+          "status": "pending",
+          "max_attempts": 2,
+          "max_task_iterations": 2,
+          "spec_refs": [
+            "EH-SPEC-007",
+            "EH-SPEC-008",
+            "EH-SPEC-011",
+            "EH-SPEC-018"
+          ],
+          "file_scope": [
+            "src/engineering_orchestrator/**",
+            "tests/**",
+            "docs/**",
+            ".engineering/**"
+          ],
+          "implementation": [
+            {
+              "name": "add supervisor tests and runbook",
+              "executor": "codex",
+              "model": "gpt-5.5",
+              "timeout_seconds": 3600,
+              "spec_refs": [
+                "EH-SPEC-018"
+              ],
+              "prompt": "Implement supervisor-tests-and-runbook only. Add focused tests and operator documentation for supervisor success, failed task, blocked task, milestone completion, deployment gate, task reordering, unsafe decision rejection, missing evidence, and bounded recursion. Update task package, traceability, and implementation status docs. Do not add new supervisor behavior beyond tests/docs unless needed to make the existing supervisor implementation observable."
+            }
+          ],
+          "acceptance": [
+            {
+              "name": "supervisor full tests",
+              "command": "python3 -m pytest tests -q -k 'supervisor'",
+              "required": true,
+              "timeout_seconds": 1500,
+              "spec_refs": [
+                "EH-SPEC-018"
+              ]
+            },
+            {
+              "name": "supervisor runbook evidence",
+              "command": "rg -n \"Supervisor Codex|supervisor role|supervisor gate|supervisor decision|bounded recursion\" docs src tests .engineering",
+              "required": true,
+              "timeout_seconds": 60,
+              "spec_refs": [
+                "EH-SPEC-018"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "baseline",
       "title": "Project Baseline",
       "status": "active",
