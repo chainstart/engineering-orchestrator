@@ -489,7 +489,7 @@
     {
       "id": "supervisor-codex-gated-drive",
       "title": "Supervisor Codex Gated Drive",
-      "status": "planned",
+      "status": "completed",
       "objective": "Add a supervisor coding-agent role that evaluates worker results and gated orchestration decisions without doing implementation work.",
       "tasks": [
         {
@@ -520,7 +520,7 @@
         {
           "id": "supervisor-context-pack",
           "title": "Build bounded supervisor context packs",
-          "status": "pending",
+          "status": "completed",
           "max_attempts": 2,
           "max_task_iterations": 2,
           "spec_refs": [
@@ -571,7 +571,7 @@
         {
           "id": "supervisor-decision-schema",
           "title": "Add supervisor decision schema and validation",
-          "status": "pending",
+          "status": "completed",
           "max_attempts": 2,
           "max_task_iterations": 2,
           "spec_refs": [
@@ -622,7 +622,7 @@
         {
           "id": "supervisor-gated-drive-integration",
           "title": "Integrate supervisor gates into drive and parallel-drive",
-          "status": "pending",
+          "status": "completed",
           "max_attempts": 2,
           "max_task_iterations": 2,
           "spec_refs": [
@@ -674,7 +674,7 @@
         {
           "id": "supervisor-safe-roadmap-mutation",
           "title": "Apply safe supervisor queue and roadmap mutations",
-          "status": "pending",
+          "status": "completed",
           "max_attempts": 2,
           "max_task_iterations": 2,
           "spec_refs": [
@@ -726,7 +726,7 @@
         {
           "id": "supervisor-tests-and-runbook",
           "title": "Add supervisor tests and operator runbook",
-          "status": "pending",
+          "status": "completed",
           "max_attempts": 2,
           "max_task_iterations": 2,
           "spec_refs": [
